@@ -4,10 +4,7 @@ from googletrans import Translator
 def get_word_details(word):
     # Gọi API để lấy dữ liệu
     url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
-    response = requests.get(url, headers=headers)
+    response = requests.get(url)
     
     if response.status_code != 200:
         return {"error": "Không tìm thấy từ hoặc lỗi API"}
