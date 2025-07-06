@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Learn English</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+        <h1>Welcome to Learn English!</h1>
+        <p>This is where your learning journey begins.</p>
+
+        <h2>Import Flashcards</h2>
+        <div id="import-section">
+            <textarea id="flashcard-input" placeholder="Enter flashcards here (e.g., [\"word\", \"meaning\"])" rows="10" cols="50"></textarea>
+            <br>
+            <button id="import-button">Import Flashcards</button>
+            <p id="import-message"></p>
+        </div>
+
+        <h2>Add New Flashcards</h2>
+        <div id="add-card-section">
+            <div id="new-flashcards-container">
+                <!-- New flashcard entry templates will be added here by JavaScript -->
+            </div>
+            <button id="add-new-card-button">+ Add New Card</button>
+            <button id="save-all-cards-button" style="display: none;">Save All Cards</button>
+            <p id="add-card-message"></p>
+        </div>
+
+        <h2>Start Learning</h2>
+        <div id="learning-section">
+            <label for="daily-limit">Flashcards per session:</label>
+            <input type="number" id="daily-limit" value="10" min="1">
+            
+            <div class="learning-modes">
+                <label>Select Mode:</label>
+                <input type="radio" id="viet-to-eng" name="learningMode" value="vietToEng" checked>
+                <label for="viet-to-eng">Vietnamese to English</label>
+                <input type="radio" id="eng-to-viet" name="learningMode" value="engToViet">
+                <label for="eng-to-viet">English to Vietnamese</label>
+            </div>
+
+            <button id="start-learning-button">Start Learning Session</button>
+            <div id="flashcard-display">
+                <p id="vietnamese-meaning"></p>
+                <img id="flashcard-image" src="" alt="Flashcard Image" style="display: none;">
+                <input type="text" id="english-input" placeholder="Type English word">
+                <button id="hint-button">Hint</button>
+                <p id="hint-display" style="color: gray;"></p>
+                <button id="check-button">Check Answer</button>
+                <p id="feedback-message"></p>
+                <button id="next-button" style="display: none;">Next Flashcard</button>
+            </div>
+            <p id="learning-message"></p>
+        </div>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
