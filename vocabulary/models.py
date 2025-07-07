@@ -3,6 +3,8 @@ from django.db import models
 class Flashcard(models.Model):
     word = models.CharField(max_length=255, unique=True)
     part_of_speech = models.CharField(max_length=50, blank=True, null=True)
+    audio_url = models.URLField(max_length=500, blank=True, null=True)
+    image = models.ImageField(upload_to='flashcard_images/', blank=True, null=True)
     general_synonyms = models.TextField(blank=True, null=True, help_text="Comma-separated list of general synonyms")
     general_antonyms = models.TextField(blank=True, null=True, help_text="Comma-separated list of general antonyms")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -12,14 +14,6 @@ class Flashcard(models.Model):
 
     class Meta:
         ordering = ['word']
-
-class Pronunciation(models.Model):
-    flashcard = models.ForeignKey(Flashcard, related_name='pronunciations', on_delete=models.CASCADE)
-    text = models.CharField(max_length=255)
-    audio_url = models.URLField(max_length=500, blank=True, null=True)
-
-    def __str__(self):
-        return f"{self.flashcard.word} - {self.text}"
 
 class Definition(models.Model):
     flashcard = models.ForeignKey(Flashcard, related_name='definitions', on_delete=models.CASCADE)

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Learn Vocabulary{% endblock %}</title>
+    <style>
+        body { background: #18182f; color: #fff; font-family: 'Segoe UI', Arial, sans-serif; margin: 0; }
+        .container { max-width: 900px; margin: 32px auto; background: #232345; border-radius: 12px; padding: 32px; }
+        a.button { display: inline-block; padding: 8px 20px; background: #2196f3; color: #fff; border-radius: 6px; text-decoration: none; margin: 8px 0; }
+        a.button:hover { background: #1976d2; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html> 

@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thêm Flashcard Mới</title>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
         body {
             background-color: #1a1a2e; /* Dark background */
@@ -28,6 +29,14 @@
             padding: 20px;
             margin-bottom: 20px;
             position: relative;
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+        .flashcard-section.sortable-chosen {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            background: #f0f8ff;
+        }
+        .flashcard-section.sortable-ghost {
+            opacity: 0.5;
         }
         .flashcard-header {
             display: flex;
@@ -93,15 +102,27 @@
             color: #b0b0b0;
             font-size: 0.8em;
             margin-left: 20px; /* Align with input-group */
+            position: relative;
+            overflow: hidden;
         }
-        .image-upload:hover {
-            border-color: #6a6a90;
+        .image-upload img.preview {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 5px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            object-fit: cover;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
         }
-        .image-upload svg {
-            width: 30px;
-            height: 30px;
-            fill: #b0b0b0;
-            margin-bottom: 5px;
+        .image-upload .image-upload-content {
+            z-index: 3;
+            position: relative;
+        }
+        .image-upload input[type="file"] {
+            display: none;
         }
         .button-group {
             display: flex;
@@ -232,16 +253,41 @@
             font-size: 0.9em;
             margin-bottom: 5px;
         }
+        .definition-suggestions {
+            position: absolute;
+            left: 0; right: 0;
+            background: #2c2c4a;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px #0003;
+            z-index: 10;
+            margin-top: 2px;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .definition-suggestion-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid #35355a;
+            color: #fff;
+        }
+        .definition-suggestion-item:last-child { border-bottom: none; }
+        .definition-suggestion-item:hover { background: #3a3a5a; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="flashcard-section">
+    <div class="container" id="flashcardContainer">
+        <div class="flashcard-section" data-card-index="1">
             <div class="flashcard-header">
-                <span>1</span>
+                <span class="card-number">1</span>
                 <div class="actions">
-                    <button class="action-icon">=</button>
-                    <button class="action-icon">🗑️</button>
+                    <button class="action-icon delete-card-btn" title="Xóa thẻ">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
+                            <line x1="10" y1="11" x2="10" y2="17"/>
+                            <line x1="14" y1="11" x2="14" y2="17"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
             <div style="display: flex; align-items: flex-end;">
@@ -256,48 +302,28 @@
                         <textarea id="definition1" name="definition1"></textarea>
                     </div>
                 </div>
-                <div class="image-upload">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4.85 6.15l-3.3-3.3c-.2-.2-.5-.3-.75-.3s-.55.1-.75.3L6 11.15V15h8.4L19 10.45l-3.3-3.3c-.2-.2-.5-.3-.75-.3s-.55.1-.75.3z"/></svg>
-                    <span>Hình ảnh</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="flashcard-section">
-            <div class="flashcard-header">
-                <span>2</span>
-                <div class="actions">
-                    <button class="action-icon">=</button>
-                    <button class="action-icon">🗑️</button>
-                </div>
-            </div>
-            <div style="display: flex; align-items: flex-end;">
-                <div class="input-group" style="flex-grow: 1;">
-                    <div class="input-field">
-                        <label for="term2">THUẬT NGỮ</label>
-                        <input type="text" id="term2" name="term2" class="term-input">
-                        <div id="suggestions2" class="suggestions-list" style="display: none;"></div>
-                    </div>
-                    <div class="input-field">
-                        <label for="definition2">ĐỊNH NGHĨA</label>
-                        <textarea id="definition2" name="definition2"></textarea>
+                <div class="image-upload" id="imageUpload1">
+                    <input type="file" accept="image/*" id="fileInput1">
+                    <img class="preview" id="imgPreview1" style="display:none;" />
+                    <button type="button" id="deleteImg1" style="position:absolute;top:2px;right:2px;z-index:4;background:rgba(0,0,0,0.3);border:none;border-radius:50%;color:#fff;font-size:16px;cursor:pointer;width:22px;height:22px;display:none;align-items:center;justify-content:center;line-height:18px;padding:0;">&times;</button>
+                    <div class="image-upload-content">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4.85 6.15l-3.3-3.3c-.2-.2-.5-.3-.75-.3s-.55.1-.75.3L6 11.15V15h8.4L19 10.45l-3.3-3.3c-.2-.2-.5-.3-.75-.3s-.55.1-.75.3z"/></svg>
+                        <span>Hình ảnh</span>
                     </div>
                 </div>
-                <div class="image-upload">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4.85 6.15l-3.3-3.3c-.2-.2-.5-.3-.75-.3s-.55.1-.75.3L6 11.15V15h8.4L19 10.45l-3.3-3.3c-.2-.2-.5-.3-.75-.3s-.55.1-.75.3z"/></svg>
-                    <span>Hình ảnh</span>
-                </div>
             </div>
-        </div>
-
-        <div class="button-group">
-            <button class="button">Thêm thẻ</button>
+            <div class="auto-info" style="margin-top:8px;display:none;">
+                <span class="auto-pos" style="margin-right:16px;"></span>
+                <span class="auto-audio" style="cursor:pointer;vertical-align:middle;"></span>
+            </div>
+            <div class="definition-suggestions" style="display:none; position:absolute; left:0; right:0; z-index:10;"></div>
         </div>
     </div>
-
-    <div class="button-group" style="position: fixed; bottom: 20px;">
-        <button class="button">Tạo</button>
-        <button class="button primary">Tạo và ôn luyện</button>
+    <div class="button-group">
+        <button class="button">Thêm thẻ</button>
+    </div>
+    <div style="text-align:center; margin-top: 32px;">
+        <button id="saveAllFlashcardsBtn" class="button" style="font-size: 1.1rem; padding: 10px 32px; background: #4caf50; color: #fff; border-radius: 6px; border: none; cursor: pointer;">Lưu thẻ</button>
     </div>
 
     <!-- Definition Selection Modal -->
@@ -348,7 +374,7 @@
                     // Reset color immediately when typing starts again
                     this.classList.remove('correct-spelling', 'incorrect-spelling');
 
-                    if (query.length > 0) { // Change to > 0 to allow check for single characters
+                    if (query.length > 0 && !this.classList.contains('correct-spelling')) {
                         fetch(`/suggest-words/?q=${encodeURIComponent(query)}`)
                             .then(response => {
                                 if (!response.ok) {
@@ -359,13 +385,11 @@
                                 return response.json();
                             })
                             .then(data => {
-                                // Check if the data itself indicates an error from Django backend
-                                if (data && data.error) {
-                                    console.error('Backend returned an error for suggestions:', data.error);
-                                    suggestionsBox.style.display = 'none';
-                                    return; // Exit here
-                                }
                                 suggestionsBox.innerHTML = '';
+                                if (data && data.error) {
+                                    suggestionsBox.style.display = 'none';
+                                    return;
+                                }
                                 if (data.length > 0) {
                                     data.forEach(word => {
                                         const suggestionItem = document.createElement('div');
@@ -374,8 +398,68 @@
                                         suggestionItem.addEventListener('click', () => {
                                             input.value = word;
                                             suggestionsBox.style.display = 'none';
-                                            // Trigger spell check immediately after selecting a suggestion
                                             checkSpelling(input);
+                                            // Trigger fetch definition and show modal
+                                            if (input.value.trim()) {
+                                                fetch(`/word-details/?word=${encodeURIComponent(input.value.trim())}`)
+                                                    .then(response => {
+                                                        if (!response.ok) {
+                                                            return response.json().catch(() => {
+                                                                throw new Error(`HTTP error! status: ${response.status}`);
+                                                            });
+                                                        }
+                                                        return response.json();
+                                                    })
+                                                    .then(data => {
+                                                        if (data && data.error) {
+                                                            definitionInput.value = `Lỗi: ${data.error}`;
+                                                            definitionInput.style.color = '#F44336';
+                                                            return;
+                                                        }
+                                                        fetchedWordDetails = data;
+                                                        definitionOptionsContainer.innerHTML = '';
+                                                        let hasDefinitions = false;
+                                                        if (data.meanings && data.meanings.length > 0) {
+                                                            data.meanings.forEach(meaning => {
+                                                                if (meaning.definitions && meaning.definitions.length > 0) {
+                                                                    meaning.definitions.forEach((def, index) => {
+                                                                        hasDefinitions = true;
+                                                                        const definitionItem = document.createElement('div');
+                                                                        definitionItem.classList.add('definition-item');
+                                                                        definitionItem.innerHTML = `
+                                                                            ${meaning.part_of_speech ? `<p class=\"part-of-speech\">(${meaning.part_of_speech})</p>` : ''}
+                                                                            <p>${def.en}</p>
+                                                                        `;
+                                                                        definitionItem.dataset.definitionIndex = index;
+                                                                        definitionItem.dataset.meaningIndex = data.meanings.indexOf(meaning);
+                                                                        definitionItem.addEventListener('click', function() {
+                                                                            const selectedMeaningIndex = parseInt(this.dataset.meaningIndex);
+                                                                            const selectedDefinitionIndex = parseInt(this.dataset.definitionIndex);
+                                                                            const selectedMeaning = fetchedWordDetails.meanings[selectedMeaningIndex];
+                                                                            const selectedDefinition = selectedMeaning.definitions[selectedDefinitionIndex];
+                                                                            let definitionText = `${selectedDefinition.en}`;
+                                                                            definitionInput.value = definitionText.trim();
+                                                                            definitionInput.style.color = '#ffffff';
+                                                                            definitionModal.style.display = 'none';
+                                                                        });
+                                                                        definitionOptionsContainer.appendChild(definitionItem);
+                                                                    });
+                                                                }
+                                                            });
+                                                        }
+                                                        if (hasDefinitions) {
+                                                            currentDefinitionTextarea = definitionInput;
+                                                            definitionModal.style.display = 'flex';
+                                                        } else {
+                                                            definitionInput.value = 'Không tìm thấy định nghĩa.';
+                                                            definitionInput.style.color = '#b0b0b0';
+                                                        }
+                                                    })
+                                                    .catch(error => {
+                                                        definitionInput.value = `Lỗi: ${error.message || 'Không thể lấy định nghĩa.'}`;
+                                                        definitionInput.style.color = '#F44336';
+                                                    });
+                                            }
                                         });
                                         suggestionsBox.appendChild(suggestionItem);
                                     });
@@ -384,20 +468,13 @@
                                     suggestionsBox.style.display = 'none';
                                 }
                             })
-                            .catch(error => {
-                                console.error('Error fetching suggestions:', error);
-                                suggestionsBox.style.display = 'none';
-                            });
-                        
-                        // Perform spell check immediately after suggestion fetch (still debounced by outer function)
+                            .catch(() => { suggestionsBox.style.display = 'none'; });
                         checkSpelling(input);
-
                     } else {
                         suggestionsBox.style.display = 'none';
-                        // Also reset color if input is empty
                         this.classList.remove('correct-spelling', 'incorrect-spelling');
                     }
-                }, 300)); // Debounce for both suggestions and spell check
+                }, 300));
 
                 // Hide suggestions when input loses focus
                 input.addEventListener('blur', function() {
@@ -449,7 +526,7 @@
                                                     const definitionItem = document.createElement('div');
                                                     definitionItem.classList.add('definition-item');
                                                     definitionItem.innerHTML = `
-                                                        ${meaning.part_of_speech ? `<p class="part-of-speech">(${meaning.part_of_speech})</p>` : ''}
+                                                        ${meaning.part_of_speech ? `<p class=\"part-of-speech\">(${meaning.part_of_speech})</p>` : ''}
                                                         <p>${def.en}</p>
                                                     `;
                                                     // Store the full definition object for later use
@@ -537,23 +614,6 @@
                         });
                     }
                 }
-
-                // Helper function to get CSRF token
-                function getCookie(name) {
-                    let cookieValue = null;
-                    if (document.cookie && document.cookie !== '') {
-                        const cookies = document.cookie.split(';');
-                        for (let i = 0; i < cookies.length; i++) {
-                            const cookie = cookies[i].trim();
-                            // Does this cookie string begin with the name we want?
-                            if (cookie.startsWith(name + '=')) {
-                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                                break;
-                            }
-                        }
-                    }
-                    return cookieValue;
-                }
             });
 
             // Debounce function to limit how often a function is called
@@ -565,7 +625,681 @@
                     timeout = setTimeout(() => func.apply(context, args), delay);
                 };
             }
+
+            // IMAGE UPLOAD LOGIC
+            function setupImageUpload(imageUploadId, fileInputId, imgPreviewId, deleteBtnId) {
+                const imageUpload = document.getElementById(imageUploadId);
+                const fileInput = document.getElementById(fileInputId);
+                const imgPreview = document.getElementById(imgPreviewId);
+                const deleteBtn = document.getElementById(deleteBtnId);
+                const uploadContent = imageUpload.querySelector('.image-upload-content');
+
+                imageUpload.addEventListener('click', function(e) {
+                    // Đừng trigger khi click vào nút delete
+                    if (e.target === deleteBtn) return;
+                    fileInput.click();
+                });
+
+                fileInput.addEventListener('change', function(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            imgPreview.src = e.target.result;
+                            imgPreview.style.display = 'block';
+                            if (uploadContent) uploadContent.style.display = 'none';
+                            if (deleteBtn) deleteBtn.style.display = 'block';
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', function(e) {
+                        e.stopPropagation(); // Không trigger upload khi xóa
+                        imgPreview.src = '';
+                        imgPreview.style.display = 'none';
+                        fileInput.value = '';
+                        if (uploadContent) uploadContent.style.display = 'flex';
+                        deleteBtn.style.display = 'none';
+                    });
+                    // Ẩn nút delete ban đầu
+                    deleteBtn.style.display = 'none';
+                }
+            }
+            setupImageUpload('imageUpload1', 'fileInput1', 'imgPreview1', 'deleteImg1');
+
+            // ADD FLASHCARD LOGIC
+            function reindexFlashcards() {
+                const cards = document.querySelectorAll('.flashcard-section');
+                cards.forEach((card, idx) => {
+                    const index = idx + 1;
+                    card.setAttribute('data-card-index', index);
+                    card.querySelector('.card-number').textContent = index;
+                    // Update input ids/names
+                    card.querySelector('.term-input').id = `term${index}`;
+                    card.querySelector('.term-input').name = `term${index}`;
+                    card.querySelector('.input-field textarea').id = `definition${index}`;
+                    card.querySelector('.input-field textarea').name = `definition${index}`;
+                    card.querySelector('.suggestions-list').id = `suggestions${index}`;
+                    card.querySelector('.image-upload').id = `imageUpload${index}`;
+                    card.querySelector('input[type="file"]').id = `fileInput${index}`;
+                    card.querySelector('img.preview').id = `imgPreview${index}`;
+                    card.querySelector('button[id^="deleteImg"]').id = `deleteImg${index}`;
+                });
+            }
+
+            function initFlashcardSection(section) {
+                // --- Gợi ý từ, kiểm tra chính tả, chọn định nghĩa ---
+                const input = section.querySelector('.term-input');
+                const suggestionsBox = section.querySelector('.suggestions-list');
+                const definitionInput = section.querySelector('textarea');
+                const cardIndex = section.getAttribute('data-card-index');
+
+                // Gợi ý từ
+                input.addEventListener('input', debounce(function() {
+                    const query = this.value.trim();
+                    this.classList.remove('correct-spelling', 'incorrect-spelling');
+                    if (query.length > 0 && !this.classList.contains('correct-spelling')) {
+                        fetch(`/suggest-words/?q=${encodeURIComponent(query)}`)
+                            .then(response => {
+                                if (!response.ok) {
+                                    return response.json().catch(() => {
+                                        throw new Error(`HTTP error! status: ${response.status}`);
+                                    });
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                suggestionsBox.innerHTML = '';
+                                if (data && data.error) {
+                                    suggestionsBox.style.display = 'none';
+                                    return;
+                                }
+                                if (data.length > 0) {
+                                    data.forEach(word => {
+                                        const suggestionItem = document.createElement('div');
+                                        suggestionItem.classList.add('suggestion-item');
+                                        suggestionItem.textContent = word;
+                                        suggestionItem.addEventListener('click', () => {
+                                            input.value = word;
+                                            suggestionsBox.style.display = 'none';
+                                            checkSpelling(input);
+                                            // Trigger fetch definition and show modal
+                                            if (input.value.trim()) {
+                                                fetch(`/word-details/?word=${encodeURIComponent(input.value.trim())}`)
+                                                    .then(response => {
+                                                        if (!response.ok) {
+                                                            return response.json().catch(() => {
+                                                                throw new Error(`HTTP error! status: ${response.status}`);
+                                                            });
+                                                        }
+                                                        return response.json();
+                                                    })
+                                                    .then(data => {
+                                                        if (data && data.error) {
+                                                            definitionInput.value = `Lỗi: ${data.error}`;
+                                                            definitionInput.style.color = '#F44336';
+                                                            return;
+                                                        }
+                                                        fetchedWordDetails = data;
+                                                        definitionOptionsContainer.innerHTML = '';
+                                                        let hasDefinitions = false;
+                                                        if (data.meanings && data.meanings.length > 0) {
+                                                            data.meanings.forEach(meaning => {
+                                                                if (meaning.definitions && meaning.definitions.length > 0) {
+                                                                    meaning.definitions.forEach((def, index) => {
+                                                                        hasDefinitions = true;
+                                                                        const definitionItem = document.createElement('div');
+                                                                        definitionItem.classList.add('definition-item');
+                                                                        definitionItem.innerHTML = `
+                                                                            ${meaning.part_of_speech ? `<p class=\"part-of-speech\">(${meaning.part_of_speech})</p>` : ''}
+                                                                            <p>${def.en}</p>
+                                                                        `;
+                                                                        definitionItem.dataset.definitionIndex = index;
+                                                                        definitionItem.dataset.meaningIndex = data.meanings.indexOf(meaning);
+                                                                        definitionItem.addEventListener('click', function() {
+                                                                            const selectedMeaningIndex = parseInt(this.dataset.meaningIndex);
+                                                                            const selectedDefinitionIndex = parseInt(this.dataset.definitionIndex);
+                                                                            const selectedMeaning = fetchedWordDetails.meanings[selectedMeaningIndex];
+                                                                            const selectedDefinition = selectedMeaning.definitions[selectedDefinitionIndex];
+                                                                            let definitionText = `${selectedDefinition.en}`;
+                                                                            definitionInput.value = definitionText.trim();
+                                                                            definitionInput.style.color = '#ffffff';
+                                                                            definitionModal.style.display = 'none';
+                                                                        });
+                                                                        definitionOptionsContainer.appendChild(definitionItem);
+                                                                    });
+                                                                }
+                                                            });
+                                                        }
+                                                        if (hasDefinitions) {
+                                                            currentDefinitionTextarea = definitionInput;
+                                                            definitionModal.style.display = 'flex';
+                                                        } else {
+                                                            definitionInput.value = 'Không tìm thấy định nghĩa.';
+                                                            definitionInput.style.color = '#b0b0b0';
+                                                        }
+                                                    })
+                                                    .catch(error => {
+                                                        definitionInput.value = `Lỗi: ${error.message || 'Không thể lấy định nghĩa.'}`;
+                                                        definitionInput.style.color = '#F44336';
+                                                    });
+                                            }
+                                        });
+                                        suggestionsBox.appendChild(suggestionItem);
+                                    });
+                                    suggestionsBox.style.display = 'block';
+                                } else {
+                                    suggestionsBox.style.display = 'none';
+                                }
+                            })
+                            .catch(() => { suggestionsBox.style.display = 'none'; });
+                        checkSpelling(input);
+                    } else {
+                        suggestionsBox.style.display = 'none';
+                        this.classList.remove('correct-spelling', 'incorrect-spelling');
+                    }
+                }, 300));
+
+                // Hide suggestions khi blur
+                input.addEventListener('blur', function() {
+                    setTimeout(() => { suggestionsBox.style.display = 'none'; }, 100);
+                });
+                suggestionsBox.addEventListener('mousedown', function(event) { event.preventDefault(); });
+
+                // Enter để lấy định nghĩa
+                input.addEventListener('keydown', function(event) {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        if (input.value.trim()) {
+                            fetch(`/word-details/?word=${encodeURIComponent(input.value.trim())}`)
+                                .then(response => {
+                                    if (!response.ok) {
+                                        return response.json().catch(() => {
+                                            throw new Error(`HTTP error! status: ${response.status}`);
+                                        });
+                                    }
+                                    return response.json();
+                                })
+                                .then(data => {
+                                    if (data && data.error) {
+                                        definitionInput.value = `Lỗi: ${data.error}`;
+                                        definitionInput.style.color = '#F44336';
+                                        return;
+                                    }
+                                    fetchedWordDetails = data;
+                                    definitionOptionsContainer.innerHTML = '';
+                                    let hasDefinitions = false;
+                                    if (data.meanings && data.meanings.length > 0) {
+                                        data.meanings.forEach(meaning => {
+                                            if (meaning.definitions && meaning.definitions.length > 0) {
+                                                meaning.definitions.forEach((def, index) => {
+                                                    hasDefinitions = true;
+                                                    const definitionItem = document.createElement('div');
+                                                    definitionItem.classList.add('definition-item');
+                                                    definitionItem.innerHTML = `
+                                                        ${meaning.part_of_speech ? `<p class=\"part-of-speech\">(${meaning.part_of_speech})</p>` : ''}
+                                                        <p>${def.en}</p>
+                                                    `;
+                                                    definitionItem.dataset.definitionIndex = index;
+                                                    definitionItem.dataset.meaningIndex = data.meanings.indexOf(meaning);
+                                                    definitionItem.addEventListener('click', function() {
+                                                        const selectedMeaningIndex = parseInt(this.dataset.meaningIndex);
+                                                        const selectedDefinitionIndex = parseInt(this.dataset.definitionIndex);
+                                                        const selectedMeaning = fetchedWordDetails.meanings[selectedMeaningIndex];
+                                                        const selectedDefinition = selectedMeaning.definitions[selectedDefinitionIndex];
+                                                        let definitionText = `${selectedDefinition.en}`;
+                                                        definitionInput.value = definitionText.trim();
+                                                        definitionInput.style.color = '#ffffff';
+                                                        definitionModal.style.display = 'none';
+                                                    });
+                                                    definitionOptionsContainer.appendChild(definitionItem);
+                                                });
+                                            }
+                                        });
+                                    }
+                                    if (hasDefinitions) {
+                                        currentDefinitionTextarea = definitionInput;
+                                        definitionModal.style.display = 'flex';
+                                    } else {
+                                        definitionInput.value = 'Không tìm thấy định nghĩa.';
+                                        definitionInput.style.color = '#b0b0b0';
+                                    }
+                                })
+                                .catch(error => {
+                                    definitionInput.value = `Lỗi: ${error.message || 'Không thể lấy định nghĩa.'}`;
+                                    definitionInput.style.color = '#F44336';
+                                });
+                        }
+                    }
+                });
+
+                // Kiểm tra chính tả
+                function checkSpelling(inputElement) {
+                    const wordToCheck = inputElement.value.trim();
+                    if (wordToCheck.length > 0) {
+                        fetch('/check-spelling/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-CSRFToken': getCookie('csrftoken')
+                            },
+                            body: `word=${encodeURIComponent(wordToCheck)}`
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().catch(() => {
+                                    throw new Error(`HTTP error! status: ${response.status}`);
+                                });
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.is_correct) {
+                                inputElement.classList.remove('incorrect-spelling');
+                                inputElement.classList.add('correct-spelling');
+                            } else {
+                                inputElement.classList.remove('correct-spelling');
+                                inputElement.classList.add('incorrect-spelling');
+                            }
+                        })
+                        .catch(() => {
+                            inputElement.classList.remove('correct-spelling', 'incorrect-spelling');
+                        });
+                    }
+                }
+            }
+
+            // Khi load trang, khởi tạo cho thẻ đầu tiên
+            document.querySelectorAll('.flashcard-section').forEach(initFlashcardSection);
+
+            // Khi thêm thẻ mới, KHÔNG thêm drag handle nữa
+            function addFlashcard() {
+                const container = document.getElementById('flashcardContainer');
+                const cards = container.querySelectorAll('.flashcard-section');
+                const newIndex = cards.length + 1;
+                const template = cards[0].cloneNode(true);
+                // Reset input values
+                template.querySelector('.term-input').value = '';
+                template.querySelector('.input-field textarea').value = '';
+                template.querySelector('img.preview').src = '';
+                template.querySelector('img.preview').style.display = 'none';
+                template.querySelector('input[type="file"]').value = '';
+                template.querySelector('.image-upload-content').style.display = 'flex';
+                template.querySelector('button[id^="deleteImg"]').style.display = 'none';
+                template.querySelector('.suggestions-list').innerHTML = '';
+                template.querySelector('.suggestions-list').style.display = 'none';
+                container.appendChild(template);
+                reindexFlashcards();
+                initFlashcardSection(template);
+                attachWordExistsCheck(template.querySelector('.term-input'));
+                attachDefinitionSuggestionLogic(template);
+                attachSpeakIconLogic(template);
+                attachAutoInfoLogic(template);
+            }
+            document.querySelector('.button-group .button').addEventListener('click', function(e) {
+                if (this.textContent.trim() === 'Thêm thẻ') {
+                    e.preventDefault();
+                    addFlashcard();
+                }
+            });
+
+            // Khởi tạo SortableJS cho container, KHÔNG dùng handle
+            const flashcardContainer = document.getElementById('flashcardContainer');
+            new Sortable(flashcardContainer, {
+                animation: 200,
+                onEnd: function(evt) {
+                    reindexFlashcards();
+                }
+            });
+
+            // Biến cache lưu dữ liệu API từng từ
+            const wordApiCache = {};
+
+            // Khi fetch chi tiết từ (ví dụ trong logic autocomplete, enter...), lưu vào cache
+            function fetchWordDetailsAndCache(word, callback) {
+                fetch(`/word-details/?word=${encodeURIComponent(word)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        wordApiCache[word.toLowerCase()] = data;
+                        if (callback) callback(data);
+                    });
+            }
+
+            document.getElementById('saveAllFlashcardsBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                const cards = document.querySelectorAll('.flashcard-section');
+                const formData = new FormData();
+                cards.forEach((card, idx) => {
+                    const termInput = card.querySelector('.term-input');
+                    let word = termInput ? termInput.value.trim() : '';
+                    formData.append(`flashcards[${idx}][word]`, word);
+
+                    let posInput = card.querySelector('.part-of-speech-input');
+                    let part_of_speech = posInput ? posInput.value.trim() : '';
+
+                    let defTextarea = card.querySelector('textarea');
+                    let english_definition = defTextarea ? defTextarea.value.trim() : '';
+
+                    let audioInput = card.querySelector('.audio-url-input');
+                    let audio_url = audioInput ? audioInput.value.trim() : '';
+
+                    // Nếu thiếu loại từ hoặc audio_url thì lấy từ cache
+                    const cache = wordApiCache[word.toLowerCase()];
+                    if (cache) {
+                        if (!part_of_speech && cache.meanings && cache.meanings[0]) {
+                            part_of_speech = cache.meanings[0].part_of_speech || '';
+                        }
+                        if (!audio_url && cache.phonetics && cache.phonetics.length > 0) {
+                            // Lấy audio đầu tiên có giá trị
+                            for (let ph of cache.phonetics) {
+                                if (ph.audio) { audio_url = ph.audio; break; }
+                            }
+                        }
+                    }
+                    formData.append(`flashcards[${idx}][part_of_speech]`, part_of_speech);
+                    formData.append(`flashcards[${idx}][english_definition]`, english_definition);
+                    formData.append(`flashcards[${idx}][audio_url]`, audio_url);
+
+                    const imgInput = card.querySelector('.image-input');
+                    if (imgInput && imgInput.files && imgInput.files[0]) {
+                        formData.append(`flashcards[${idx}][image]`, imgInput.files[0]);
+                    }
+                });
+                fetch('/api/save-flashcards/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Lưu thành công!');
+                    } else {
+                        alert('Lỗi: ' + (data.error || 'Không lưu được!'));
+                    }
+                })
+                .catch(err => {
+                    alert('Lỗi kết nối server!');
+                });
+            });
+
+            function showWordExistsError(input, show) {
+                let err = input.parentNode.querySelector('.word-exists-error');
+                if (!err && show) {
+                    err = document.createElement('div');
+                    err.className = 'word-exists-error';
+                    err.style.color = '#ff5252';
+                    err.style.fontSize = '0.95em';
+                    err.style.marginTop = '4px';
+                    err.textContent = 'Từ này đã tồn tại trong hệ thống!';
+                    input.parentNode.appendChild(err);
+                }
+                if (err) err.style.display = show ? 'block' : 'none';
+                input.style.borderColor = show ? '#ff5252' : '';
+            }
+
+            function attachWordExistsCheck(input) {
+                input.addEventListener('input', debounce(function() {
+                    const word = this.value.trim();
+                    if (!word) {
+                        showWordExistsError(this, false);
+                        return;
+                    }
+                    fetch(`/api/check-word-exists/?word=${encodeURIComponent(word)}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            showWordExistsError(this, data.exists);
+                        });
+                }, 300));
+            }
+
+            document.querySelectorAll('.term-input').forEach(attachWordExistsCheck);
+
+            function attachDefinitionSuggestionLogic(section) {
+                const termInput = section.querySelector('.term-input');
+                const defTextarea = section.querySelector('textarea');
+                const suggestionBox = section.querySelector('.definition-suggestions');
+                let currentSuggestions = [];
+                let suggestionVisible = false;
+
+                // Helper: kiểm tra chính tả (dựa vào class correct-spelling)
+                function isTermCorrect() {
+                    return termInput.classList.contains('correct-spelling');
+                }
+
+                // Hiển thị gợi ý định nghĩa
+                function showSuggestions(defs) {
+                    suggestionBox.innerHTML = '';
+                    if (!defs || defs.length === 0) {
+                        suggestionBox.style.display = 'none';
+                        suggestionVisible = false;
+                        return;
+                    }
+                    defs.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'definition-suggestion-item';
+                        div.innerHTML = (item.part_of_speech ? `<span style="color:#b0b0ff;font-style:italic;">(${item.part_of_speech})</span> ` : '') + item.en;
+                        div.addEventListener('mousedown', function(e) {
+                            e.preventDefault();
+                            defTextarea.value = item.en;
+                            suggestionBox.style.display = 'none';
+                            suggestionVisible = false;
+                        });
+                        suggestionBox.appendChild(div);
+                    });
+                    suggestionBox.style.display = 'block';
+                    suggestionVisible = true;
+                }
+
+                // Khi focus vào textarea định nghĩa
+                defTextarea.addEventListener('focus', function() {
+                    if (!isTermCorrect()) {
+                        suggestionBox.style.display = 'none';
+                        suggestionVisible = false;
+                        return;
+                    }
+                    const word = termInput.value.trim();
+                    if (!word) return;
+                    // Lấy từ cache nếu có
+                    const cache = wordApiCache[word.toLowerCase()];
+                    if (cache && cache.meanings) {
+                        let defs = [];
+                        cache.meanings.forEach(m => {
+                            if (m.definitions && m.definitions.length > 0) {
+                                m.definitions.forEach(d => {
+                                    defs.push({
+                                        en: d.en,
+                                        part_of_speech: m.part_of_speech || ''
+                                    });
+                                });
+                            }
+                        });
+                        showSuggestions(defs);
+                    } else {
+                        // Nếu chưa có cache, fetch và cache lại
+                        fetchWordDetailsAndCache(word, function(data) {
+                            let defs = [];
+                            if (data && data.meanings) {
+                                data.meanings.forEach(m => {
+                                    if (m.definitions && m.definitions.length > 0) {
+                                        m.definitions.forEach(d => {
+                                            defs.push({
+                                                en: d.en,
+                                                part_of_speech: m.part_of_speech || ''
+                                            });
+                                        });
+                                    }
+                                });
+                            }
+                            showSuggestions(defs);
+                        });
+                    }
+                });
+                // Ẩn suggestion khi blur textarea (delay để bắt sự kiện click chọn)
+                defTextarea.addEventListener('blur', function() {
+                    setTimeout(() => {
+                        suggestionBox.style.display = 'none';
+                        suggestionVisible = false;
+                    }, 200);
+                });
+            }
+
+            function attachSpeakIconLogic(section) {
+                const termInput = section.querySelector('.term-input');
+                const defTextarea = section.querySelector('textarea');
+                const speakIcon = section.querySelector('.speak-icon');
+                if (!speakIcon) return;
+                // Hiện/ẩn icon loa
+                function updateSpeakIcon() {
+                    const word = termInput.value.trim();
+                    const definition = defTextarea.value.trim();
+                    if (word && definition && termInput.classList.contains('correct-spelling')) {
+                        speakIcon.style.display = 'inline-block';
+                    } else {
+                        speakIcon.style.display = 'none';
+                    }
+                }
+                termInput.addEventListener('input', updateSpeakIcon);
+                defTextarea.addEventListener('input', updateSpeakIcon);
+                termInput.addEventListener('blur', updateSpeakIcon);
+                termInput.addEventListener('change', updateSpeakIcon);
+                defTextarea.addEventListener('blur', updateSpeakIcon);
+                // Xử lý khi bấm icon loa
+                speakIcon.addEventListener('click', function() {
+                    const word = termInput.value.trim();
+                    if (!word) return;
+                    const cache = wordApiCache[word.toLowerCase()];
+                    let audioUrl = '';
+                    let partOfSpeech = '';
+                    let phonetic = '';
+                    if (cache) {
+                        // Lấy audio đầu tiên có giá trị
+                        if (cache.phonetics && cache.phonetics.length > 0) {
+                            for (let ph of cache.phonetics) {
+                                if (ph.audio) { audioUrl = ph.audio; break; }
+                            }
+                            for (let ph of cache.phonetics) {
+                                if (ph.text) { phonetic = ph.text; break; }
+                            }
+                        }
+                        if (cache.meanings && cache.meanings.length > 0) {
+                            partOfSpeech = cache.meanings[0].part_of_speech || '';
+                        }
+                    }
+                    if (audioUrl) {
+                        const audio = new Audio(audioUrl);
+                        audio.play();
+                    } else {
+                        // Đọc bằng Web Speech API
+                        let text = word;
+                        if (partOfSpeech) text += ', ' + partOfSpeech;
+                        if (phonetic) text += ', ' + phonetic;
+                        if ('speechSynthesis' in window) {
+                            const utter = new SpeechSynthesisUtterance(text);
+                            utter.lang = 'en-US';
+                            window.speechSynthesis.speak(utter);
+                        } else {
+                            alert('Trình duyệt không hỗ trợ đọc từ!');
+                        }
+                    }
+                });
+                // Lần đầu kiểm tra
+                updateSpeakIcon();
+            }
+
+            function attachAutoInfoLogic(section) {
+                const termInput = section.querySelector('.term-input');
+                const defTextarea = section.querySelector('textarea');
+                const autoInfo = section.querySelector('.auto-info');
+                const autoPos = section.querySelector('.auto-pos');
+                const autoAudio = section.querySelector('.auto-audio');
+                function updateAutoInfo() {
+                    const word = termInput.value.trim();
+                    const definition = defTextarea.value.trim();
+                    if (word && definition && termInput.classList.contains('correct-spelling')) {
+                        const cache = wordApiCache[word.toLowerCase()];
+                        let partOfSpeech = '';
+                        let audioUrl = '';
+                        let phonetic = '';
+                        if (cache) {
+                            if (cache.meanings && cache.meanings.length > 0) {
+                                partOfSpeech = cache.meanings[0].part_of_speech || '';
+                            }
+                            if (cache.phonetics && cache.phonetics.length > 0) {
+                                for (let ph of cache.phonetics) {
+                                    if (ph.audio) { audioUrl = ph.audio; break; }
+                                }
+                                for (let ph of cache.phonetics) {
+                                    if (ph.text) { phonetic = ph.text; break; }
+                                }
+                            }
+                        }
+                        autoPos.textContent = partOfSpeech ? `Loại từ: ${partOfSpeech}` : '';
+                        if (audioUrl) {
+                            autoAudio.innerHTML = `<svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polygon points='11 5 6 9 2 9 2 15 6 15 11 19 11 5'></polygon><path d='M19.07 4.93a10 10 0 0 1 0 14.14'></path><path d='M15.54 8.46a5 5 0 0 1 0 7.07'></path></svg>`;
+                            autoAudio.title = 'Nghe phát âm';
+                            autoAudio.onclick = function() {
+                                const audio = new Audio(audioUrl);
+                                audio.play();
+                            };
+                        } else if (word) {
+                            autoAudio.innerHTML = `<svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polygon points='11 5 6 9 2 9 2 15 6 15 11 19 11 5'></polygon><path d='M19.07 4.93a10 10 0 0 1 0 14.14'></path><path d='M15.54 8.46a5 5 0 0 1 0 7.07'></path></svg>`;
+                            autoAudio.title = 'Đọc từ bằng trình duyệt';
+                            autoAudio.onclick = function() {
+                                let text = word;
+                                if (partOfSpeech) text += ', ' + partOfSpeech;
+                                if (phonetic) text += ', ' + phonetic;
+                                if ('speechSynthesis' in window) {
+                                    const utter = new SpeechSynthesisUtterance(text);
+                                    utter.lang = 'en-US';
+                                    window.speechSynthesis.speak(utter);
+                                } else {
+                                    alert('Trình duyệt không hỗ trợ đọc từ!');
+                                }
+                            };
+                        } else {
+                            autoAudio.innerHTML = '';
+                            autoAudio.onclick = null;
+                        }
+                        autoInfo.style.display = (partOfSpeech || audioUrl) ? 'block' : 'none';
+                    } else {
+                        autoInfo.style.display = 'none';
+                    }
+                }
+                termInput.addEventListener('input', updateAutoInfo);
+                defTextarea.addEventListener('input', updateAutoInfo);
+                termInput.addEventListener('blur', updateAutoInfo);
+                termInput.addEventListener('change', updateAutoInfo);
+                defTextarea.addEventListener('blur', updateAutoInfo);
+                updateAutoInfo();
+            }
+
+            // Khi load trang, gắn logic cho tất cả thẻ
+            setTimeout(() => {
+                document.querySelectorAll('.flashcard-section').forEach(attachDefinitionSuggestionLogic);
+                document.querySelectorAll('.flashcard-section').forEach(attachSpeakIconLogic);
+                document.querySelectorAll('.flashcard-section').forEach(attachAutoInfoLogic);
+            }, 0);
         });
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
     </script>
 </body>
 </html> 

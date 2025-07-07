@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 style="text-align:center;">Danh sách Flashcard đã thêm</h2>
+<div style="display:flex; flex-wrap:wrap; gap:24px; justify-content:center;">
+    {% for card, definitions in flashcard_defs %}
+    <div class="flashcard-card" style="background:#232345; color:#fff; border-radius:10px; padding:20px; width:320px; box-shadow:0 2px 8px #0002; position:relative;">
+        <button class="delete-flashcard-btn" data-id="{{ card.id }}" style="position:absolute;top:12px;right:12px;background:#ff5252;color:#fff;border:none;border-radius:4px;padding:4px 10px;cursor:pointer;">Xóa</button>
+        <h3>{{ card.word }}</h3>
+        <p><b>Loại từ:</b> {{ card.part_of_speech }}</p>
+        <p><b>Audio:</b> {% if card.audio_url %}<a href="{{ card.audio_url }}" target="_blank">Nghe</a>{% else %}Không có{% endif %}</p>
+        <p>
+            <b>Hình ảnh:</b><br>
+            {% if card.image %}
+                <img src="{{ card.image.url }}" alt="Ảnh" style="max-width:100%;max-height:120px;border-radius:6px;">
+            {% else %}
+                Không có
+            {% endif %}
+        </p>
+        <div>
+            <b>Định nghĩa:</b>
+            <ul>
+                {% for d in definitions %}
+                <li>
+                  <b>EN:</b> {{ d.english_definition }}<br>
+                  <b>VI:</b> {{ d.vietnamese_definition }}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="created-at" data-utc="{{ card.created_at|date:'c' }}" style="font-size:0.9em;color:#aaa;"></div>
+    </div>
+    {% empty %}
+    <p>Chưa có flashcard nào.</p>
+    {% endfor %}
+</div>
+<script>
+document.querySelectorAll('.created-at').forEach(function(div) {
+    const utc = div.getAttribute('data-utc');
+    if (utc) {
+        const localDate = new Date(utc);
+        const pad = n => n < 10 ? '0' + n : n;
+        const str = pad(localDate.getDate()) + '/' +
+                    pad(localDate.getMonth() + 1) + '/' +
+                    localDate.getFullYear() + ' ' +
+                    pad(localDate.getHours()) + ':' +
+                    pad(localDate.getMinutes());
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        div.textContent = 'Ngày tạo (giờ địa phương): ' + str + ' (' + tz + ')';
+    }
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+document.querySelectorAll('.delete-flashcard-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        if (!confirm('Bạn có chắc muốn xóa thẻ này?')) return;
+        const cardId = this.getAttribute('data-id');
+        fetch('/api/delete-flashcard/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({id: cardId})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                this.closest('.flashcard-card').remove();
+            } else {
+                alert('Lỗi xóa thẻ: ' + (data.error || 'Không rõ nguyên nhân'));
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 
