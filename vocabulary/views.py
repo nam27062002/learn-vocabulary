@@ -8,13 +8,43 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from django.db.models import Count
+from datetime import datetime, timedelta
 import os
 import json
 
 # Create your views here.
 
-def hello_world(request):
-    return HttpResponse("hello")
+def dashboard(request):
+    # Thống kê cơ bản
+    total_cards = Flashcard.objects.count()
+    recent_cards = Flashcard.objects.filter(
+        created_at__gte=datetime.now() - timedelta(days=7)
+    ).count()
+    
+    # Flashcard gần đây
+    latest_cards = Flashcard.objects.select_related().prefetch_related('definitions').order_by('-created_at')[:6]
+    
+    # Thống kê theo ngày (7 ngày gần đây)
+    daily_stats = []
+    for i in range(7):
+        date = datetime.now() - timedelta(days=i)
+        count = Flashcard.objects.filter(
+            created_at__date=date.date()
+        ).count()
+        daily_stats.append({
+            'date': date.strftime('%d/%m'),
+            'count': count
+        })
+    daily_stats.reverse()
+    
+    context = {
+        'total_cards': total_cards,
+        'recent_cards': recent_cards,
+        'latest_cards': latest_cards,
+        'daily_stats': daily_stats,
+    }
+    return render(request, 'vocabulary/dashboard.html', context)
 
 def add_flashcard_view(request):
     return render(request, 'vocabulary/add_flashcard.html')

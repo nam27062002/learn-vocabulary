@@ -1,0 +1,21 @@
+{% extends "base.html" %} {% block title %}Dashboard - Learn English{%endblock%}
+{% block content %}
+<div style="text-align: center; padding: 50px">
+  <h1>🎉 THÀNH CÔNG!</h1>
+  <p>Total cards: {{ total_cards }}</p>
+  <p>Recent cards: {{ recent_cards }}</p>
+  <br />
+  <a
+    href="{% url 'add_flashcard' %}"
+    style="
+      background: #667eea;
+      color: white;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 5px;
+    "
+  >
+    ➕ Thêm từ vựng
+  </a>
+</div>
+{% endblock %}

@@ -1,18 +1,247 @@
 <!DOCTYPE html>
 <html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <title>{% block title %}Learn Vocabulary{% endblock %}</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Learn English{% endblock %}</title>
     <style>
-        body { background: #18182f; color: #fff; font-family: 'Segoe UI', Arial, sans-serif; margin: 0; }
-        .container { max-width: 900px; margin: 32px auto; background: #232345; border-radius: 12px; padding: 32px; }
-        a.button { display: inline-block; padding: 8px 20px; background: #2196f3; color: #fff; border-radius: 6px; text-decoration: none; margin: 8px 0; }
-        a.button:hover { background: #1976d2; }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: #18182f;
+        color: #fff;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+      }
+
+      /* Navigation Styles */
+      .navbar {
+        background: #232345;
+        border-bottom: 1px solid #3a3a5c;
+        padding: 0;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .nav-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 20px;
+        height: 64px;
+      }
+
+      .logo {
+        font-size: 1.8em;
+        font-weight: bold;
+        color: #667eea;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .logo:hover {
+        color: #764ba2;
+      }
+
+      .nav-menu {
+        display: flex;
+        list-style: none;
+        gap: 30px;
+        align-items: center;
+      }
+
+      .nav-item {
+        position: relative;
+      }
+
+      .nav-link {
+        color: #b0b0b0;
+        text-decoration: none;
+        padding: 10px 16px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .nav-link:hover,
+      .nav-link.active {
+        color: #fff;
+        background: #3a3a5c;
+      }
+
+      .nav-icon {
+        font-size: 1.1em;
+      }
+
+      /* Mobile Menu */
+      .mobile-menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        color: #fff;
+        font-size: 1.5em;
+        cursor: pointer;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      /* Button Styles */
+      a.button {
+        display: inline-block;
+        padding: 12px 24px;
+        background: #667eea;
+        color: #fff;
+        border-radius: 8px;
+        text-decoration: none;
+        margin: 8px 0;
+        transition: all 0.3s ease;
+        font-weight: 500;
+      }
+
+      a.button:hover {
+        background: #764ba2;
+        transform: translateY(-2px);
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        .nav-menu {
+          position: fixed;
+          top: 64px;
+          left: -100%;
+          width: 100%;
+          height: calc(100vh - 64px);
+          background: #232345;
+          flex-direction: column;
+          justify-content: flex-start;
+          align-items: stretch;
+          padding: 20px;
+          transition: left 0.3s ease;
+          gap: 0;
+        }
+
+        .nav-menu.active {
+          left: 0;
+        }
+
+        .nav-link {
+          padding: 15px 20px;
+          width: 100%;
+          text-align: left;
+        }
+
+        .mobile-menu-toggle {
+          display: block;
+        }
+
+        .container {
+          padding: 15px;
+        }
+      }
     </style>
-</head>
-<body>
-    <div class="container">
-        {% block content %}{% endblock %}
-    </div>
-</body>
-</html> 
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <div class="nav-container">
+        <a href="{% url 'dashboard' %}" class="logo">
+          <span>🎓</span>
+          <span>LearnEnglish</span>
+        </a>
+
+        <ul class="nav-menu" id="nav-menu">
+          <li class="nav-item">
+            <a
+              href="{% url 'dashboard' %}"
+              class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
+            >
+              <span class="nav-icon">🏠</span>
+              <span>Trang chủ</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a
+              href="{% url 'flashcard_list' %}"
+              class="nav-link {% if request.resolver_match.url_name == 'flashcard_list' %}active{% endif %}"
+            >
+              <span class="nav-icon">📚</span>
+              <span>Flashcards</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a
+              href="{% url 'add_flashcard' %}"
+              class="nav-link {% if request.resolver_match.url_name == 'add_flashcard' %}active{% endif %}"
+            >
+              <span class="nav-icon">➕</span>
+              <span>Thêm từ</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link">
+              <span class="nav-icon">📖</span>
+              <span>Học tập</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#" class="nav-link">
+              <span class="nav-icon">📊</span>
+              <span>Thống kê</span>
+            </a>
+          </li>
+        </ul>
+
+        <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+          <span>☰</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main>
+      <div class="container">{% block content %}{% endblock %}</div>
+    </main>
+
+    <script>
+      // Mobile menu toggle
+      document
+        .getElementById("mobile-menu-toggle")
+        .addEventListener("click", function () {
+          const navMenu = document.getElementById("nav-menu");
+          navMenu.classList.toggle("active");
+        });
+
+      // Close mobile menu when clicking outside
+      document.addEventListener("click", function (event) {
+        const navMenu = document.getElementById("nav-menu");
+        const toggle = document.getElementById("mobile-menu-toggle");
+
+        if (!navMenu.contains(event.target) && !toggle.contains(event.target)) {
+          navMenu.classList.remove("active");
+        }
+      });
+
+      // Close mobile menu when window is resized to desktop
+      window.addEventListener("resize", function () {
+        if (window.innerWidth > 768) {
+          document.getElementById("nav-menu").classList.remove("active");
+        }
+      });
+    </script>
+  </body>
+</html>
