@@ -1,0 +1,200 @@
+# English translation for LearnEnglish project
+# Copyright (C) 2025
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: en\n"
+"Language-Team: English\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+# Navigation
+msgid "Learn English"
+msgstr "Learn English"
+
+msgid "Home"
+msgstr "Home"
+
+msgid "Flashcards"
+msgstr "Flashcards"
+
+msgid "Add Word"
+msgstr "Add Word"
+
+msgid "Study"
+msgstr "Study"
+
+msgid "Statistics"
+msgstr "Statistics"
+
+# Dashboard
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Welcome to LearnEnglish"
+msgstr "Welcome to LearnEnglish"
+
+msgid "Your personal vocabulary learning platform"
+msgstr "Your personal vocabulary learning platform"
+
+msgid "Total Cards"
+msgstr "Total Cards"
+
+msgid "Recent Cards"
+msgstr "Recent Cards"
+
+msgid "Progress"
+msgstr "Progress"
+
+msgid "Add New Words"
+msgstr "Add New Words"
+
+msgid "Study Cards"
+msgstr "Study Cards"
+
+# Add Flashcard
+msgid "Add Flashcard"
+msgstr "Add Flashcard"
+
+msgid "Add New Flashcard"
+msgstr "Add New Flashcard"
+
+msgid "Add new vocabulary to your collection"
+msgstr "Add new vocabulary to your collection"
+
+msgid "Term"
+msgstr "Term"
+
+msgid "Definition"
+msgstr "Definition"
+
+msgid "English Definition"
+msgstr "English Definition"
+
+msgid "Vietnamese Definition"
+msgstr "Vietnamese Definition"
+
+msgid "Part of Speech"
+msgstr "Part of Speech"
+
+msgid "Audio URL"
+msgstr "Audio URL"
+
+msgid "Image"
+msgstr "Image"
+
+msgid "Save"
+msgstr "Save"
+
+msgid "Save All"
+msgstr "Save All"
+
+msgid "Delete"
+msgstr "Delete"
+
+msgid "Add Another Card"
+msgstr "Add Another Card"
+
+# Flashcard List
+msgid "My Flashcards"
+msgstr "My Flashcards"
+
+msgid "Your vocabulary collection"
+msgstr "Your vocabulary collection"
+
+msgid "Search flashcards..."
+msgstr "Search flashcards..."
+
+msgid "No flashcards found"
+msgstr "No flashcards found"
+
+msgid "Create your first flashcard"
+msgstr "Create your first flashcard"
+
+msgid "word found"
+msgid_plural "words found"
+msgstr[0] "word found"
+msgstr[1] "words found"
+
+# Common Actions
+msgid "Edit"
+msgstr "Edit"
+
+msgid "Cancel"
+msgstr "Cancel"
+
+msgid "Confirm"
+msgstr "Confirm"
+
+msgid "Loading..."
+msgstr "Loading..."
+
+msgid "Success"
+msgstr "Success"
+
+msgid "Error"
+msgstr "Error"
+
+msgid "Try again"
+msgstr "Try again"
+
+# Messages
+msgid "Flashcard saved successfully"
+msgstr "Flashcard saved successfully"
+
+msgid "Flashcard deleted successfully"
+msgstr "Flashcard deleted successfully"
+
+msgid "Error saving flashcard"
+msgstr "Error saving flashcard"
+
+msgid "Error deleting flashcard"
+msgstr "Error deleting flashcard"
+
+# Part of Speech Options
+msgid "Noun"
+msgstr "Noun"
+
+msgid "Verb"
+msgstr "Verb"
+
+msgid "Adjective"
+msgstr "Adjective"
+
+msgid "Adverb"
+msgstr "Adverb"
+
+msgid "Preposition"
+msgstr "Preposition"
+
+msgid "Conjunction"
+msgstr "Conjunction"
+
+msgid "Interjection"
+msgstr "Interjection"
+
+msgid "Pronoun"
+msgstr "Pronoun"
+
+# Study Mode
+msgid "Study Mode"
+msgstr "Study Mode"
+
+msgid "Practice"
+msgstr "Practice"
+
+msgid "Quiz"
+msgstr "Quiz"
+
+msgid "Review"
+msgstr "Review"
+
+msgid "Show Answer"
+msgstr "Show Answer"
+
+msgid "Next Card"
+msgstr "Next Card"
+
+msgid "Previous Card"
+msgstr "Previous Card" 

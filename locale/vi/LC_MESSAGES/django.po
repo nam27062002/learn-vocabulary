@@ -1,0 +1,249 @@
+# Vietnamese translation for LearnEnglish project
+# Copyright (C) 2025
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: vi\n"
+"Language-Team: Vietnamese\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+# Navigation
+msgid "Learn English"
+msgstr "Học Tiếng Anh"
+
+msgid "Home"
+msgstr "Trang chủ"
+
+msgid "Flashcards"
+msgstr "Thẻ từ vựng"
+
+msgid "Add Word"
+msgstr "Thêm từ"
+
+msgid "Study"
+msgstr "Học tập"
+
+msgid "Statistics"
+msgstr "Thống kê"
+
+# Dashboard
+msgid "Dashboard"
+msgstr "Bảng điều khiển"
+
+msgid "Welcome to LearnEnglish"
+msgstr "Chào mừng đến với LearnEnglish"
+
+msgid "Your personal vocabulary learning platform"
+msgstr "Nền tảng học từ vựng cá nhân của bạn"
+
+msgid "Total Cards"
+msgstr "Tổng số thẻ"
+
+msgid "Recent Cards"
+msgstr "Thẻ gần đây"
+
+msgid "Progress"
+msgstr "Tiến độ"
+
+msgid "Add New Words"
+msgstr "Thêm từ mới"
+
+msgid "Study Cards"
+msgstr "Học thẻ từ"
+
+# Add Flashcard
+msgid "Add Flashcard"
+msgstr "Thêm Flashcard"
+
+msgid "Add New Flashcard"
+msgstr "Thêm Flashcard Mới"
+
+msgid "Add new vocabulary to your collection"
+msgstr "Thêm từ vựng mới vào bộ sưu tập của bạn"
+
+msgid "Term"
+msgstr "Từ vựng"
+
+msgid "Definition"
+msgstr "Định nghĩa"
+
+msgid "English Definition"
+msgstr "Định nghĩa tiếng Anh"
+
+msgid "Vietnamese Definition"
+msgstr "Định nghĩa tiếng Việt"
+
+msgid "Part of Speech"
+msgstr "Loại từ"
+
+msgid "Audio URL"
+msgstr "Đường dẫn Audio"
+
+msgid "Image"
+msgstr "Hình ảnh"
+
+msgid "Save"
+msgstr "Lưu"
+
+msgid "Save All"
+msgstr "Lưu tất cả"
+
+msgid "Delete"
+msgstr "Xóa"
+
+msgid "Add Another Card"
+msgstr "Thêm thẻ khác"
+
+# Flashcard List
+msgid "My Flashcards"
+msgstr "Thẻ từ vựng của tôi"
+
+msgid "Your vocabulary collection"
+msgstr "Bộ sưu tập từ vựng của bạn"
+
+msgid "Search flashcards..."
+msgstr "Tìm kiếm thẻ từ..."
+
+msgid "No flashcards found"
+msgstr "Không tìm thấy thẻ từ nào"
+
+msgid "Create your first flashcard"
+msgstr "Tạo thẻ từ đầu tiên"
+
+msgid "word found"
+msgid_plural "words found"
+msgstr[0] "từ được tìm thấy"
+
+# Common Actions
+msgid "Edit"
+msgstr "Chỉnh sửa"
+
+msgid "Cancel"
+msgstr "Hủy"
+
+msgid "Confirm"
+msgstr "Xác nhận"
+
+msgid "Loading..."
+msgstr "Đang tải..."
+
+msgid "Success"
+msgstr "Thành công"
+
+msgid "Error"
+msgstr "Lỗi"
+
+msgid "Try again"
+msgstr "Thử lại"
+
+# Messages
+msgid "Flashcard saved successfully"
+msgstr "Đã lưu thẻ từ thành công"
+
+msgid "Flashcard deleted successfully"
+msgstr "Đã xóa thẻ từ thành công"
+
+msgid "Error saving flashcard"
+msgstr "Lỗi khi lưu thẻ từ"
+
+msgid "Error deleting flashcard"
+msgstr "Lỗi khi xóa thẻ từ"
+
+# Part of Speech Options
+msgid "Noun"
+msgstr "Danh từ"
+
+msgid "Verb"
+msgstr "Động từ"
+
+msgid "Adjective"
+msgstr "Tính từ"
+
+msgid "Adverb"
+msgstr "Trạng từ"
+
+msgid "Preposition"
+msgstr "Giới từ"
+
+msgid "Conjunction"
+msgstr "Liên từ"
+
+msgid "Interjection"
+msgstr "Thán từ"
+
+msgid "Pronoun"
+msgstr "Đại từ"
+
+# Study Mode
+msgid "Study Mode"
+msgstr "Chế độ học"
+
+msgid "Practice"
+msgstr "Luyện tập"
+
+msgid "Quiz"
+msgstr "Kiểm tra"
+
+msgid "Review"
+msgstr "Ôn tập"
+
+msgid "Show Answer"
+msgstr "Hiện đáp án"
+
+msgid "Next Card"
+msgstr "Thẻ tiếp theo"
+
+msgid "Previous Card"
+msgstr "Thẻ trước"
+
+# Time
+msgid "Today"
+msgstr "Hôm nay"
+
+msgid "Yesterday"
+msgstr "Hôm qua"
+
+msgid "This week"
+msgstr "Tuần này"
+
+msgid "Last week"
+msgstr "Tuần trước"
+
+msgid "This month"
+msgstr "Tháng này"
+
+msgid "Last month"
+msgstr "Tháng trước"
+
+# Flashcard List specific text
+msgid "Definitions:"
+msgstr "Định nghĩa:"
+
+msgid "Play pronunciation" 
+msgstr "Nghe phát âm"
+
+msgid "No audio available"
+msgstr "Không có audio"
+
+msgid "Delete flashcard"
+msgstr "Xóa flashcard"
+
+msgid "Are you sure you want to delete this flashcard?"
+msgstr "Bạn có chắc muốn xóa flashcard này không?"
+
+msgid "Error deleting flashcard:"
+msgstr "Lỗi khi xóa flashcard:"
+
+msgid "Unknown error"
+msgstr "Không rõ nguyên nhân"
+
+msgid "An error occurred while deleting flashcard:"
+msgstr "Đã xảy ra lỗi khi xóa flashcard:"
+
+msgid "Cannot play this audio"
+msgstr "Không thể phát audio này"
+
+msgid "Cannot play audio:"
+msgstr "Không thể phát audio:" 

@@ -1,9 +1,10 @@
+{% load i18n %}
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Learn English{% endblock %}</title>
+    <title>{% block title %}{% trans "Learn English" %}{% endblock %}</title>
     <style>
       * {
         margin: 0;
@@ -82,6 +83,85 @@
 
       .nav-icon {
         font-size: 1.1em;
+      }
+
+      /* Language Switcher */
+      .language-switcher {
+        position: relative;
+      }
+
+      .language-dropdown {
+        position: relative;
+      }
+
+      .lang-toggle {
+        background: none !important;
+        border: none;
+        cursor: pointer;
+        display: flex !important;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .current-lang {
+        font-weight: bold;
+        font-size: 0.9em;
+      }
+
+      .dropdown-arrow {
+        font-size: 0.8em;
+        transition: transform 0.3s ease;
+      }
+
+      .lang-menu {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: #232345;
+        border: 1px solid #3a3a5c;
+        border-radius: 8px;
+        min-width: 150px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.3s ease;
+        z-index: 1000;
+      }
+
+      .lang-menu.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+      }
+
+      .lang-form {
+        padding: 8px 0;
+      }
+
+      .lang-option {
+        width: 100%;
+        background: none;
+        border: none;
+        color: #b0b0b0;
+        padding: 10px 16px;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.9em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .lang-option:hover {
+        background: #3a3a5c;
+        color: #fff;
+      }
+
+      .lang-option.active {
+        background: #667eea;
+        color: #fff;
       }
 
       /* Mobile Menu */
@@ -171,7 +251,7 @@
               class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
             >
               <span class="nav-icon">🏠</span>
-              <span>Trang chủ</span>
+              <span>{% trans "Home" %}</span>
             </a>
           </li>
           <li class="nav-item">
@@ -180,7 +260,7 @@
               class="nav-link {% if request.resolver_match.url_name == 'flashcard_list' %}active{% endif %}"
             >
               <span class="nav-icon">📚</span>
-              <span>Flashcards</span>
+              <span>{% trans "Flashcards" %}</span>
             </a>
           </li>
           <li class="nav-item">
@@ -189,20 +269,64 @@
               class="nav-link {% if request.resolver_match.url_name == 'add_flashcard' %}active{% endif %}"
             >
               <span class="nav-icon">➕</span>
-              <span>Thêm từ</span>
+              <span>{% trans "Add Word" %}</span>
             </a>
           </li>
           <li class="nav-item">
             <a href="#" class="nav-link">
               <span class="nav-icon">📖</span>
-              <span>Học tập</span>
+              <span>{% trans "Study" %}</span>
             </a>
           </li>
           <li class="nav-item">
             <a href="#" class="nav-link">
               <span class="nav-icon">📊</span>
-              <span>Thống kê</span>
+              <span>{% trans "Statistics" %}</span>
             </a>
+          </li>
+
+          <!-- Language Switcher -->
+          <li class="nav-item language-switcher">
+            <div class="language-dropdown">
+              <button class="lang-toggle nav-link" id="lang-toggle">
+                <span class="nav-icon">🌐</span>
+                <span class="current-lang">
+                  {% get_current_language as LANGUAGE_CODE %} 
+                  {% if LANGUAGE_CODE == 'vi' %}VI {% else %}EN{% endif %}
+                </span>
+                <span class="dropdown-arrow">▼</span>
+              </button>
+              <div class="lang-menu" id="lang-menu">
+                <form
+                  action="{% url 'set_language' %}"
+                  method="post"
+                  class="lang-form"
+                >
+                  {% csrf_token %}
+                  <input
+                    name="next"
+                    type="hidden"
+                    value="/"
+                  />
+                  <button
+                    type="submit"
+                    name="language"
+                    value="en"
+                    class="lang-option {% if LANGUAGE_CODE == 'en' %}active{% endif %}"
+                  >
+                    🇺🇸 English
+                  </button>
+                  <button
+                    type="submit"
+                    name="language"
+                    value="vi"
+                    class="lang-option {% if LANGUAGE_CODE == 'vi' %}active{% endif %}"
+                  >
+                    🇻🇳 Tiếng Việt
+                  </button>
+                </form>
+              </div>
+            </div>
           </li>
         </ul>
 
@@ -241,6 +365,39 @@
         if (window.innerWidth > 768) {
           document.getElementById("nav-menu").classList.remove("active");
         }
+      });
+
+      // Language switcher functionality
+      document.addEventListener("DOMContentLoaded", function () {
+        const langToggle = document.getElementById("lang-toggle");
+        const langMenu = document.getElementById("lang-menu");
+        const dropdownArrow = langToggle.querySelector(".dropdown-arrow");
+
+        langToggle.addEventListener("click", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const isOpen = langMenu.classList.contains("show");
+
+          if (isOpen) {
+            langMenu.classList.remove("show");
+            dropdownArrow.style.transform = "rotate(0deg)";
+          } else {
+            langMenu.classList.add("show");
+            dropdownArrow.style.transform = "rotate(180deg)";
+          }
+        });
+
+        // Close language menu when clicking outside
+        document.addEventListener("click", function (event) {
+          if (
+            !langToggle.contains(event.target) &&
+            !langMenu.contains(event.target)
+          ) {
+            langMenu.classList.remove("show");
+            dropdownArrow.style.transform = "rotate(0deg)";
+          }
+        });
       });
     </script>
   </body>

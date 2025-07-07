@@ -1,0 +1,140 @@
+📋 CHECKLIST KIỂM TRA SAU KHI HOÀN THÀNH REQUEST
+================================================================
+
+🔧 CODE QUALITY & STRUCTURE
+================================================================
+□ Không có function/variable bị duplicate
+□ Không có dead code hoặc comment cũ
+□ Import statements đầy đủ và chính xác
+□ Indentation và formatting consistent
+□ Variable names có ý nghĩa và rõ ràng
+□ Function scoping đúng (global vs local)
+□ Không có hardcoded values, sử dụng constants
+□ Error handling đầy đủ với try-catch blocks
+
+🎯 FUNCTIONALITY CHECKS
+================================================================
+□ Feature chính hoạt động như mong đợi
+□ Edge cases được handle đúng cách
+□ Validation input đầy đủ
+□ Success/error messages hiển thị đúng
+□ Loading states và feedback cho user
+□ Responsive design trên mobile/desktop
+□ Cross-browser compatibility (Chrome, Firefox, Safari)
+□ Keyboard navigation và accessibility
+
+🔌 API & BACKEND CHECKS  
+================================================================
+□ Tất cả API endpoints hoạt động (200 status)
+□ CSRF tokens được handle đúng cách
+□ Authentication/authorization đúng
+□ Request/response data format chính xác
+□ API error handling và status codes
+□ Rate limiting và security measures
+□ Database queries optimize (no N+1 problems)
+□ Migrations chạy thành công
+
+🎨 FRONTEND & UI CHECKS
+================================================================
+□ UI components render đúng
+□ CSS styling consistent với design
+□ Animations và transitions mượt mà
+□ Icons và images hiển thị đúng
+□ Forms validation realtime
+□ Modal/popup behavior đúng
+□ Navigation và routing hoạt động
+□ State management correct
+
+🗄️ DATABASE & MODELS CHECKS
+================================================================
+□ Model relationships đúng (ForeignKey, ManyToMany)
+□ Database constraints và validations
+□ Index performance trên các queries thường dùng
+□ Data migration backward compatible
+□ No data loss trong quá trình update
+□ Backup data trước khi thay đổi lớn
+
+🔒 SECURITY CHECKS
+================================================================
+□ CSRF protection enabled
+□ SQL injection prevention
+□ XSS protection (escape user input)
+□ Authentication required cho protected routes
+□ File upload validation và security
+□ Sensitive data không expose trong logs
+□ Environment variables cho secrets
+□ HTTPS trong production
+
+⚡ PERFORMANCE CHECKS
+================================================================
+□ Page load time acceptable (<3s)
+□ Large datasets pagination
+□ Image optimization và lazy loading
+□ Database query optimization
+□ Static files caching
+□ No memory leaks trong JavaScript
+□ Minimize API calls (batch requests)
+
+🧪 TESTING CHECKS
+================================================================
+□ Manual testing tất cả flows chính
+□ Test với different user roles
+□ Test với empty data states
+□ Test error scenarios
+□ Test với large datasets
+□ Browser console không có errors
+□ Network tab: no failed requests
+□ Mobile responsive testing
+
+📚 DOCUMENTATION CHECKS
+================================================================
+□ Code comments cho complex logic
+□ API documentation updated
+□ README file cập nhật với new features
+□ Changelog ghi nhận thay đổi
+□ User guide hoặc help text
+□ Database schema documentation
+
+🚀 DEPLOYMENT READINESS
+================================================================
+□ Environment variables configured
+□ Static files collected và served
+□ Database migrations applied
+□ Dependencies requirements.txt updated
+□ Settings cho production environment
+□ Error logging và monitoring setup
+□ Backup strategy implemented
+
+🐛 SPECIFIC ISSUES TO WATCH (Lessons Learned)
+================================================================
+□ CSRF token available trong all forms
+□ Function definitions trong correct scope
+□ Template syntax errors ({% endblock %})
+□ File encoding đúng (UTF-8, không BOM)
+□ Import statements không missing
+□ URL patterns match với template links
+□ JavaScript event listeners đúng elements
+□ Database foreign key constraints
+□ Image/file upload paths configured
+□ API response format consistent
+
+🔄 FINAL VALIDATION STEPS
+================================================================
+□ Server restart thành công
+□ No console errors trong browser
+□ All tests pass
+□ Performance acceptable
+□ User experience smooth
+□ Ready for production deployment
+
+================================================================
+✅ SIGN-OFF: All items checked, feature ready for release
+================================================================
+
+Notes & Issues Found:
+_____________________________________________________________________
+_____________________________________________________________________
+_____________________________________________________________________
+
+Date: _______________
+Reviewer: ___________ 

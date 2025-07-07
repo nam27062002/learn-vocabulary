@@ -11,4 +11,7 @@ urlpatterns = [
     path('flashcards/', views.flashcard_list, name='flashcard_list'),
     path('api/check-word-exists/', views.check_word_exists, name='check_word_exists'),
     path('api/delete-flashcard/', views.delete_flashcard, name='delete_flashcard'),
+    path('api/translate-to-vietnamese/', views.translate_to_vietnamese, name='translate_to_vietnamese'),
+    path('api/translate-word-to-vietnamese/', views.translate_word_to_vietnamese, name='translate_word_to_vietnamese'),
+    path('api/get-related-image/', views.get_related_image, name='get_related_image'),
 ] 

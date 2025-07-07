@@ -1,13 +1,16 @@
-{% extends "base.html" %} {% block title %}Danh sách Flashcards - Learn
-English{% endblock %} {% block content %}
+{% extends "base.html" %} {% load static %} {% load i18n %} {% block title %}{%trans "My Flashcards" %} - {% trans "Learn English" %}{% endblock %} {% block content %} {% csrf_token %}
+
 <div class="flashcard-list-page">
   <div class="page-header">
-    <h1>📚 Danh sách Flashcards</h1>
-    <p>Tổng cộng {{ flashcard_defs|length }} từ vựng</p>
+    <h1>📚 {% trans "My Flashcards" %}</h1>
+    <p>
+      {% blocktrans count counter=flashcard_defs|length %}{{ counter }} word
+      found{% plural %}{{ counter }} words found{% endblocktrans %}
+    </p>
     <div class="header-actions">
       <a href="{% url 'add_flashcard' %}" class="btn-add">
         <span>➕</span>
-        Thêm từ mới
+        {% trans "Add New Words" %}
       </a>
     </div>
   </div>
@@ -31,11 +34,15 @@ English{% endblock %} {% block content %}
         {% endif %}
       </div>
 
-      {% if card.image %}
+      <!-- 
+        Hình ảnh được ẩn để dùng cho việc luyện tập (tạo hiệu ứng thử thách khi xem flashcard)
+        Để hiển thị lại hình ảnh, hãy bỏ comment {% comment %} ... {% endcomment %} bên dưới:
+      -->
+      {% comment %} {% if card.image %}
       <div class="card-image">
         <img src="{{ card.image.url }}" alt="Ảnh minh họa {{ card.word }}" />
       </div>
-      {% endif %}
+      {% endif %} {% endcomment %}
 
       <div class="card-content">
         <div class="audio-section">
@@ -68,20 +75,16 @@ English{% endblock %} {% block content %}
           {% endfor %}
         </div>
       </div>
-
-      <div class="card-footer">
-        <div class="created-at" data-utc="{{ card.created_at|date:'c' }}"></div>
-      </div>
     </div>
     {% endfor %}
   </div>
   {% else %}
   <div class="empty-state">
     <div class="empty-icon">📖</div>
-    <h2>Chưa có flashcard nào</h2>
-    <p>Hãy bắt đầu thêm từ vựng đầu tiên của bạn!</p>
+    <h2>{% trans "No flashcards found" %}</h2>
+    <p>{% trans "Create your first flashcard" %}</p>
     <a href="{% url 'add_flashcard' %}" class="btn-primary">
-      ➕ Thêm từ vựng đầu tiên
+      ➕ {% trans "Add New Words" %}
     </a>
   </div>
   {% endif %}
@@ -203,17 +206,7 @@ English{% endblock %} {% block content %}
     font-style: italic;
   }
 
-  .card-image {
-    margin-bottom: 20px;
-    text-align: center;
-  }
-
-  .card-image img {
-    max-width: 100%;
-    max-height: 150px;
-    border-radius: 8px;
-    object-fit: cover;
-  }
+  /* Card image styles removed - images hidden for training mode */
 
   .audio-section {
     margin-bottom: 20px;
@@ -262,18 +255,6 @@ English{% endblock %} {% block content %}
   .def-en strong,
   .def-vi strong {
     color: #667eea;
-  }
-
-  .card-footer {
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid #3a3a5c;
-  }
-
-  .created-at {
-    color: #888;
-    font-size: 0.85em;
-    text-align: center;
   }
 
   .empty-state {
@@ -330,26 +311,7 @@ English{% endblock %} {% block content %}
 </style>
 
 <script>
-  // Format ngày tạo
-  document.querySelectorAll(".created-at").forEach(function (div) {
-    const utc = div.getAttribute("data-utc");
-    if (utc) {
-      const localDate = new Date(utc);
-      const pad = (n) => (n < 10 ? "0" + n : n);
-      const str =
-        pad(localDate.getDate()) +
-        "/" +
-        pad(localDate.getMonth() + 1) +
-        "/" +
-        localDate.getFullYear() +
-        " " +
-        pad(localDate.getHours()) +
-        ":" +
-        pad(localDate.getMinutes());
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      div.textContent = "Tạo lúc: " + str;
-    }
-  });
+  // Only show uploaded images from local files (no image suggestions)
 
   // Play audio function
   document.querySelectorAll(".play-audio").forEach((btn) => {
@@ -391,16 +353,22 @@ English{% endblock %} {% block content %}
       const cardId = this.getAttribute("data-id");
       const cardElement = this.closest(".flashcard-card");
 
-      fetch("/api/delete-flashcard/", {
+      console.log("Đang xóa flashcard với ID:", cardId); // Debug log
+
+      fetch("{% url 'delete_flashcard' %}", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-CSRFToken": getCookie("csrftoken"),
         },
-        body: JSON.stringify({ id: cardId }),
+        body: JSON.stringify({ id: parseInt(cardId) }),
       })
-        .then((res) => res.json())
+        .then((res) => {
+          console.log("Response status:", res.status); // Debug log
+          return res.json();
+        })
         .then((data) => {
+          console.log("Response data:", data); // Debug log
           if (data.success) {
             cardElement.style.transform = "scale(0)";
             cardElement.style.opacity = "0";
@@ -419,7 +387,7 @@ English{% endblock %} {% block content %}
         })
         .catch((error) => {
           console.error("Error:", error);
-          alert("Đã xảy ra lỗi khi xóa flashcard");
+          alert("Đã xảy ra lỗi khi xóa flashcard: " + error.message);
         });
     });
   });
