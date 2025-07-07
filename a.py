@@ -61,6 +61,7 @@ def get_word_details(word):
 
 # Sử dụng hàm
 word_data = get_word_details("meticulous")
+print(word_data)
 
 # In kết quả chi tiết
 print(f"Từ: {word_data['word']}")

@@ -1,0 +1,571 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thêm Flashcard Mới</title>
+    <style>
+        body {
+            background-color: #1a1a2e; /* Dark background */
+            color: #e0e0e0; /* Light text color */
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 40px;
+        }
+        .flashcard-section {
+            background-color: #272744; /* Slightly lighter dark background for sections */
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .flashcard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            color: #ffffff;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        .flashcard-header .actions {
+            display: flex;
+            gap: 10px;
+        }
+        .flashcard-header .action-icon {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 1.2em;
+            cursor: pointer;
+        }
+        .flashcard-header .action-icon:hover {
+            color: #eee;
+        }
+        .input-group {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        .input-field {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative; /* Add position relative for absolute positioning of suggestions */
+        }
+        .input-field label {
+            font-size: 0.9em;
+            color: #b0b0b0;
+            margin-bottom: 5px;
+        }
+        .input-field input[type="text"],
+        .input-field textarea {
+            background-color: #3b3b5c;
+            border: 1px solid #4a4a70;
+            border-radius: 5px;
+            padding: 10px;
+            color: #ffffff;
+            font-size: 1em;
+            resize: vertical;
+            min-height: 40px; /* For definition textarea */
+        }
+        .image-upload {
+            width: 100px;
+            height: 100px;
+            border: 2px dashed #4a4a70;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            text-align: center;
+            color: #b0b0b0;
+            font-size: 0.8em;
+            margin-left: 20px; /* Align with input-group */
+        }
+        .image-upload:hover {
+            border-color: #6a6a90;
+        }
+        .image-upload svg {
+            width: 30px;
+            height: 30px;
+            fill: #b0b0b0;
+            margin-bottom: 5px;
+        }
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .button {
+            background-color: #555577;
+            color: #ffffff;
+            border: none;
+            border-radius: 25px;
+            padding: 12px 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .button:hover {
+            background-color: #6a6a90;
+        }
+        .button.primary {
+            background-color: #6a5acd; /* Royal Blue */
+        }
+        .button.primary:hover {
+            background-color: #7b68ee;
+        }
+        .input-field input.correct-spelling,
+        .input-field textarea.correct-spelling {
+            color: #4CAF50 !important; /* Green for correct spelling */
+        }
+        .input-field input.incorrect-spelling,
+        .input-field textarea.incorrect-spelling {
+            color: #F44336 !important; /* Red for incorrect spelling */
+        }
+        .suggestions-list {
+            position: absolute;
+            top: 100%; /* Position below the input */
+            left: 0;
+            right: 0;
+            background-color: #3b3b5c; /* Same as input background */
+            border: 1px solid #4a4a70;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 10;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .suggestion-item {
+            padding: 10px;
+            cursor: pointer;
+            color: #ffffff;
+        }
+        .suggestion-item:hover {
+            background-color: #4a4a70;
+        }
+
+        /* Styles for Definition Selection Modal */
+        .definition-modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 20;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #272744;
+            margin: auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #4a4a70;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .modal-header h2 {
+            margin: 0;
+            color: #ffffff;
+        }
+        .close-button {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: #fff;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .definition-options {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .definition-item {
+            background-color: #3b3b5c;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .definition-item:hover {
+            background-color: #4a4a70;
+        }
+        .definition-item p {
+            margin: 0;
+            color: #e0e0e0;
+        }
+        .definition-item .part-of-speech {
+            font-style: italic;
+            color: #b0b0b0;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="flashcard-section">
+            <div class="flashcard-header">
+                <span>1</span>
+                <div class="actions">
+                    <button class="action-icon">=</button>
+                    <button class="action-icon">🗑️</button>
+                </div>
+            </div>
+            <div style="display: flex; align-items: flex-end;">
+                <div class="input-group" style="flex-grow: 1;">
+                    <div class="input-field">
+                        <label for="term1">THUẬT NGỮ</label>
+                        <input type="text" id="term1" name="term1" class="term-input">
+                        <div id="suggestions1" class="suggestions-list" style="display: none;"></div>
+                    </div>
+                    <div class="input-field">
+                        <label for="definition1">ĐỊNH NGHĨA</label>
+                        <textarea id="definition1" name="definition1"></textarea>
+                    </div>
+                </div>
+                <div class="image-upload">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4.85 6.15l-3.3-3.3c-.2-.2-.5-.3-.75-.3s-.55.1-.75.3L6 11.15V15h8.4L19 10.45l-3.3-3.3c-.2-.2-.5-.3-.75-.3s-.55.1-.75.3z"/></svg>
+                    <span>Hình ảnh</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flashcard-section">
+            <div class="flashcard-header">
+                <span>2</span>
+                <div class="actions">
+                    <button class="action-icon">=</button>
+                    <button class="action-icon">🗑️</button>
+                </div>
+            </div>
+            <div style="display: flex; align-items: flex-end;">
+                <div class="input-group" style="flex-grow: 1;">
+                    <div class="input-field">
+                        <label for="term2">THUẬT NGỮ</label>
+                        <input type="text" id="term2" name="term2" class="term-input">
+                        <div id="suggestions2" class="suggestions-list" style="display: none;"></div>
+                    </div>
+                    <div class="input-field">
+                        <label for="definition2">ĐỊNH NGHĨA</label>
+                        <textarea id="definition2" name="definition2"></textarea>
+                    </div>
+                </div>
+                <div class="image-upload">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4.85 6.15l-3.3-3.3c-.2-.2-.5-.3-.75-.3s-.55.1-.75.3L6 11.15V15h8.4L19 10.45l-3.3-3.3c-.2-.2-.5-.3-.75-.3s-.55.1-.75.3z"/></svg>
+                    <span>Hình ảnh</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="button">Thêm thẻ</button>
+        </div>
+    </div>
+
+    <div class="button-group" style="position: fixed; bottom: 20px;">
+        <button class="button">Tạo</button>
+        <button class="button primary">Tạo và ôn luyện</button>
+    </div>
+
+    <!-- Definition Selection Modal -->
+    <div id="definitionModal" class="definition-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Chọn Định Nghĩa</h2>
+                <span class="close-button">&times;</span>
+            </div>
+            <div class="definition-options">
+                <!-- Definitions will be loaded here by JavaScript -->
+            </div>
+            <div style="text-align: right;">
+                <button class="button" id="cancelDefinitionSelection">Hủy</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const termInputs = document.querySelectorAll('.term-input');
+            const definitionModal = document.getElementById('definitionModal');
+            const closeButton = definitionModal.querySelector('.close-button');
+            const definitionOptionsContainer = definitionModal.querySelector('.definition-options');
+            const cancelDefinitionSelectionButton = document.getElementById('cancelDefinitionSelection');
+
+            let currentDefinitionTextarea = null; // To store the textarea linked to the current definition selection
+            let fetchedWordDetails = null; // To store the full word details fetched from API
+
+            closeButton.onclick = function() {
+                definitionModal.style.display = 'none';
+            }
+            cancelDefinitionSelectionButton.onclick = function() {
+                definitionModal.style.display = 'none';
+            }
+            window.onclick = function(event) {
+                if (event.target == definitionModal) {
+                    definitionModal.style.display = 'none';
+                }
+            }
+
+            termInputs.forEach(input => {
+                const suggestionsBox = document.getElementById(`suggestions${input.id.replace('term', '')}`);
+
+                input.addEventListener('input', debounce(function() {
+                    const query = this.value.trim();
+
+                    // Reset color immediately when typing starts again
+                    this.classList.remove('correct-spelling', 'incorrect-spelling');
+
+                    if (query.length > 0) { // Change to > 0 to allow check for single characters
+                        fetch(`/suggest-words/?q=${encodeURIComponent(query)}`)
+                            .then(response => {
+                                if (!response.ok) {
+                                    return response.json().catch(() => {
+                                        throw new Error(`HTTP error! status: ${response.status}`);
+                                    });
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                // Check if the data itself indicates an error from Django backend
+                                if (data && data.error) {
+                                    console.error('Backend returned an error for suggestions:', data.error);
+                                    suggestionsBox.style.display = 'none';
+                                    return; // Exit here
+                                }
+                                suggestionsBox.innerHTML = '';
+                                if (data.length > 0) {
+                                    data.forEach(word => {
+                                        const suggestionItem = document.createElement('div');
+                                        suggestionItem.classList.add('suggestion-item');
+                                        suggestionItem.textContent = word;
+                                        suggestionItem.addEventListener('click', () => {
+                                            input.value = word;
+                                            suggestionsBox.style.display = 'none';
+                                            // Trigger spell check immediately after selecting a suggestion
+                                            checkSpelling(input);
+                                        });
+                                        suggestionsBox.appendChild(suggestionItem);
+                                    });
+                                    suggestionsBox.style.display = 'block';
+                                } else {
+                                    suggestionsBox.style.display = 'none';
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error fetching suggestions:', error);
+                                suggestionsBox.style.display = 'none';
+                            });
+                        
+                        // Perform spell check immediately after suggestion fetch (still debounced by outer function)
+                        checkSpelling(input);
+
+                    } else {
+                        suggestionsBox.style.display = 'none';
+                        // Also reset color if input is empty
+                        this.classList.remove('correct-spelling', 'incorrect-spelling');
+                    }
+                }, 300)); // Debounce for both suggestions and spell check
+
+                // Hide suggestions when input loses focus
+                input.addEventListener('blur', function() {
+                    setTimeout(() => {
+                        suggestionsBox.style.display = 'none';
+                    }, 100); // Small delay to allow click on suggestion item
+                });
+
+                // Function to prevent immediate hiding on click
+                suggestionsBox.addEventListener('mousedown', function(event) {
+                    event.preventDefault();
+                });
+
+                // Listen for Enter key to fetch word details
+                input.addEventListener('keydown', function(event) {
+                    if (event.key === 'Enter') {
+                        event.preventDefault(); // Prevent form submission
+                        const word = this.value.trim();
+                        const definitionInput = document.getElementById(`definition${this.id.replace('term', '')}`);
+
+                        if (word) {
+                            fetch(`/word-details/?word=${encodeURIComponent(word)}`)
+                                .then(response => {
+                                    if (!response.ok) {
+                                        return response.json().catch(() => {
+                                            throw new Error(`HTTP error! status: ${response.status}`);
+                                        });
+                                    }
+                                    return response.json();
+                                })
+                                .then(data => {
+                                    if (data && data.error) {
+                                        console.error('Backend returned an error for word details:', data.error);
+                                        definitionInput.value = `Lỗi: ${data.error}`;
+                                        definitionInput.style.color = '#F44336'; // Red text for error
+                                        return;
+                                    }
+
+                                    fetchedWordDetails = data; // Store the fetched data
+
+                                    definitionOptionsContainer.innerHTML = ''; // Clear previous options
+                                    let hasDefinitions = false;
+
+                                    if (data.meanings && data.meanings.length > 0) {
+                                        data.meanings.forEach(meaning => {
+                                            if (meaning.definitions && meaning.definitions.length > 0) {
+                                                meaning.definitions.forEach((def, index) => {
+                                                    hasDefinitions = true;
+                                                    const definitionItem = document.createElement('div');
+                                                    definitionItem.classList.add('definition-item');
+                                                    definitionItem.innerHTML = `
+                                                        ${meaning.part_of_speech ? `<p class="part-of-speech">(${meaning.part_of_speech})</p>` : ''}
+                                                        <p>${def.en}</p>
+                                                    `;
+                                                    // Store the full definition object for later use
+                                                    definitionItem.dataset.definitionIndex = index;
+                                                    definitionItem.dataset.meaningIndex = data.meanings.indexOf(meaning);
+                                                    
+                                                    definitionItem.addEventListener('click', function() {
+                                                        const selectedMeaningIndex = parseInt(this.dataset.meaningIndex);
+                                                        const selectedDefinitionIndex = parseInt(this.dataset.definitionIndex);
+
+                                                        const selectedMeaning = fetchedWordDetails.meanings[selectedMeaningIndex];
+                                                        const selectedDefinition = selectedMeaning.definitions[selectedDefinitionIndex];
+
+                                                        let definitionText = `${selectedDefinition.en}`;
+                                                        
+                                                        currentDefinitionTextarea.value = definitionText.trim();
+                                                        currentDefinitionTextarea.style.color = '#ffffff';
+                                                        definitionModal.style.display = 'none'; // Close modal after selection
+                                                    });
+                                                    definitionOptionsContainer.appendChild(definitionItem);
+                                                });
+                                            }
+                                        });
+                                    }
+
+                                    if (hasDefinitions) {
+                                        currentDefinitionTextarea = definitionInput; // Set the target textarea
+                                        definitionModal.style.display = 'flex'; // Show modal
+                                    } else {
+                                        definitionInput.value = 'Không tìm thấy định nghĩa.';
+                                        definitionInput.style.color = '#b0b0b0';
+                                    }
+
+                                })
+                                .catch(error => {
+                                    console.error('Error fetching word details:', error);
+                                    definitionInput.value = `Lỗi: ${error.message || 'Không thể lấy định nghĩa.'}`;
+                                    definitionInput.style.color = '#F44336'; // Red text for error
+                                });
+                        } else {
+                            definitionInput.value = '';
+                            definitionInput.style.color = '#ffffff';
+                        }
+                    }
+                });
+
+                // Function to perform spell check
+                function checkSpelling(inputElement) {
+                    const wordToCheck = inputElement.value.trim();
+                    if (wordToCheck.length > 0) {
+                        fetch('/check-spelling/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-CSRFToken': getCookie('csrftoken') // You need to get CSRF token
+                            },
+                            body: `word=${encodeURIComponent(wordToCheck)}`
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().catch(() => {
+                                    throw new Error(`HTTP error! status: ${response.status}`);
+                                });
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            // Check if the data itself indicates an error from Django backend
+                            if (data && data.error) {
+                                console.error('Backend returned an error for spell check:', data.error);
+                                inputElement.classList.remove('correct-spelling', 'incorrect-spelling');
+                                return; // Exit here
+                            }
+                            if (data.is_correct) {
+                                inputElement.classList.remove('incorrect-spelling');
+                                inputElement.classList.add('correct-spelling');
+                            } else {
+                                inputElement.classList.remove('correct-spelling');
+                                inputElement.classList.add('incorrect-spelling');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error checking spelling:', error);
+                            inputElement.classList.remove('correct-spelling', 'incorrect-spelling'); // Reset color on error
+                        });
+                    }
+                }
+
+                // Helper function to get CSRF token
+                function getCookie(name) {
+                    let cookieValue = null;
+                    if (document.cookie && document.cookie !== '') {
+                        const cookies = document.cookie.split(';');
+                        for (let i = 0; i < cookies.length; i++) {
+                            const cookie = cookies[i].trim();
+                            // Does this cookie string begin with the name we want?
+                            if (cookie.startsWith(name + '=')) {
+                                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                                break;
+                            }
+                        }
+                    }
+                    return cookieValue;
+                }
+            });
+
+            // Debounce function to limit how often a function is called
+            function debounce(func, delay) {
+                let timeout;
+                return function(...args) {
+                    const context = this;
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(context, args), delay);
+                };
+            }
+        });
+    </script>
+</body>
+</html> 
