@@ -29,9 +29,14 @@
 
       <div class="card-header">
         <h3 class="card-word">{{ card.word }}</h3>
-        {% if card.part_of_speech %}
-        <span class="card-pos">{{ card.part_of_speech }}</span>
-        {% endif %}
+        <div class="card-meta">
+          {% if card.phonetic %}
+          <span class="card-phonetic">{{ card.phonetic }}</span>
+          {% endif %}
+          {% if card.part_of_speech %}
+          <span class="card-pos">{{ card.part_of_speech }}</span>
+          {% endif %}
+        </div>
       </div>
 
       <!-- 
@@ -195,6 +200,23 @@
     font-weight: bold;
     color: #fff;
     margin: 0 0 8px 0;
+  }
+
+  .card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .card-phonetic {
+    color: #9c88ff;
+    font-size: 0.9em;
+    font-style: italic;
+    background: rgba(156, 136, 255, 0.1);
+    padding: 3px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(156, 136, 255, 0.3);
   }
 
   .card-pos {

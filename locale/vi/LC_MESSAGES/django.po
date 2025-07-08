@@ -78,6 +78,9 @@ msgstr "Định nghĩa tiếng Việt"
 msgid "Part of Speech"
 msgstr "Loại từ"
 
+msgid "Phonetic"
+msgstr "Phát âm"
+
 msgid "Audio URL"
 msgstr "Đường dẫn Audio"
 
@@ -197,6 +200,12 @@ msgstr "Thẻ tiếp theo"
 
 msgid "Previous Card"
 msgstr "Thẻ trước"
+
+msgid "Language Test"
+msgstr "Test Ngôn Ngữ"
+
+msgid "Back to Dashboard"
+msgstr "Về Bảng Điều Khiển"
 
 # Time
 msgid "Today"

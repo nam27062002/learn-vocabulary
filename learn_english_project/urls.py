@@ -23,13 +23,13 @@ from django.views.i18n import set_language
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('set-language/', set_language, name='set_language'),  # Language switcher
+    path('i18n/', include('django.conf.urls.i18n')),  # Include i18n URLs (not affected by language prefix)
 ]
 
-# Internationalized URLs
+# Internationalized URLs  
 urlpatterns += i18n_patterns(
     path('', include('vocabulary.urls')),
-    prefix_default_language=False
+    prefix_default_language=True  # Always show language prefix to avoid confusion
 )
 
 # Serve media files during development

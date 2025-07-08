@@ -14,4 +14,6 @@ urlpatterns = [
     path('api/translate-to-vietnamese/', views.translate_to_vietnamese, name='translate_to_vietnamese'),
     path('api/translate-word-to-vietnamese/', views.translate_word_to_vietnamese, name='translate_word_to_vietnamese'),
     path('api/get-related-image/', views.get_related_image, name='get_related_image'),
+    path('debug/language/', views.debug_language, name='debug_language'),
+    path('test/language/', views.language_test, name='language_test'),
 ] 

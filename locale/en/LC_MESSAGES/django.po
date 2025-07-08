@@ -197,4 +197,10 @@ msgid "Next Card"
 msgstr "Next Card"
 
 msgid "Previous Card"
-msgstr "Previous Card" 
+msgstr "Previous Card"
+
+msgid "Language Test"
+msgstr "Language Test"
+
+msgid "Back to Dashboard"
+msgstr "Back to Dashboard" 

@@ -1,8 +1,8 @@
 {% extends "base.html" %} {% load i18n %} {% block title %}{% trans "Dashboard"%} - {% trans "Learn English" %}{% endblock %} {% block content %}
 <div class="dashboard-container">
   <div class="welcome-section">
-    <h1>{% trans "Welcome to LearnEnglish" %}</h1>
-    <p>{% trans "Your personal vocabulary learning platform" %}</p>
+    <h1>{{ manual_texts.welcome_message }}</h1>
+    <p>{{ manual_texts.platform_description }}</p>
   </div>
 
   <div class="stats-grid">
@@ -10,7 +10,7 @@
       <div class="stat-icon">📚</div>
       <div class="stat-content">
         <div class="stat-number">{{ total_cards }}</div>
-        <div class="stat-label">{% trans "Total Cards" %}</div>
+        <div class="stat-label">{{ manual_texts.total_cards }}</div>
       </div>
     </div>
 
@@ -18,7 +18,7 @@
       <div class="stat-icon">🆕</div>
       <div class="stat-content">
         <div class="stat-number">{{ recent_cards }}</div>
-        <div class="stat-label">{% trans "Recent Cards" %}</div>
+        <div class="stat-label">{{ manual_texts.recent_cards }}</div>
       </div>
     </div>
 
@@ -26,7 +26,7 @@
       <div class="stat-icon">📊</div>
       <div class="stat-content">
         <div class="stat-number">{{ progress_percentage|floatformat:0 }}%</div>
-        <div class="stat-label">{% trans "Progress" %}</div>
+        <div class="stat-label">{{ manual_texts.progress }}</div>
       </div>
     </div>
   </div>
@@ -34,12 +34,12 @@
   <div class="action-buttons">
     <a href="{% url 'add_flashcard' %}" class="action-btn primary">
       <span class="btn-icon">➕</span>
-      <span>{% trans "Add New Words" %}</span>
+      <span>{{ manual_texts.add_new_words }}</span>
     </a>
 
     <a href="{% url 'flashcard_list' %}" class="action-btn secondary">
       <span class="btn-icon">📖</span>
-      <span>{% trans "Study Cards" %}</span>
+      <span>{{ manual_texts.study_cards }}</span>
     </a>
   </div>
 </div>

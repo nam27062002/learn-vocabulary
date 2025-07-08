@@ -4,6 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="csrf-token" content="{{ csrf_token }}" />
     <title>{% block title %}{% trans "Learn English" %}{% endblock %}</title>
     <style>
       * {
@@ -241,7 +242,7 @@
       <div class="nav-container">
         <a href="{% url 'dashboard' %}" class="logo">
           <span>🎓</span>
-          <span>LearnEnglish</span>
+          <span>{{ manual_texts.learn_english }}</span>
         </a>
 
         <ul class="nav-menu" id="nav-menu">
@@ -251,7 +252,7 @@
               class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
             >
               <span class="nav-icon">🏠</span>
-              <span>{% trans "Home" %}</span>
+              <span>{{ manual_texts.home }}</span>
             </a>
           </li>
           <li class="nav-item">
@@ -260,7 +261,7 @@
               class="nav-link {% if request.resolver_match.url_name == 'flashcard_list' %}active{% endif %}"
             >
               <span class="nav-icon">📚</span>
-              <span>{% trans "Flashcards" %}</span>
+              <span>{{ manual_texts.flashcards }}</span>
             </a>
           </li>
           <li class="nav-item">
@@ -269,19 +270,19 @@
               class="nav-link {% if request.resolver_match.url_name == 'add_flashcard' %}active{% endif %}"
             >
               <span class="nav-icon">➕</span>
-              <span>{% trans "Add Word" %}</span>
+              <span>{{ manual_texts.add_word }}</span>
             </a>
           </li>
           <li class="nav-item">
             <a href="#" class="nav-link">
               <span class="nav-icon">📖</span>
-              <span>{% trans "Study" %}</span>
+              <span>{{ manual_texts.study }}</span>
             </a>
           </li>
           <li class="nav-item">
             <a href="#" class="nav-link">
               <span class="nav-icon">📊</span>
-              <span>{% trans "Statistics" %}</span>
+              <span>{{ manual_texts.statistics }}</span>
             </a>
           </li>
 
@@ -291,14 +292,14 @@
               <button class="lang-toggle nav-link" id="lang-toggle">
                 <span class="nav-icon">🌐</span>
                 <span class="current-lang">
-                  {% get_current_language as LANGUAGE_CODE %} 
-                  {% if LANGUAGE_CODE == 'vi' %}VI {% else %}EN{% endif %}
+                  {% get_current_language as CURRENT_LANGUAGE %} 
+                  {% if CURRENT_LANGUAGE == 'vi' %}VI{% else %}EN{% endif %}
                 </span>
                 <span class="dropdown-arrow">▼</span>
               </button>
               <div class="lang-menu" id="lang-menu">
                 <form
-                  action="{% url 'set_language' %}"
+                  action="/i18n/setlang/"
                   method="post"
                   class="lang-form"
                 >
@@ -306,13 +307,14 @@
                   <input
                     name="next"
                     type="hidden"
-                    value="/"
+                    value="{{ request.get_full_path }}"
+                    id="nav-next-input"
                   />
                   <button
                     type="submit"
                     name="language"
                     value="en"
-                    class="lang-option {% if LANGUAGE_CODE == 'en' %}active{% endif %}"
+                    class="lang-option {% if CURRENT_LANGUAGE == 'en' %}active{% endif %}"
                   >
                     🇺🇸 English
                   </button>
@@ -320,7 +322,7 @@
                     type="submit"
                     name="language"
                     value="vi"
-                    class="lang-option {% if LANGUAGE_CODE == 'vi' %}active{% endif %}"
+                    class="lang-option {% if CURRENT_LANGUAGE == 'vi' %}active{% endif %}"
                   >
                     🇻🇳 Tiếng Việt
                   </button>
@@ -397,6 +399,42 @@
             langMenu.classList.remove("show");
             dropdownArrow.style.transform = "rotate(0deg)";
           }
+        });
+
+        // Debug: Add event listeners to language form buttons
+        const langForm = document.querySelector('.lang-form');
+        const langButtons = document.querySelectorAll('.lang-option');
+        
+        langButtons.forEach(button => {
+          button.addEventListener('click', function(e) {
+            console.log('Language button clicked:', this.value);
+            // Let the form submit naturally
+          });
+        });
+        
+        langForm.addEventListener('submit', function(e) {
+          console.log('Language form submitted');
+          // Let the form submit naturally
+        });
+        
+        // Update next URL for navigation language switching
+        langButtons.forEach(button => {
+          button.addEventListener('click', function() {
+            const targetLang = this.value;
+            const currentPath = window.location.pathname;
+            const nextInput = document.getElementById('nav-next-input');
+            
+            // Remove current language prefix and add target language
+            let newPath = currentPath;
+            if (currentPath.startsWith('/vi/')) {
+              newPath = currentPath.substring(3);
+            } else if (currentPath.startsWith('/en/')) {
+              newPath = currentPath.substring(3);
+            }
+            
+            nextInput.value = '/' + targetLang + newPath;
+            console.log('Nav language switch to:', targetLang, 'Next URL:', nextInput.value);
+          });
         });
       });
     </script>

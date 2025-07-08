@@ -117,6 +117,7 @@ def save_flashcards(request):
         while True:
             prefix = f'flashcards[{idx}]'
             word = request.POST.get(f'{prefix}[word]')
+            phonetic = request.POST.get(f'{prefix}[phonetic]')
             part_of_speech = request.POST.get(f'{prefix}[part_of_speech]')
             english_definition = request.POST.get(f'{prefix}[english_definition]')
             vietnamese_definition = request.POST.get(f'{prefix}[vietnamese_definition]')
@@ -127,6 +128,7 @@ def save_flashcards(request):
             # Lưu flashcard
             flashcard = Flashcard(
                 word=word,
+                phonetic=phonetic,
                 part_of_speech=part_of_speech,
                 audio_url=audio_url,
                 image=image  # Gán trực tiếp, Django sẽ tự lưu file
@@ -299,3 +301,54 @@ def get_related_image(request):
             'source': 'fallback',
             'error': str(e)
         })
+
+@require_GET
+def debug_language(request):
+    """Debug view to check current language settings"""
+    from django.utils import translation
+    
+    debug_info = {
+        'current_language': translation.get_language(),
+        'session_language': request.session.get('django_language', 'Not set'),
+        'accept_language': request.META.get('HTTP_ACCEPT_LANGUAGE', 'Not set'),
+        'language_from_request': translation.get_language_from_request(request),
+        'supported_languages': dict(settings.LANGUAGES),
+        'default_language': settings.LANGUAGE_CODE,
+    }
+    
+    return JsonResponse(debug_info)
+
+def language_test(request):
+    """Simple test view for language debugging"""
+    from django.utils import translation
+    
+    current_lang = translation.get_language()
+    
+    # Manual translations for testing
+    translations = {
+        'en': {
+            'title': 'Language Test',
+            'welcome': 'Welcome to LearnEnglish',
+            'add_words': 'Add New Words',
+            'flashcards': 'My Flashcards',
+            'navigation': 'Home | Flashcards | Add Word',
+            'back': 'Back to Dashboard'
+        },
+        'vi': {
+            'title': 'Test Ngôn Ngữ',
+            'welcome': 'Chào mừng đến với LearnEnglish',
+            'add_words': 'Thêm từ mới',
+            'flashcards': 'Thẻ từ vựng của tôi',
+            'navigation': 'Trang chủ | Thẻ từ vựng | Thêm từ',
+            'back': 'Về Bảng Điều Khiển'
+        }
+    }
+    
+    context = {
+        'current_language': current_lang,
+        'session_language': request.session.get('django_language', 'Not set'),
+        'all_session_data': dict(request.session),
+        'texts': translations.get(current_lang, translations['en']),
+    }
+    
+    return render(request, 'vocabulary/language_test.html', context)

@@ -1,5 +1,9 @@
-{% extends "base.html" %} {% load i18n %} {% block title %}{% trans "Add Flashcard" %} - {% trans "Learn English" %}{% endblock %} {% block content %} {%
-csrf_token %}
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Add Flashcard" %} - {% trans "Learn English" %}{% endblock %}
+
+{% block content %}
 <meta name="csrf-token" content="{{ csrf_token }}" />
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
@@ -434,6 +438,10 @@ csrf_token %}
               class="suggestions-list"
               style="display: none"
             ></div>
+          </div>
+          <div class="input-field" style="flex: 0 0 200px;">
+            <label for="phonetic1">PHÁT ÂM</label>
+            <input type="text" id="phonetic1" name="phonetic1" class="phonetic-input" placeholder="/fəˈnetɪk/" readonly style="background-color: #2a2a40; color: #a0a0a0;" />
           </div>
         </div>
         <div class="image-upload" id="imageUpload1">
@@ -1133,6 +1141,9 @@ csrf_token %}
         const termInput = template.querySelector(".term-input");
         if (termInput) termInput.value = "";
         
+        const phoneticInput = template.querySelector(".phonetic-input");
+        if (phoneticInput) phoneticInput.value = "";
+        
         const englishDef = template.querySelector("textarea[name*='definition']:not([name*='vietnamese'])");
         if (englishDef) englishDef.value = "";
         
@@ -1248,11 +1259,23 @@ csrf_token %}
             let audioInput = card.querySelector(".audio-url-input");
             let audio_url = audioInput ? audioInput.value.trim() : "";
 
-            // Nếu thiếu loại từ hoặc audio_url thì lấy từ cache
+            let phoneticInput = card.querySelector(".phonetic-input");
+            let phonetic = phoneticInput ? phoneticInput.value.trim() : "";
+
+            // Nếu thiếu loại từ, audio_url hoặc phonetic thì lấy từ cache
             const cache = wordApiCache[word.toLowerCase()];
             if (cache) {
               if (!part_of_speech && cache.meanings && cache.meanings[0]) {
                 part_of_speech = cache.meanings[0].part_of_speech || "";
+              }
+              if (!phonetic && cache.phonetics && cache.phonetics.length > 0) {
+                // Lấy phonetic đầu tiên có text
+                for (let ph of cache.phonetics) {
+                  if (ph.text) {
+                    phonetic = ph.text;
+                    break;
+                  }
+                }
               }
               if (!audio_url && cache.phonetics && cache.phonetics.length > 0) {
                 // Lấy audio đầu tiên có giá trị
@@ -1268,6 +1291,7 @@ csrf_token %}
               `flashcards[${idx}][part_of_speech]`,
               part_of_speech
             );
+            formData.append(`flashcards[${idx}][phonetic]`, phonetic);
             formData.append(
               `flashcards[${idx}][english_definition]`,
               english_definition
@@ -1514,6 +1538,7 @@ csrf_token %}
       function attachAutoInfoLogic(section) {
         const termInput = section.querySelector(".term-input");
         const defTextarea = section.querySelector("textarea");
+        const phoneticInput = section.querySelector(".phonetic-input");
         const autoInfo = section.querySelector(".auto-info");
         const autoPos = section.querySelector(".auto-pos");
         const autoAudio = section.querySelector(".auto-audio");
@@ -1547,6 +1572,11 @@ csrf_token %}
                   }
                 }
               }
+            }
+            
+            // Cập nhật phonetic input nếu có
+            if (phoneticInput && phonetic) {
+              phoneticInput.value = phonetic;
             }
             autoPos.textContent = partOfSpeech
               ? `Loại từ: ${partOfSpeech}`
@@ -1594,6 +1624,7 @@ csrf_token %}
       // Function để clear tất cả fields khi thay đổi term
       function attachClearFieldsOnTermChange(section) {
         const termInput = section.querySelector(".term-input");
+        const phoneticInput = section.querySelector(".phonetic-input");
         const englishDefTextarea = section.querySelector("textarea[name*='definition']:not([name*='vietnamese'])");
         const vietnameseDefTextarea = section.querySelector("textarea[name*='vietnamese_definition']");
         const imageUpload = section.querySelector(".image-upload");
@@ -1604,6 +1635,9 @@ csrf_token %}
         let previousValue = termInput.value.trim();
         
         function clearAllFields() {
+          // Clear phonetic input
+          if (phoneticInput) phoneticInput.value = "";
+          
           // Clear definition textareas
           if (englishDefTextarea) englishDefTextarea.value = "";
           if (vietnameseDefTextarea) vietnameseDefTextarea.value = "";
