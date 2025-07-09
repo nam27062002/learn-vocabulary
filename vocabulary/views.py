@@ -14,13 +14,16 @@ from django.db.models import Count
 from datetime import datetime, timedelta
 import os
 import json
+from django.contrib.auth.decorators import login_required
 
 # Create your views here.
 
+@login_required
 def dashboard(request):
-    # Thống kê cơ bản
-    total_cards = Flashcard.objects.count()
-    recent_cards = Flashcard.objects.filter(
+    # Thống kê cơ bản cho user hiện tại
+    user_flashcards = Flashcard.objects.filter(user=request.user)
+    total_cards = user_flashcards.count()
+    recent_cards = user_flashcards.filter(
         created_at__gte=datetime.now() - timedelta(days=7)
     ).count()
     
@@ -28,14 +31,14 @@ def dashboard(request):
     weekly_target = 50
     progress_percentage = min((recent_cards / weekly_target) * 100, 100) if weekly_target > 0 else 0
     
-    # Flashcard gần đây
-    latest_cards = Flashcard.objects.select_related().prefetch_related('definitions').order_by('-created_at')[:6]
+    # Flashcard gần đây của user
+    latest_cards = user_flashcards.select_related().prefetch_related('definitions').order_by('-created_at')[:6]
     
-    # Thống kê theo ngày (7 ngày gần đây)
+    # Thống kê theo ngày (7 ngày gần đây) cho user hiện tại
     daily_stats = []
     for i in range(7):
         date = datetime.now() - timedelta(days=i)
-        count = Flashcard.objects.filter(
+        count = user_flashcards.filter(
             created_at__date=date.date()
         ).count()
         daily_stats.append({
@@ -53,9 +56,11 @@ def dashboard(request):
     }
     return render(request, 'vocabulary/dashboard.html', context)
 
+@login_required
 def add_flashcard_view(request):
     return render(request, 'vocabulary/add_flashcard.html')
 
+@login_required
 def suggest_words(request):
     query = request.GET.get('q', '')
 
@@ -69,6 +74,7 @@ def suggest_words(request):
 
     return JsonResponse(suggestions, safe=False)
 
+@login_required
 def check_word_spelling(request):
     if request.method == 'POST':
         word = request.POST.get('word', '')
@@ -89,6 +95,7 @@ def check_word_spelling(request):
 
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
+@login_required
 def get_word_details_api(request):
     word = request.GET.get('word', '').strip()
 
@@ -108,6 +115,7 @@ def get_word_details_api(request):
     
     return JsonResponse(details, safe=False)
 
+@login_required
 @csrf_exempt
 @require_POST
 def save_flashcards(request):
@@ -125,8 +133,9 @@ def save_flashcards(request):
             image = request.FILES.get(f'{prefix}[image]')
             if not word:
                 break
-            # Lưu flashcard
+            # Lưu flashcard với user hiện tại
             flashcard = Flashcard(
+                user=request.user,
                 word=word,
                 phonetic=phonetic,
                 part_of_speech=part_of_speech,
@@ -146,20 +155,23 @@ def save_flashcards(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
+@login_required
 def flashcard_list(request):
-    flashcards = Flashcard.objects.all().order_by('-created_at')
+    flashcards = Flashcard.objects.filter(user=request.user).order_by('-created_at')
     flashcard_defs = []
     for card in flashcards:
         definitions = card.definitions.all()
         flashcard_defs.append((card, definitions))
     return render(request, 'vocabulary/flashcard_list.html', {'flashcard_defs': flashcard_defs})
 
+@login_required
 @require_GET
 def check_word_exists(request):
     word = request.GET.get('word', '').strip()
-    exists = Flashcard.objects.filter(word__iexact=word).exists()
+    exists = Flashcard.objects.filter(user=request.user, word__iexact=word).exists()
     return JsonResponse({'exists': exists})
 
+@login_required
 @require_POST
 def delete_flashcard(request):
     try:
@@ -173,8 +185,8 @@ def delete_flashcard(request):
             return JsonResponse({'success': False, 'error': 'ID không được cung cấp'})
         
         try:
-            # Lấy instance để gọi method delete() tùy chỉnh (xóa file hình ảnh)
-            flashcard = Flashcard.objects.get(id=card_id)
+            # Lấy instance để gọi method delete() tùy chỉnh (xóa file hình ảnh) - chỉ cho user hiện tại
+            flashcard = Flashcard.objects.get(id=card_id, user=request.user)
             flashcard.delete()  # Gọi method delete() tùy chỉnh
             return JsonResponse({'success': True})
         except Flashcard.DoesNotExist:
@@ -185,6 +197,7 @@ def delete_flashcard(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': f'Lỗi server: {str(e)}'})
 
+@login_required
 @require_GET
 def translate_to_vietnamese(request):
     """API to translate English text to Vietnamese"""
@@ -206,6 +219,7 @@ def translate_to_vietnamese(request):
     except Exception as e:
         return JsonResponse({'error': f'Translation failed: {str(e)}'}, status=500)
 
+@login_required
 @require_GET
 def translate_word_to_vietnamese(request):
     """API to translate English word to Vietnamese meaning"""
@@ -240,6 +254,7 @@ def translate_word_to_vietnamese(request):
     except Exception as e:
         return JsonResponse({'error': f'Translation failed: {str(e)}'}, status=500)
 
+@login_required
 @require_GET  
 def get_related_image(request):
     """API to get related image URL for a word"""

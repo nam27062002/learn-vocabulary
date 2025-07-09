@@ -3,7 +3,8 @@ import os
 from django.conf import settings
 
 class Flashcard(models.Model):
-    word = models.CharField(max_length=255, unique=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='flashcards')
+    word = models.CharField(max_length=255)
     phonetic = models.CharField(max_length=100, blank=True, null=True, help_text="Phonetic transcription (e.g., /rɪˈzɪliənt/)")
     part_of_speech = models.CharField(max_length=50, blank=True, null=True)
     audio_url = models.URLField(max_length=500, blank=True, null=True)
@@ -37,6 +38,7 @@ class Flashcard(models.Model):
 
     class Meta:
         ordering = ['word']
+        unique_together = ['user', 'word']  # Một user không thể có từ trùng lặp
 
 class Definition(models.Model):
     flashcard = models.ForeignKey(Flashcard, related_name='definitions', on_delete=models.CASCADE)

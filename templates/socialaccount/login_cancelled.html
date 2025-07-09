@@ -1,0 +1,40 @@
+{% extends "account/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Login Cancelled" %}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <div class="max-w-md w-full space-y-8">
+        <div class="bg-white rounded-lg shadow-xl p-8">
+            <div class="text-center">
+                <!-- Warning Icon -->
+                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100 mb-4">
+                    <svg class="h-8 w-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                </div>
+
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">
+                    {% trans "Login Cancelled" %}
+                </h2>
+                
+                {% url 'account_login' as login_url %}
+                <p class="text-gray-600 mb-6">
+                    {% blocktrans %}You decided to cancel logging in to our site using one of your existing accounts. If this was a mistake, please proceed to <a href="{{login_url}}" class="text-indigo-600 hover:text-indigo-500 font-medium">sign in</a>.{% endblocktrans %}
+                </p>
+            </div>
+
+            <div class="mt-8 flex flex-col space-y-4">
+                <a href="{% url 'account_login' %}" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-200">
+                    Try Again
+                </a>
+                
+                <a href="/" class="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-200">
+                    Go to Homepage
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

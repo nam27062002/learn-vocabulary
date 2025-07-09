@@ -1,0 +1,63 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>{% block title %}{{ manual_texts.learn_english }}{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Authentication Styles -->
+    <style>
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        
+        /* Form input styling */
+        input[type="email"], 
+        input[type="password"] {
+            @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm;
+        }
+        
+        input[type="checkbox"] {
+            @apply h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded;
+        }
+        
+        /* Custom button hover effects */
+        .btn-google:hover {
+            background-color: #dc2626 !important;
+            transform: translateY(-1px);
+        }
+        
+        .btn-primary:hover {
+            background-color: #4338ca !important;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    {% block content %}
+    {% endblock %}
+    
+    <!-- Language Switcher Script -->
+    <script>
+        function toggleLanguage() {
+            const menu = document.getElementById('language-menu');
+            menu.classList.toggle('hidden');
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('language-dropdown');
+            const menu = document.getElementById('language-menu');
+            
+            if (!dropdown.contains(event.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html> 

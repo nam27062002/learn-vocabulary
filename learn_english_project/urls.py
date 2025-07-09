@@ -23,15 +23,17 @@ from django.views.i18n import set_language
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('accounts/', include('allauth.urls')),  # Authentication URLs
     path('i18n/', include('django.conf.urls.i18n')),  # Include i18n URLs (not affected by language prefix)
 ]
 
-# Internationalized URLs  
+# Internationalized URLs
 urlpatterns += i18n_patterns(
     path('', include('vocabulary.urls')),
     prefix_default_language=True  # Always show language prefix to avoid confusion
 )
 
-# Serve media files during development
+# Serve media and static files during development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

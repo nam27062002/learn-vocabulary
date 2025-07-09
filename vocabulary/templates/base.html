@@ -1,290 +1,109 @@
 {% load i18n %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="csrf-token" content="{{ csrf_token }}" />
-    <title>{% block title %}{% trans "Learn English" %}{% endblock %}</title>
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      body {
-        background: #18182f;
-        color: #fff;
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        line-height: 1.6;
-      }
-
-      /* Navigation Styles */
-      .navbar {
-        background: #232345;
-        border-bottom: 1px solid #3a3a5c;
-        padding: 0;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-      }
-
-      .nav-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0 20px;
-        height: 64px;
-      }
-
-      .logo {
-        font-size: 1.8em;
-        font-weight: bold;
-        color: #667eea;
-        text-decoration: none;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
-      .logo:hover {
-        color: #764ba2;
-      }
-
-      .nav-menu {
-        display: flex;
-        list-style: none;
-        gap: 30px;
-        align-items: center;
-      }
-
-      .nav-item {
-        position: relative;
-      }
-
-      .nav-link {
-        color: #b0b0b0;
-        text-decoration: none;
-        padding: 10px 16px;
-        border-radius: 8px;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .nav-link:hover,
-      .nav-link.active {
-        color: #fff;
-        background: #3a3a5c;
-      }
-
-      .nav-icon {
-        font-size: 1.1em;
-      }
-
-      /* Language Switcher */
-      .language-switcher {
-        position: relative;
-      }
-
-      .language-dropdown {
-        position: relative;
-      }
-
-      .lang-toggle {
-        background: none !important;
-        border: none;
-        cursor: pointer;
-        display: flex !important;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .current-lang {
-        font-weight: bold;
-        font-size: 0.9em;
-      }
-
-      .dropdown-arrow {
-        font-size: 0.8em;
-        transition: transform 0.3s ease;
-      }
-
-      .lang-menu {
-        position: absolute;
-        top: 100%;
-        right: 0;
-        background: #232345;
-        border: 1px solid #3a3a5c;
-        border-radius: 8px;
-        min-width: 150px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        opacity: 0;
-        visibility: hidden;
-        transform: translateY(-10px);
-        transition: all 0.3s ease;
-        z-index: 1000;
-      }
-
-      .lang-menu.show {
-        opacity: 1;
-        visibility: visible;
-        transform: translateY(0);
-      }
-
-      .lang-form {
-        padding: 8px 0;
-      }
-
-      .lang-option {
-        width: 100%;
-        background: none;
-        border: none;
-        color: #b0b0b0;
-        padding: 10px 16px;
-        text-align: left;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        font-size: 0.9em;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .lang-option:hover {
-        background: #3a3a5c;
-        color: #fff;
-      }
-
-      .lang-option.active {
-        background: #667eea;
-        color: #fff;
-      }
-
-      /* Mobile Menu */
-      .mobile-menu-toggle {
-        display: none;
-        background: none;
-        border: none;
-        color: #fff;
-        font-size: 1.5em;
-        cursor: pointer;
-      }
-
-      .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 20px;
-      }
-
-      /* Button Styles */
-      a.button {
-        display: inline-block;
-        padding: 12px 24px;
-        background: #667eea;
-        color: #fff;
-        border-radius: 8px;
-        text-decoration: none;
-        margin: 8px 0;
-        transition: all 0.3s ease;
-        font-weight: 500;
-      }
-
-      a.button:hover {
-        background: #764ba2;
-        transform: translateY(-2px);
-      }
-
-      /* Responsive Design */
-      @media (max-width: 768px) {
-        .nav-menu {
-          position: fixed;
-          top: 64px;
-          left: -100%;
-          width: 100%;
-          height: calc(100vh - 64px);
-          background: #232345;
-          flex-direction: column;
-          justify-content: flex-start;
-          align-items: stretch;
-          padding: 20px;
-          transition: left 0.3s ease;
-          gap: 0;
-        }
-
-        .nav-menu.active {
-          left: 0;
-        }
-
-        .nav-link {
-          padding: 15px 20px;
-          width: 100%;
-          text-align: left;
-        }
-
-        .mobile-menu-toggle {
-          display: block;
-        }
-
-        .container {
-          padding: 15px;
-        }
-      }
-    </style>
+    <title>{% block title %}{{ manual_texts.learn_english }}{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" type="text/css" href="{% static 'css/main.css' %}">
+    
+    <!-- Additional page-specific styles -->
+    {% block extra_css %}{% endblock %}
   </head>
   <body>
     <!-- Navigation -->
     <nav class="navbar">
       <div class="nav-container">
-        <a href="{% url 'dashboard' %}" class="logo">
+        <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'account_login' %}{% endif %}" class="logo">
           <span>🎓</span>
           <span>{{ manual_texts.learn_english }}</span>
         </a>
 
         <ul class="nav-menu" id="nav-menu">
-          <li class="nav-item">
-            <a
-              href="{% url 'dashboard' %}"
-              class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
-            >
-              <span class="nav-icon">🏠</span>
-              <span>{{ manual_texts.home }}</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a
-              href="{% url 'flashcard_list' %}"
-              class="nav-link {% if request.resolver_match.url_name == 'flashcard_list' %}active{% endif %}"
-            >
-              <span class="nav-icon">📚</span>
-              <span>{{ manual_texts.flashcards }}</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a
-              href="{% url 'add_flashcard' %}"
-              class="nav-link {% if request.resolver_match.url_name == 'add_flashcard' %}active{% endif %}"
-            >
-              <span class="nav-icon">➕</span>
-              <span>{{ manual_texts.add_word }}</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <span class="nav-icon">📖</span>
-              <span>{{ manual_texts.study }}</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a href="#" class="nav-link">
-              <span class="nav-icon">📊</span>
-              <span>{{ manual_texts.statistics }}</span>
-            </a>
-          </li>
+          {% if user.is_authenticated %}
+            <li class="nav-item">
+              <a
+                href="{% url 'dashboard' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
+              >
+                <span class="nav-icon">🏠</span>
+                <span>{{ manual_texts.home }}</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                href="{% url 'flashcard_list' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'flashcard_list' %}active{% endif %}"
+              >
+                <span class="nav-icon">📚</span>
+                <span>{{ manual_texts.flashcards }}</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                href="{% url 'add_flashcard' %}"
+                class="nav-link {% if request.resolver_match.url_name == 'add_flashcard' %}active{% endif %}"
+              >
+                <span class="nav-icon">➕</span>
+                <span>{{ manual_texts.add_word }}</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#" class="nav-link">
+                <span class="nav-icon">📖</span>
+                <span>{{ manual_texts.study }}</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#" class="nav-link">
+                <span class="nav-icon">📊</span>
+                <span>{{ manual_texts.statistics }}</span>
+              </a>
+            </li>
+          {% endif %}
+
+          <!-- User Authentication -->
+          {% if user.is_authenticated %}
+            <li class="nav-item">
+              <div class="language-dropdown">
+                <button class="lang-toggle nav-link" id="user-toggle">
+                  <span class="nav-icon">👤</span>
+                  <span class="current-lang">{{ user.email|truncatechars:15 }}</span>
+                  <span class="dropdown-arrow">▼</span>
+                </button>
+                <div class="lang-menu" id="user-menu">
+                  <div class="lang-form">
+                    <a href="#" class="lang-option">
+                      <span>👤</span> {{ manual_texts.profile }}
+                    </a>
+                    <a href="{% url 'account_logout' %}" class="lang-option">
+                      <span>🚪</span> {{ manual_texts.logout }}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </li>
+          {% else %}
+            <li class="nav-item">
+              <a href="{% url 'account_login' %}" class="nav-link">
+                <span class="nav-icon">🔑</span>
+                <span>{{ manual_texts.sign_in }}</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{% url 'account_signup' %}" class="nav-link" style="background: #667eea; border-radius: 6px;">
+                <span class="nav-icon">✨</span>
+                <span>{{ manual_texts.sign_up }}</span>
+              </a>
+            </li>
+          {% endif %}
 
           <!-- Language Switcher -->
           <li class="nav-item language-switcher">
@@ -343,100 +162,11 @@
       <div class="container">{% block content %}{% endblock %}</div>
     </main>
 
-    <script>
-      // Mobile menu toggle
-      document
-        .getElementById("mobile-menu-toggle")
-        .addEventListener("click", function () {
-          const navMenu = document.getElementById("nav-menu");
-          navMenu.classList.toggle("active");
-        });
-
-      // Close mobile menu when clicking outside
-      document.addEventListener("click", function (event) {
-        const navMenu = document.getElementById("nav-menu");
-        const toggle = document.getElementById("mobile-menu-toggle");
-
-        if (!navMenu.contains(event.target) && !toggle.contains(event.target)) {
-          navMenu.classList.remove("active");
-        }
-      });
-
-      // Close mobile menu when window is resized to desktop
-      window.addEventListener("resize", function () {
-        if (window.innerWidth > 768) {
-          document.getElementById("nav-menu").classList.remove("active");
-        }
-      });
-
-      // Language switcher functionality
-      document.addEventListener("DOMContentLoaded", function () {
-        const langToggle = document.getElementById("lang-toggle");
-        const langMenu = document.getElementById("lang-menu");
-        const dropdownArrow = langToggle.querySelector(".dropdown-arrow");
-
-        langToggle.addEventListener("click", function (e) {
-          e.preventDefault();
-          e.stopPropagation();
-
-          const isOpen = langMenu.classList.contains("show");
-
-          if (isOpen) {
-            langMenu.classList.remove("show");
-            dropdownArrow.style.transform = "rotate(0deg)";
-          } else {
-            langMenu.classList.add("show");
-            dropdownArrow.style.transform = "rotate(180deg)";
-          }
-        });
-
-        // Close language menu when clicking outside
-        document.addEventListener("click", function (event) {
-          if (
-            !langToggle.contains(event.target) &&
-            !langMenu.contains(event.target)
-          ) {
-            langMenu.classList.remove("show");
-            dropdownArrow.style.transform = "rotate(0deg)";
-          }
-        });
-
-        // Debug: Add event listeners to language form buttons
-        const langForm = document.querySelector('.lang-form');
-        const langButtons = document.querySelectorAll('.lang-option');
-        
-        langButtons.forEach(button => {
-          button.addEventListener('click', function(e) {
-            console.log('Language button clicked:', this.value);
-            // Let the form submit naturally
-          });
-        });
-        
-        langForm.addEventListener('submit', function(e) {
-          console.log('Language form submitted');
-          // Let the form submit naturally
-        });
-        
-        // Update next URL for navigation language switching
-        langButtons.forEach(button => {
-          button.addEventListener('click', function() {
-            const targetLang = this.value;
-            const currentPath = window.location.pathname;
-            const nextInput = document.getElementById('nav-next-input');
-            
-            // Remove current language prefix and add target language
-            let newPath = currentPath;
-            if (currentPath.startsWith('/vi/')) {
-              newPath = currentPath.substring(3);
-            } else if (currentPath.startsWith('/en/')) {
-              newPath = currentPath.substring(3);
-            }
-            
-            nextInput.value = '/' + targetLang + newPath;
-            console.log('Nav language switch to:', targetLang, 'Next URL:', nextInput.value);
-          });
-        });
-      });
-    </script>
+    <!-- Custom JavaScript -->
+    <script src="{% static 'js/main.js' %}"></script>
+    
+    <!-- Additional page-specific scripts -->
+    {% block extra_js %}{% endblock %}
   </body>
 </html>
+ 

@@ -1,8 +1,16 @@
 from django.urls import path
 from . import views
+from django.shortcuts import redirect
+
+def home_redirect(request):
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    else:
+        return redirect('account_login')
 
 urlpatterns = [
-    path('', views.dashboard, name='dashboard'),
+    path('', home_redirect, name='home'),
+    path('dashboard/', views.dashboard, name='dashboard'),
     path('add/', views.add_flashcard_view, name='add_flashcard'),
     path('suggest-words/', views.suggest_words, name='suggest_words'),
     path('check-spelling/', views.check_word_spelling, name='check_spelling'),

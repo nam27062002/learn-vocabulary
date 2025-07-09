@@ -39,7 +39,17 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',  # Required for allauth
+    
+    # Third party apps
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    
+    # Local apps
     'vocabulary',
+    'accounts',  # Custom authentication app
 ]
 
 MIDDLEWARE = [
@@ -51,6 +61,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',  # Required for allauth
 ]
 
 ROOT_URLCONF = 'learn_english_project.urls'
@@ -58,7 +69,7 @@ ROOT_URLCONF = 'learn_english_project.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -68,6 +79,8 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.i18n',  # Add this for i18n
                 'vocabulary.context_processors.manual_translations',  # Manual translations fallback
+                # Required for allauth
+                'django.template.context_processors.request',
             ],
         },
     },
@@ -146,7 +159,13 @@ CSRF_USE_SESSIONS = False
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Additional directories for static files
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
 
 # Media files (user uploaded files)
 MEDIA_URL = '/media/'
@@ -156,3 +175,67 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Authentication Settings
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# Sites framework (required for allauth)
+SITE_ID = 1
+
+# Custom User Model
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
+# Allauth settings
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_USER_MODEL_EMAIL_FIELD = 'email'
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_LOGOUT_ON_GET = True
+ACCOUNT_SESSION_REMEMBER = True
+
+# Login/Logout URLs
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
+
+# Email settings - Gmail SMTP Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'nam27062002@gmail.com'
+EMAIL_HOST_PASSWORD = 'xorn xvut fsif kljt'
+
+# Email timeout and additional settings
+EMAIL_TIMEOUT = 60
+EMAIL_USE_LOCALTIME = True
+
+# Default from email
+DEFAULT_FROM_EMAIL = 'Learn Vocabulary <nam27062002@gmail.com>'
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# For development/testing, uncomment this line to use console backend:
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Social account providers
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        # Removed APP configuration - using database settings instead
+    }
+}
+
+# Allowed hosts for OAuth
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
