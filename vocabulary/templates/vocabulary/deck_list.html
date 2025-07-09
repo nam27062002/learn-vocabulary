@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% trans "My Decks" %} - {% trans "Learn English" %}{% endblock %}
+
+{% block content %}
+<style>
+    .deck-list-page {
+        max-width: 1200px;
+        margin: 20px auto;
+        padding: 0 20px;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 40px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .page-header h1 {
+        font-size: 2.5em;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--primary-color), #8e44ad);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .no-decks {
+        text-align: center;
+        padding: 50px;
+        background-color: var(--background-light);
+        border-radius: 12px;
+        color: var(--text-muted);
+    }
+    
+    .no-decks h2 {
+        color: var(--text-main);
+        margin-bottom: 15px;
+    }
+
+    .no-decks a {
+        color: var(--primary-color);
+        font-weight: 600;
+        text-decoration: none;
+        border-bottom: 2px solid transparent;
+        transition: border-color 0.3s;
+    }
+    
+    .no-decks a:hover {
+        border-color: var(--primary-color);
+    }
+
+    .deck-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 25px;
+    }
+
+    .deck-card {
+        background-color: var(--card-background);
+        border: 1px solid var(--card-border-color);
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        color: var(--card-text-main);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .deck-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--primary-color);
+        box-shadow: 0 8px 25px rgba(106, 108, 255, 0.15);
+    }
+
+    .deck-card h2 {
+        font-size: 1.4em;
+        margin-bottom: 10px;
+        word-break: break-word;
+    }
+
+    .deck-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid var(--card-border-color);
+        font-size: 0.9em;
+        color: var(--card-text-muted);
+    }
+
+    .card-count {
+        background-color: rgba(106, 108, 255, 0.1);
+        color: var(--primary-color);
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+</style>
+
+<div class="deck-list-page">
+    <div class="page-header">
+        <h1>📚 {% trans "My Decks" %}</h1>
+    </div>
+
+    {% if decks %}
+        <div class="deck-grid">
+            {% for deck in decks %}
+                <a href="{% url 'deck_detail' deck.id %}" class="deck-card">
+                    <div>
+                        <h2>{{ deck.name }}</h2>
+                    </div>
+                    <div class="deck-info">
+                        <span>{% blocktrans with count=deck.card_count %}{{ count }} cards{% endblocktrans %}</span>
+                        <span class="created-date">{{ deck.created_at|date:"d M Y" }}</span>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-decks">
+            <h2>{% trans "You don't have any decks yet." %}</h2>
+            <p>{% trans "Get started by" %} <a href="{% url 'add_flashcard' %}">{% trans "adding some new flashcards" %}</a>!</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

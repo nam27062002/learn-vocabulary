@@ -2,69 +2,67 @@ import requests
 from googletrans import Translator
 
 def get_word_details(word):
-    # Gọi API để lấy dữ liệu
-    url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
+    """
+    Lấy chi tiết đầy đủ của một từ một cách an toàn.
+    Hàm này được thiết kế để xử lý các cấu trúc dữ liệu không nhất quán từ API.
+    """
+    api_url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
     try:
-        response = requests.get(url)
-        response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+        response = requests.get(api_url)
+        response.raise_for_status()
         data = response.json()
-        if not data: # API might return empty list for no word found
-            return {"error": "Không tìm thấy từ"}
+
+        if not isinstance(data, list) or not data:
+            return {"error": f"Không tìm thấy dữ liệu cho từ '{word}'."}
         
-        data = data[0] # Get the first entry if multiple are returned
-        
-        # Trích xuất thông tin cơ bản
-        result = {
-            "word": data.get("word", ""),
-            "license": data.get("license", {}).get("name", ""),
-            "source_url": data.get("sourceUrls", [""])[0]
-        }
-        
-        # Xử lý thông tin phát âm và audio
+        word_data = data[0]
+        if not isinstance(word_data, dict):
+            return {"error": "Định dạng dữ liệu từ API không hợp lệ."}
+
+        # Trích xuất phát âm một cách an toàn
         phonetics = []
-        for ph in data.get("phonetics", []):
-            if ph.get("text") or ph.get("audio"):
-                phonetic_info = {
-                    "text": ph.get("text", ""),
-                    "audio": ph.get("audio", ""),
-                    "source_url": ph.get("sourceUrl", "")
-                }
-                phonetics.append(phonetic_info)
-        result["phonetics"] = phonetics
-        
-        # Xử lý nghĩa và định nghĩa
+        api_phonetics = word_data.get('phonetics', [])
+        if isinstance(api_phonetics, list):
+            for p in api_phonetics:
+                if isinstance(p, dict):
+                    phonetics.append({
+                        "text": p.get("text", ""),
+                        "audio": p.get("audio", "")
+                    })
+
+        # Trích xuất nghĩa một cách an toàn
         meanings = []
-        translator = Translator()
-        
-        for meaning in data.get("meanings", []):
-            meaning_info = {
-                "part_of_speech": meaning.get("partOfSpeech", ""),
-                "synonyms": meaning.get("synonyms", []), # General synonyms for this part of speech
-                "antonyms": meaning.get("antonyms", []), # General antonyms for this part of speech
-                "definitions": []
-            }
-            
-            for definition in meaning.get("definitions", []):
-                en_def = definition.get("definition", "")
-                # Dịch sang tiếng Việt. Có thể có độ trễ do gọi Google Translate API
-                vi_def = translator.translate(en_def, src='en', dest='vi').text if en_def else ""
+        api_meanings = word_data.get('meanings', [])
+        if isinstance(api_meanings, list):
+            for m in api_meanings:
+                if not isinstance(m, dict):
+                    continue
+
+                definitions = []
+                api_definitions = m.get('definitions', [])
+                if isinstance(api_definitions, list):
+                    for d in api_definitions:
+                        if isinstance(d, dict):
+                            definitions.append({
+                                "en": d.get("definition", ""),
+                                "example": d.get("example", "")
+                            })
                 
-                def_info = {
-                    "en": en_def,
-                    "vi": vi_def,
-                    "synonyms": definition.get("synonyms", []), # Synonyms specific to this definition
-                    "antonyms": definition.get("antonyms", []) # Antonyms specific to this definition
-                }
-                meaning_info["definitions"].append(def_info)
-            
-            meanings.append(meaning_info)
-        
-        result["meanings"] = meanings
-        return result
-    
-    except requests.exceptions.RequestException as e:
-        return {"error": f"Lỗi kết nối hoặc API: {e}"}
-    except (ValueError, IndexError) as e:
-        return {"error": f"Lỗi xử lý dữ liệu từ API: {e}"}
+                meanings.append({
+                    "part_of_speech": m.get("partOfSpeech", ""),
+                    "definitions": definitions
+                })
+
+        return {
+            "word": word_data.get("word", word),
+            "phonetics": phonetics,
+            "meanings": meanings
+        }
+
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            return {"error": f"Từ '{word}' không tồn tại trong từ điển."}
+        return {"error": f"Lỗi HTTP khi gọi API từ điển: {e}"}
     except Exception as e:
-        return {"error": f"Đã xảy ra lỗi không xác định: {e}"} 
+        print(f"Lỗi không mong muốn trong get_word_details cho từ '{word}': {e}")
+        return {"error": "Lỗi hệ thống khi đang xử lý yêu cầu từ điển."} 

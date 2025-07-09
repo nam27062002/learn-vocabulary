@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ deck.name }} - {% trans "My Decks" %}{% endblock %}
+
+{% block content %}
+<style>
+    .deck-detail-page {
+        max-width: 1200px;
+        margin: 20px auto;
+        padding: 0 20px;
+    }
+
+    .page-header {
+        text-align: left;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .page-header h1 {
+        font-size: 2.2em;
+        font-weight: 700;
+        color: var(--text-main);
+    }
+    
+    .back-link {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .flashcard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 40px 25px;
+    }
+
+    .word-item {
+        background-color: var(--card-background);
+        border: 1px solid var(--card-border-color);
+        padding: 20px;
+        border-radius: 12px;
+        transition: all 0.2s ease-in-out;
+        box-shadow: var(--card-shadow);
+    }
+    
+    .word-item:hover {
+        transform: translateY(-4px);
+        border-color: var(--primary-color);
+        box-shadow: var(--card-shadow-hover);
+    }
+
+    .word-item .word {
+        font-size: 1.7em;
+        font-weight: 600;
+        color: var(--card-text-main);
+        margin-bottom: 5px;
+    }
+
+    .word-item .phonetic {
+        font-family: sans-serif;
+        color: var(--card-text-muted);
+        margin-bottom: 15px;
+        font-style: italic;
+        font-size: 1em;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .word-item .audio-icon {
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: color 0.2s ease-in-out;
+        display: inline-block;
+    }
+    
+    .word-item .audio-icon:hover {
+        color: var(--primary-color);
+    }
+
+    .word-item .definition {
+        font-size: 0.9em;
+        line-height: 1.6;
+        color: var(--card-text-muted);
+        margin-bottom: 8px;
+    }
+</style>
+
+<div class="deck-detail-page">
+    <div class="page-header">
+        <h1>{{ deck.name }}</h1>
+        <a href="{% url 'deck_list' %}" class="back-link">← {% trans "Back to all decks" %}</a>
+    </div>
+
+    {% if flashcards %}
+        <div class="flashcard-grid">
+            {% for card in flashcards %}
+                <div class="word-item">
+                    <div class="word">{{ card.word }}</div>
+                    {% if card.phonetic %}
+                        <div class="phonetic">
+                            <span>{{ card.phonetic }}</span>
+                            {% if card.audio_url %}
+                                <span class="audio-icon" data-audio-url="{{ card.audio_url }}">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path></svg>
+                                </span>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    {% for def in card.definitions.all %}
+                        <div class="definition">
+                            EN: {{ def.english_definition }}
+                        </div>
+                        <div class="definition">
+                            VI: {{ def.vietnamese_definition }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>{% trans "This deck is empty." %} <a href="{% url 'add_flashcard' %}">{% trans "Add some cards!" %}</a></p>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const grid = document.querySelector('.flashcard-grid');
+    if (grid) {
+        grid.addEventListener('click', function(event) {
+            const audioIcon = event.target.closest('.audio-icon');
+            if (audioIcon) {
+                const audioUrl = audioIcon.dataset.audioUrl;
+                if (audioUrl) {
+                    new Audio(audioUrl).play();
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %} 

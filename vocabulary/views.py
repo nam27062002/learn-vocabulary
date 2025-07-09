@@ -1,6 +1,6 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
-from .models import Flashcard, Definition # Import your Flashcard and Definition models
+from .models import Flashcard, Definition, Deck # Import Deck model
 from django.conf import settings # Import settings
 from .api_services import get_word_suggestions_from_datamuse, check_word_spelling_with_languagetool # Import new service functions
 from .word_details_service import get_word_details # Import the new service function
@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 import os
 import json
 from django.contrib.auth.decorators import login_required
+from deep_translator import GoogleTranslator
 
 # Create your views here.
 
@@ -58,7 +59,32 @@ def dashboard(request):
 
 @login_required
 def add_flashcard_view(request):
-    return render(request, 'vocabulary/add_flashcard.html')
+    decks = Deck.objects.filter(user=request.user)
+    context = {
+        'decks': decks
+    }
+    return render(request, 'vocabulary/add_flashcard.html', context)
+
+@login_required
+@require_POST
+def create_deck_api(request):
+    try:
+        data = json.loads(request.body)
+        deck_name = data.get('name', '').strip()
+
+        if not deck_name:
+            return JsonResponse({'success': False, 'error': 'Tên bộ thẻ không được để trống.'}, status=400)
+
+        if Deck.objects.filter(user=request.user, name__iexact=deck_name).exists():
+            return JsonResponse({'success': False, 'error': 'Bạn đã có một bộ thẻ với tên này.'}, status=409)
+
+        deck = Deck.objects.create(user=request.user, name=deck_name)
+        return JsonResponse({'success': True, 'deck': {'id': deck.id, 'name': deck.name}})
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Dữ liệu JSON không hợp lệ.'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 
 @login_required
 def suggest_words(request):
@@ -76,24 +102,23 @@ def suggest_words(request):
 
 @login_required
 def check_word_spelling(request):
-    if request.method == 'POST':
-        word = request.POST.get('word', '')
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Yêu cầu phải là POST.'}, status=405)
 
-        if settings.ENABLE_DEBUG:
-            print(f"[DEBUG] check_word_spelling called with word: {word}")
+    word = request.POST.get('word', '').strip()
 
-        if word:
-            is_correct = check_word_spelling_with_languagetool(word)
-
-            if settings.ENABLE_DEBUG:
-                print(f"[DEBUG] Is word '{word}' correct? {is_correct}")
-
-            return JsonResponse({'is_correct': is_correct})
+    if not word:
+        return JsonResponse({'error': 'Tham số "word" bị thiếu hoặc rỗng.'}, status=400)
 
     if settings.ENABLE_DEBUG:
-        print(f"[DEBUG] Invalid request for check_word_spelling. Method: {request.method}")
+        print(f"[DEBUG] check_word_spelling called with word: {word}")
 
-    return JsonResponse({'error': 'Invalid request'}, status=400)
+    is_correct = check_word_spelling_with_languagetool(word)
+
+    if settings.ENABLE_DEBUG:
+        print(f"[DEBUG] Is word '{word}' correct? {is_correct}")
+
+    return JsonResponse({'is_correct': is_correct})
 
 @login_required
 def get_word_details_api(request):
@@ -120,40 +145,108 @@ def get_word_details_api(request):
 @require_POST
 def save_flashcards(request):
     try:
-        flashcards = []
-        idx = 0
-        while True:
-            prefix = f'flashcards[{idx}]'
-            word = request.POST.get(f'{prefix}[word]')
-            phonetic = request.POST.get(f'{prefix}[phonetic]')
-            part_of_speech = request.POST.get(f'{prefix}[part_of_speech]')
-            english_definition = request.POST.get(f'{prefix}[english_definition]')
-            vietnamese_definition = request.POST.get(f'{prefix}[vietnamese_definition]')
-            audio_url = request.POST.get(f'{prefix}[audio_url]')
-            image = request.FILES.get(f'{prefix}[image]')
+        deck_id = request.POST.get('deck_id')
+        deck = None
+        if deck_id:
+            try:
+                deck = Deck.objects.get(id=deck_id, user=request.user)
+            except Deck.DoesNotExist:
+                return JsonResponse({'success': False, 'error': 'Bộ thẻ không hợp lệ.'}, status=404)
+        else:
+            return JsonResponse({'success': False, 'error': 'Vui lòng chọn một bộ thẻ.'}, status=400)
+            
+        saved_words = []
+        data = {}
+
+        # Group data by index from request.POST and request.FILES
+        for key, value in request.POST.items():
+            if key.startswith('flashcards-'):
+                parts = key.split('-')
+                idx = int(parts[1])
+                field = parts[2]
+                if idx not in data:
+                    data[idx] = {}
+                data[idx][field] = value
+
+        for key, value in request.FILES.items():
+            if key.startswith('flashcards-'):
+                parts = key.split('-')
+                idx = int(parts[1])
+                field = parts[2]
+                if idx not in data:
+                    data[idx] = {}
+                data[idx][field] = value
+
+        # Process each flashcard group
+        for idx in sorted(data.keys()):
+            card_data = data[idx]
+            word = card_data.get('word')
             if not word:
-                break
-            # Lưu flashcard với user hiện tại
-            flashcard = Flashcard(
+                continue
+
+            # Use update_or_create to avoid IntegrityError for existing words
+            # and allow users to update existing flashcards.
+            defaults = {
+                'phonetic': card_data.get('phonetic'),
+                'part_of_speech': card_data.get('part_of_speech'),
+                'audio_url': card_data.get('audio_url'),
+                'deck': deck
+            }
+            
+            # Only update image if a new one is provided
+            if 'image' in card_data:
+                defaults['image'] = card_data.get('image')
+
+            flashcard, created = Flashcard.objects.update_or_create(
                 user=request.user,
                 word=word,
-                phonetic=phonetic,
-                part_of_speech=part_of_speech,
-                audio_url=audio_url,
-                image=image  # Gán trực tiếp, Django sẽ tự lưu file
+                defaults=defaults
             )
-            flashcard.save()
-            # Lưu definition với cả English và Vietnamese
+
+            # Clear old definitions and create new one(s)
+            flashcard.definitions.all().delete()
             Definition.objects.create(
                 flashcard=flashcard,
-                english_definition=english_definition,
-                vietnamese_definition=vietnamese_definition or ''
+                english_definition=card_data.get('english_definition'),
+                vietnamese_definition=card_data.get('vietnamese_definition', '')
             )
-            flashcards.append(flashcard.word)
-            idx += 1
-        return JsonResponse({'success': True, 'saved': flashcards})
+            saved_words.append(word)
+
+        if not saved_words:
+            return JsonResponse({'success': False, 'error': 'No valid flashcard data received.'})
+
+        return JsonResponse({'success': True, 'saved': saved_words})
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+def deck_list(request):
+    decks = Deck.objects.filter(user=request.user).annotate(
+        card_count=Count('flashcards')
+    ).order_by('-created_at')
+    
+    context = {
+        'decks': decks
+    }
+    return render(request, 'vocabulary/deck_list.html', context)
+
+
+@login_required
+def deck_detail(request, deck_id):
+    try:
+        deck = Deck.objects.get(id=deck_id, user=request.user)
+        flashcards = Flashcard.objects.filter(deck=deck).prefetch_related('definitions')
+        context = {
+            'deck': deck,
+            'flashcards': flashcards,
+        }
+        return render(request, 'vocabulary/deck_detail.html', context)
+    except Deck.DoesNotExist:
+        return redirect('deck_list')
+
 
 @login_required
 def flashcard_list(request):
@@ -200,24 +293,18 @@ def delete_flashcard(request):
 @login_required
 @require_GET
 def translate_to_vietnamese(request):
-    """API to translate English text to Vietnamese"""
-    text = request.GET.get('text', '').strip()
-    
-    if not text:
+    text_to_translate = request.GET.get('text', '')
+    if not text_to_translate:
         return JsonResponse({'error': 'No text provided'}, status=400)
-    
     try:
-        translator = Translator()
-        result = translator.translate(text, src='en', dest='vi')
-        
-        return JsonResponse({
-            'original': text,
-            'translated': result.text,
-            'detected_language': result.src
-        })
-        
+        # Sử dụng deep-translator
+        translated_text = GoogleTranslator(source='auto', target='vi').translate(text_to_translate)
+        return JsonResponse({'translated_text': translated_text})
     except Exception as e:
-        return JsonResponse({'error': f'Translation failed: {str(e)}'}, status=500)
+        # Ghi lại lỗi để debug
+        print(f"Lỗi dịch thuật với deep-translator: {e}")
+        return JsonResponse({'error': str(e)}, status=500)
+
 
 @login_required
 @require_GET

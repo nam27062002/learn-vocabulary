@@ -11,6 +11,46 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <style>
+      :root {
+        --primary-color: #6a6cff;
+        --primary-color-dark: #5859d8;
+        
+        /* Light Mode */
+        --background-main: #f3f4f6;
+        --background-secondary: #ffffff;
+        --background-light: #ffffff;
+        --text-main: #1f2937;
+        --text-muted: #6b7280;
+        --border-color: #e5e7eb;
+
+        /* Card-specific styles */
+        --card-background: var(--background-secondary);
+        --card-border-color: var(--border-color);
+        --card-text-main: var(--text-main);
+        --card-text-muted: var(--text-muted);
+        --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        --card-shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+      
+      @media (prefers-color-scheme: dark) {
+        :root {
+          /* Dark Mode Global */
+          --background-main: #111827;
+          --background-secondary: #1f2937;
+          --text-main: #f9fafb;
+          --text-muted: #9ca3af;
+          --border-color: #374151;
+
+          /* Card-specific styles for Dark Mode */
+          --card-background: #1f2937; /* Slightly lighter than page to stand out */
+          --card-border-color: #374151;
+          --card-text-main: #f9fafb;
+          --card-text-muted: #9ca3af;
+        }
+      }
+    </style>
+
     <!-- Custom CSS -->
     <link rel="stylesheet" type="text/css" href="{% static 'css/main.css' %}">
     
@@ -35,7 +75,7 @@
                                     <span class="nav-icon">🏠</span>
                                     <span>{{ manual_texts.home }}</span>
                                 </a>
-                                <a href="{% url 'flashcard_list' %}" class="{% if request.resolver_match.url_name == 'flashcard_list' %}bg-gray-900 text-white{% else %}text-gray-500 dark:text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1">
+                                <a href="{% url 'deck_list' %}" class="{% if request.resolver_match.url_name == 'deck_list' or request.resolver_match.url_name == 'deck_detail' %}bg-gray-900 text-white{% else %}text-gray-500 dark:text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1">
                                     <span class="nav-icon">📚</span>
                                     <span>{{ manual_texts.flashcards }}</span>
                                 </a>
@@ -141,7 +181,7 @@
                         <span class="nav-icon">🏠</span>
                         <span>{{ manual_texts.home }}</span>
                     </a>
-                    <a href="{% url 'flashcard_list' %}" class="{% if request.resolver_match.url_name == 'flashcard_list' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium flex items-center space-x-2">
+                    <a href="{% url 'deck_list' %}" class="{% if request.resolver_match.url_name == 'deck_list' or request.resolver_match.url_name == 'deck_detail' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium flex items-center space-x-2">
                         <span class="nav-icon">📚</span>
                         <span>{{ manual_texts.flashcards }}</span>
                     </a>
