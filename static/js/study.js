@@ -1,6 +1,6 @@
 // study.js - handles study session with multiple modes
 
-(function(){
+(function () {
   const deckSelect = document.getElementById('deckSelect');
   const startBtn = document.getElementById('startBtn');
   const deckSelectWrapper = document.getElementById('deckSelectWrapper');
@@ -9,141 +9,202 @@
   const cardPhoneticEl = document.getElementById('cardPhonetic');
   const cardImageEl = document.getElementById('cardImage');
   const cardDefsEl = document.getElementById('cardDefs');
-  const answerArea = document.getElementById('answerSection') || {innerHTML:'', appendChild:()=>{}, style:{}};
-  const feedbackMsg = document.getElementById('feedbackMsg') || {style:{},textContent:''};
-  const noCardMsg = document.getElementById('noCardMsg') || {style:{}};
+  const answerArea = document.getElementById('answerSection') || { innerHTML: '', appendChild: () => { }, style: {} };
+  const feedbackMsg = document.getElementById('feedbackMsg') || { style: {}, textContent: '' };
+  const noCardMsg = document.getElementById('noCardMsg') || { style: {} };
   const optionsArea = document.getElementById('optionsArea') || answerArea;
   const backBtn = document.getElementById('backBtn');
   const statsInfo = document.getElementById('statsInfo');
-  let correctCnt=0, incorrectCnt=0;
-  let nextTimeout=null;
+  let correctCnt = 0, incorrectCnt = 0;
+  let nextTimeout = null;
 
-  function updateStats(){
-    if(statsInfo){
-      statsInfo.textContent=`${STUDY_CFG.labels.correct}: ${correctCnt} | ${STUDY_CFG.labels.incorrect}: ${incorrectCnt}`;
+  function updateStats() {
+    if (statsInfo) {
+      statsInfo.textContent = `${STUDY_CFG.labels.correct}: ${correctCnt} | ${STUDY_CFG.labels.incorrect}: ${incorrectCnt}`;
     }
   }
 
   const modeSelect = null; // removed
   let currentQuestion = null;
 
-  function qsToParams(){
+  function qsToParams() {
     const params = new URLSearchParams();
-    Array.from(deckSelect.selectedOptions).forEach(o=>params.append('deck_ids[]', o.value));
+    Array.from(deckSelect.selectedOptions).forEach(o => params.append('deck_ids[]', o.value));
     return params.toString();
   }
 
-  function fetchNext(){
+  function fetchNext() {
     fetch(`${STUDY_CFG.nextUrl}?${qsToParams()}`)
-      .then(r=>r.json())
-      .then(data=>{
-        if(data.done){
-          noCardMsg.style.display='block';
-          studyArea.style.display='none';
+      .then(r => r.json())
+      .then(data => {
+        if (data.done) {
+          noCardMsg.style.display = 'block';
+          studyArea.style.display = 'none';
           return;
         }
         renderQuestion(data.question);
       });
   }
 
-  function renderQuestion(q){
+  function renderQuestion(q) {
     currentQuestion = q;
-    feedbackMsg.style.display='none';
-    if(cardWordEl){cardWordEl.textContent='';}
-    if(cardPhoneticEl){cardPhoneticEl.style.display='none';}
-    if(cardImageEl){
-      if(q.image_url){
-        cardImageEl.src=q.image_url;
-        cardImageEl.style.display='block';
-      }else{
-        cardImageEl.style.display='none';
+
+    // Clear any existing timeout
+    if (nextTimeout) {
+      clearTimeout(nextTimeout);
+      nextTimeout = null;
+    }
+
+    // Reset UI elements
+    feedbackMsg.style.display = 'none';
+    if (cardWordEl) { cardWordEl.textContent = ''; }
+    if (cardPhoneticEl) { cardPhoneticEl.style.display = 'none'; }
+
+    // Handle image display
+    if (cardImageEl) {
+      if (q.image_url) {
+        cardImageEl.src = q.image_url;
+        cardImageEl.style.display = 'block';
+      } else {
+        cardImageEl.style.display = 'none';
       }
     }
-    if(cardDefsEl){cardDefsEl.textContent=q.definitions.map(d=>`EN: ${d.english_definition}\nVI: ${d.vietnamese_definition}`).join('\n\n');}
 
-    optionsArea.innerHTML='';
-    if(q.type==='mc'){
-      q.options.forEach(opt=>{
-        const btn=document.createElement('button');
-        btn.textContent=opt;
-        btn.className='option-btn';
-        btn.addEventListener('click',()=>submitAnswer(opt===q.word));
+    // Show definitions
+    if (cardDefsEl) {
+      cardDefsEl.textContent = q.definitions.map(d => `EN: ${d.english_definition}\nVI: ${d.vietnamese_definition}`).join('\n\n');
+    }
+
+    // Clear and rebuild options area
+    optionsArea.innerHTML = '';
+
+    if (q.type === 'mc') {
+      // Multiple choice mode
+      q.options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.textContent = opt;
+        btn.className = 'option-btn';
+        btn.style.cssText = 'background:#f8f9fa;border:2px solid #dee2e6;color:#495057;padding:12px 20px;margin:5px;border-radius:8px;cursor:pointer;font-weight:500;transition:all 0.2s;';
+        btn.addEventListener('click', () => {
+          if (!btn.disabled) submitAnswer(opt === q.word);
+        });
+        btn.addEventListener('mouseenter', () => {
+          if (!btn.disabled) btn.style.background = '#e9ecef';
+        });
+        btn.addEventListener('mouseleave', () => {
+          if (!btn.disabled) btn.style.background = '#f8f9fa';
+        });
         optionsArea.appendChild(btn);
       });
-    }else{
-      const inp=document.createElement('input');
-      inp.type='text';
-      inp.placeholder=STUDY_CFG.labels.placeholder;
-      inp.className='type-input';
-      const btn=document.createElement('button');
-      btn.textContent=STUDY_CFG.labels.check;
-      btn.className='check-btn';
-      btn.addEventListener('click',()=>{
-        const correct=inp.value.trim().toLowerCase()===q.answer.toLowerCase();
-        submitAnswer(correct);
-      });
-      inp.addEventListener('keydown', (e)=>{
-        if(e.key==='Enter'){
-          e.preventDefault();
-          btn.click();
+    } else {
+      // Type answer mode
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.placeholder = STUDY_CFG.labels.placeholder;
+      inp.className = 'type-input';
+      inp.style.cssText = 'padding:12px;border:2px solid #dee2e6;border-radius:8px;font-size:16px;width:200px;margin-right:10px;';
+
+      const btn = document.createElement('button');
+      btn.textContent = STUDY_CFG.labels.check;
+      btn.className = 'check-btn';
+      btn.style.cssText = 'background:#007bff;color:#fff;padding:12px 20px;border:none;border-radius:8px;cursor:pointer;font-weight:600;';
+
+      btn.addEventListener('click', () => {
+        if (!btn.disabled) {
+          const correct = inp.value.trim().toLowerCase() === q.answer.toLowerCase();
+          submitAnswer(correct);
         }
       });
+
+      inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (!btn.disabled) btn.click();
+        }
+      });
+
       optionsArea.appendChild(inp);
       optionsArea.appendChild(btn);
-      if(answerArea.style){answerArea.style.display='block';}
-      return;
+
+      // Focus on input for better UX
+      setTimeout(() => inp.focus(), 100);
     }
-    if(answerArea.style){answerArea.style.display='block';}
+
+    if (answerArea.style) { answerArea.style.display = 'block'; }
   }
 
-  function submitAnswer(correct){
-    feedbackMsg.style.display='block';
-    if(correct){
+  function submitAnswer(correct) {
+    // Clear any existing timeout
+    if (nextTimeout) {
+      clearTimeout(nextTimeout);
+      nextTimeout = null;
+    }
+
+    feedbackMsg.style.display = 'block';
+    if (correct) {
       correctCnt++;
-      feedbackMsg.textContent=STUDY_CFG.labels.correct;
-      feedbackMsg.style.color='#38c172';
-    }else{
+      feedbackMsg.textContent = STUDY_CFG.labels.correct;
+      feedbackMsg.style.color = '#38c172';
+    } else {
       incorrectCnt++;
-      const label=STUDY_CFG.labels.answerLabel||'Đáp án';
-      feedbackMsg.textContent=`${STUDY_CFG.labels.incorrect} – ${label}: ${currentQuestion.word}`;
-      feedbackMsg.style.color='#e3342f';
+      const label = STUDY_CFG.labels.answerLabel || 'Đáp án';
+      feedbackMsg.textContent = `${STUDY_CFG.labels.incorrect} – ${label}: ${currentQuestion.word}`;
+      feedbackMsg.style.color = '#e3342f';
     }
     updateStats();
 
-    fetch(STUDY_CFG.submitUrl,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-CSRFToken':STUDY_CFG.csrfToken},
-      body:JSON.stringify({card_id:currentQuestion.id, correct:correct})
-    }).then(()=>{
-      if(correct && currentQuestion.audio_url){
-        try{
-          const audio=new Audio(currentQuestion.audio_url);
-          audio.play().catch(()=>{});
-          audio.addEventListener('ended',()=>{
-            fetchNext();
-          });
-          // Fallback in case 'ended' not fired
-          nextTimeout=setTimeout(fetchNext,8000);
-        }catch(e){
-          nextTimeout=setTimeout(fetchNext,1000);
-        }
-      }else{
-        nextTimeout=setTimeout(fetchNext,1000);
+    // Show word and phonetic after answer
+    if (cardWordEl) { cardWordEl.textContent = currentQuestion.word; }
+    if (cardPhoneticEl && currentQuestion.phonetic) {
+      cardPhoneticEl.textContent = currentQuestion.phonetic;
+      cardPhoneticEl.style.display = 'block';
+    }
+
+    // Disable all option buttons to prevent multiple clicks
+    const optionBtns = optionsArea.querySelectorAll('.option-btn, .check-btn');
+    optionBtns.forEach(btn => btn.disabled = true);
+
+    // Add "Next Card" button for user control
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = STUDY_CFG.labels.nextCard;
+    nextBtn.className = 'next-card-btn';
+    nextBtn.style.cssText = 'background:#4dc0b5;color:#fff;padding:10px 20px;border:none;border-radius:6px;margin-top:15px;cursor:pointer;font-weight:600;';
+    nextBtn.addEventListener('click', () => {
+      fetchNext();
+    });
+    optionsArea.appendChild(nextBtn);
+
+    // Play audio if available (but don't auto-advance)
+    if (correct && currentQuestion.audio_url) {
+      try {
+        const audio = new Audio(currentQuestion.audio_url);
+        audio.play().catch(() => { });
+      } catch (e) {
+        console.log('Audio playback failed:', e);
       }
+    }
+
+    // Submit the answer to backend
+    fetch(STUDY_CFG.submitUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': STUDY_CFG.csrfToken },
+      body: JSON.stringify({ card_id: currentQuestion.id, correct: correct })
+    }).catch(err => {
+      console.error('Failed to submit answer:', err);
     });
   }
 
-  startBtn.addEventListener('click',()=>{
-    if(deckSelect.selectedOptions.length===0){alert('Please select at least one deck');return;}
-    deckSelectWrapper.style.display='none';
-    correctCnt=0; incorrectCnt=0; updateStats();
-    studyArea.style.display='block';
-    if(cardPhoneticEl){cardPhoneticEl.style.display='none';}
+  startBtn.addEventListener('click', () => {
+    if (deckSelect.selectedOptions.length === 0) { alert('Please select at least one deck'); return; }
+    deckSelectWrapper.style.display = 'none';
+    correctCnt = 0; incorrectCnt = 0; updateStats();
+    studyArea.style.display = 'block';
+    if (cardPhoneticEl) { cardPhoneticEl.style.display = 'none'; }
     fetchNext();
   });
 
-  backBtn.addEventListener('click',()=>{
-    deckSelectWrapper.style.display='block';
-    studyArea.style.display='none';
+  backBtn.addEventListener('click', () => {
+    deckSelectWrapper.style.display = 'block';
+    studyArea.style.display = 'none';
   });
 })(); 

@@ -123,4 +123,36 @@
   background: var(--primary-color-dark);
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+/* Next card button */
+.next-card-btn {
+  background: #4dc0b5 !important;
+  color: #fff !important;
+  padding: 10px 20px !important;
+  border: none !important;
+  border-radius: 6px !important;
+  margin-top: 15px !important;
+  cursor: pointer !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+  display: block !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+.next-card-btn:hover {
+  background: #3da89f !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
+}
+
+/* Disabled button styles */
+.option-btn:disabled, .check-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+.option-btn:disabled:hover, .check-btn:disabled:hover {
+  transform: none !important;
+  box-shadow: none !important;
 } 
