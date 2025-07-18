@@ -6,14 +6,28 @@
 <div class="study-page" style="max-width:800px;margin:0 auto;padding:20px;">
   <h1 style="font-size:2em;font-weight:700;margin-bottom:20px;background:linear-gradient(135deg,var(--primary-color),#8e44ad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">📖 {{ manual_texts.study }}</h1>
 
-  <div id="deckSelectWrapper" style="margin-bottom:20px;">
-    <label class="" style="color:var(--card-text-main);font-weight:600;">{{ manual_texts.select_decks }}:</label>
-    <select id="deckSelect" multiple class="deck-select">
-      {% for d in decks %}
-        <option value="{{ d.id }}">{{ d.name }}</option>
-      {% endfor %}
-    </select>
-    <button id="startBtn" class="primary-btn mt-3">{{ manual_texts.start_study }}</button>
+  <div id="deckSelectWrapper" class="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+    <label for="deckSelect" class="block text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{{ manual_texts.select_decks }}:</label>
+    
+    <div class="relative">
+      <button id="deckDropdownToggle" class="w-full flex justify-between items-center px-4 py-2 text-left bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <span id="selectedDecksText">{{ manual_texts.no_decks_selected }}</span>
+        <i class="fas fa-chevron-down text-gray-500 dark:text-gray-400"></i>
+      </button>
+      
+      <div id="deckDropdown" class="hidden absolute z-10 w-full bg-white dark:bg-gray-700 shadow-lg rounded-md mt-1 border border-gray-300 dark:border-gray-600 max-h-60 overflow-y-auto">
+        {% for d in decks %}
+          <label class="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer text-gray-700 dark:text-gray-300">
+            <input type="checkbox" name="deck_ids" value="{{ d.id }}" class="form-checkbox h-5 w-5 text-primary-color rounded focus:ring-primary-color mr-2">
+            <span>{{ d.name }}</span>
+          </label>
+        {% empty %}
+          <p class="px-4 py-2 text-gray-500 dark:text-gray-400">{{ manual_texts.no_decks_available }}</p>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <button id="startBtn" class="primary-btn mt-6 w-full py-3 text-lg font-semibold">{{ manual_texts.start_study }}</button>
   </div>
 
   <div id="studyArea" style="display:none;">

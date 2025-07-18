@@ -27,9 +27,24 @@
   const modeSelect = null; // removed
   let currentQuestion = null;
 
+  // New elements for custom deck select
+  const deckDropdownToggle = document.getElementById('deckDropdownToggle');
+  const deckDropdown = document.getElementById('deckDropdown');
+  const selectedDecksText = document.getElementById('selectedDecksText');
+  const deckCheckboxes = deckDropdown ? deckDropdown.querySelectorAll('input[type="checkbox"][name="deck_ids"]') : [];
+
+  function updateSelectedDecksText() {
+    const selectedOptions = Array.from(deckCheckboxes).filter(cb => cb.checked).map(cb => cb.nextElementSibling.textContent);
+    if (selectedOptions.length > 0) {
+      selectedDecksText.textContent = selectedOptions.join(', ');
+    } else {
+      selectedDecksText.textContent = STUDY_CFG.labels.no_decks_selected || 'Chưa chọn bộ thẻ nào';
+    }
+  }
+
   function qsToParams() {
     const params = new URLSearchParams();
-    Array.from(deckSelect.selectedOptions).forEach(o => params.append('deck_ids[]', o.value));
+    Array.from(deckCheckboxes).filter(cb => cb.checked).forEach(cb => params.append('deck_ids[]', cb.value));
     return params.toString();
   }
 
@@ -212,7 +227,8 @@
   }
 
   startBtn.addEventListener('click', () => {
-    if (deckSelect.selectedOptions.length === 0) { alert('Please select at least one deck'); return; }
+    const selectedDecks = Array.from(deckCheckboxes).filter(cb => cb.checked);
+    if (selectedDecks.length === 0) { alert('Vui lòng chọn ít nhất một bộ thẻ'); return; }
     deckSelectWrapper.style.display = 'none';
     correctCnt = 0; incorrectCnt = 0; updateStats();
     studyArea.style.display = 'block';
@@ -224,4 +240,29 @@
     deckSelectWrapper.style.display = 'block';
     studyArea.style.display = 'none';
   });
+
+    // Event listeners for custom deck select
+    if (deckDropdownToggle) {
+      deckDropdownToggle.addEventListener('click', () => {
+        deckDropdown.classList.toggle('hidden');
+        deckDropdownToggle.querySelector('i').classList.toggle('fa-chevron-down');
+        deckDropdownToggle.querySelector('i').classList.toggle('fa-chevron-up');
+      });
+    }
+
+    deckCheckboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', updateSelectedDecksText);
+    });
+
+    // Close dropdown if clicked outside
+    document.addEventListener('click', (event) => {
+      if (deckDropdown && !deckDropdown.contains(event.target) && !deckDropdownToggle.contains(event.target)) {
+        deckDropdown.classList.add('hidden');
+        deckDropdownToggle.querySelector('i').classList.remove('fa-chevron-up');
+        deckDropdownToggle.querySelector('i').classList.add('fa-chevron-down');
+      }
+    });
+
+    updateSelectedDecksText(); // Initial update
+
 })(); 

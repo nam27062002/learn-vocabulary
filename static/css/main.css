@@ -17,6 +17,32 @@ body {
   min-height: 100vh;
 }
 
+/* Add this to hide scrollbar for webkit browsers */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+.pagination-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin: 0 4px;
+    border-radius: 50%;
+    background-color: #555; /* Gray color for inactive dots */
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.pagination-dot.active {
+    background-color: #A78BFA; /* Primary color for active dot */
+}
+
 /* ==========================================================================
    Main Container & Layout
    ========================================================================== */
@@ -248,153 +274,199 @@ a.button:hover {
   margin: 0;
 }
 
-.card-body {
-  color: #b0b0b0;
-}
-
 /* ==========================================================================
-   Flashcard Styles
+   Deck Detail Page Styles (Carousel)
    ========================================================================== */
 
-.flashcard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
+.deck-detail-page {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 20px;
 }
 
-.flashcard-item {
-  background: #232345;
-  border-radius: 12px;
-  padding: 20px;
-  border: 1px solid #3a3a5c;
-  transition: all 0.3s ease;
-  cursor: pointer;
+.page-header {
+    text-align: left;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-.flashcard-item:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
-  border-color: #667eea;
+.page-header h1 {
+    font-size: 2.2em;
+    font-weight: 700;
+    color: var(--text-main);
 }
 
-.flashcard-word {
-  font-size: 1.5em;
-  font-weight: bold;
-  color: #667eea;
-  margin-bottom: 8px;
+.back-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
 }
 
-.flashcard-phonetic {
-  color: #b0b0b0;
-  font-style: italic;
-  margin-bottom: 12px;
+/* Word Item (Flashcard) Styles - re-using existing .word-item from original CSS */
+.word-item {
+    background-color: var(--card-background);
+    border: 1px solid var(--card-border-color);
+    padding: 20px;
+    border-radius: 12px;
+    transition: all 0.2s ease-in-out;
+    box-shadow: var(--card-shadow);
+    width: 100%; /* Ensure word-item takes full width of carousel-slide */
+    height: 100%; /* Ensure word-item takes full height of carousel-slide */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start; /* Align content to start */
 }
 
-.flashcard-meaning {
-  color: #fff;
-  margin-bottom: 16px;
+.word-item:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary-color);
+    box-shadow: var(--card-shadow-hover);
 }
 
-.flashcard-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
+.word-item .word {
+    font-size: 1.7em;
+    font-weight: 600;
+    color: var(--card-text-main);
+    margin-bottom: 5px;
 }
 
-.flashcard-actions .button {
-  padding: 8px 16px;
-  font-size: 0.9em;
-  margin: 0;
+.word-item .phonetic {
+    font-family: sans-serif;
+    color: var(--card-text-muted);
+    margin-bottom: 15px;
+    font-style: italic;
+    font-size: 1em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-/* ==========================================================================
-   Utility Classes
-   ========================================================================== */
-
-.text-center {
-  text-align: center;
+.word-item .audio-icon {
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.2s ease-in-out;
+    display: inline-block;
 }
 
-.text-left {
-  text-align: left;
+.word-item .audio-icon:hover {
+    color: var(--primary-color);
 }
 
-.text-right {
-  text-align: right;
+.word-item .definition {
+    font-size: 0.9em;
+    line-height: 1.6;
+    color: var(--card-text-muted);
+    margin-bottom: 8px;
 }
 
-.mb-0 { margin-bottom: 0; }
-.mb-1 { margin-bottom: 0.5rem; }
-.mb-2 { margin-bottom: 1rem; }
-.mb-3 { margin-bottom: 1.5rem; }
-.mb-4 { margin-bottom: 2rem; }
-
-.mt-0 { margin-top: 0; }
-.mt-1 { margin-top: 0.5rem; }
-.mt-2 { margin-top: 1rem; }
-.mt-3 { margin-top: 1.5rem; }
-.mt-4 { margin-top: 2rem; }
-
-.hidden {
-  display: none;
+/* Carousel Specific Styles - For Centering and Peek */
+.carousel-container {
+    position: relative;
+    width: 100%;
+    max-width: 600px; /* Main card (500px) + 50px peek on each side = 600px */
+    margin: 0 auto;
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow-hover);
 }
 
-.flex {
-  display: flex;
+.carousel-slides {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+    /* We will control spacing directly on .carousel-slide using margin-right */
 }
 
-.flex-column {
-  flex-direction: column;
+.carousel-slide {
+    flex: 0 0 auto;
+    width: 500px; /* Desired width of the active card */
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column; /* Ensure content stacks nicely */
+    justify-content: center;
+    align-items: flex-start; /* Align text to left within slide */
+    padding: 20px;
+    background-color: var(--card-background);
+    border: 1px solid var(--card-border-color);
+    border-radius: 12px;
+    transition: all 0.5s ease-in-out;
+    opacity: 0.5; /* Default for non-active slides */
+    transform: scale(0.85); /* Smaller scale for peek effect */
+    position: relative;
+    z-index: 1;
+    margin-right: 20px; /* Space between cards */
 }
 
-.items-center {
-  align-items: center;
+/* Last slide doesn't need margin-right */
+.carousel-slide:last-child {
+    margin-right: 0;
 }
 
-.justify-center {
-  justify-content: center;
+.carousel-slide.active {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    z-index: 2;
 }
 
-.gap-2 {
-  gap: 0.5rem;
+.carousel-slide.prev-slide,
+.carousel-slide.next-slide {
+    opacity: 0.7;
+    transform: scale(0.9);
 }
 
-.gap-4 {
-  gap: 1rem;
+.carousel-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    z-index: 10;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5em;
+    transition: background-color 0.3s ease;
 }
 
-/* ==========================================================================
-   Alert/Message Styles
-   ========================================================================== */
-
-.alert {
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  border: 1px solid transparent;
+.carousel-nav-btn:hover {
+    background-color: rgba(0, 0, 0, 0.8);
 }
 
-.alert-success {
-  background: #1a4d2e;
-  border-color: #28a745;
-  color: #a3d5a3;
+.carousel-prev {
+    left: 10px;
 }
 
-.alert-error {
-  background: #4d1a1a;
-  border-color: #dc3545;
-  color: #f5a3a3;
+.carousel-next {
+    right: 10px;
 }
 
-.alert-warning {
-  background: #4d3a1a;
-  border-color: #ffc107;
-  color: #f5d870;
+.carousel-pagination {
+    text-align: center;
+    margin-top: 20px;
 }
 
-.alert-info {
-  background: #1a3a4d;
-  border-color: #17a2b8;
-  color: #70c7d8;
+.pagination-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    background-color: var(--text-muted);
+    border-radius: 50%;
+    margin: 0 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.pagination-dot.active {
+    background-color: var(--primary-color);
 } 
