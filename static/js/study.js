@@ -154,7 +154,24 @@
     updateStats();
 
     // Show word and phonetic after answer
-    if (cardWordEl) { cardWordEl.textContent = currentQuestion.word; }
+    if (cardWordEl) {
+      cardWordEl.textContent = currentQuestion.word;
+      // Append Replay Audio button if audio is available
+      if (currentQuestion.audio_url) {
+        const replayAudioBtn = document.createElement('button');
+        replayAudioBtn.className = 'replay-audio-btn fas fa-volume-up'; // Font Awesome speaker icon
+        replayAudioBtn.style.cssText = 'background:none;border:none;color:#007bff;font-size:0.6em;margin-left:10px;cursor:pointer;';
+        replayAudioBtn.addEventListener('click', () => {
+          try {
+            const audio = new Audio(currentQuestion.audio_url);
+            audio.play().catch(() => { });
+          } catch (e) {
+            console.log('Audio playback failed:', e);
+          }
+        });
+        cardWordEl.appendChild(replayAudioBtn); // Append to cardWordEl directly
+      }
+    }
     if (cardPhoneticEl && currentQuestion.phonetic) {
       cardPhoneticEl.textContent = currentQuestion.phonetic;
       cardPhoneticEl.style.display = 'block';
