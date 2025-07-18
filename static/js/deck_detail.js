@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Event listener for audio icons
     carouselSlides.addEventListener('click', function(event) {
-        const audioIcon = event.target.closest('.audio-icon');
+        const audioIcon = event.target.closest('.audio-icon-tailwind');
         if (audioIcon) {
             const audioUrl = audioIcon.dataset.audioUrl;
             if (audioUrl) {
