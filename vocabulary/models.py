@@ -1,6 +1,7 @@
 from django.db import models
 import os
 from django.conf import settings
+from django.utils import timezone
 
 class Deck(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='decks')
@@ -25,6 +26,12 @@ class Flashcard(models.Model):
     related_image_url = models.URLField(max_length=500, blank=True, null=True, help_text="Auto-fetched related image URL")
     general_synonyms = models.TextField(blank=True, null=True, help_text="Comma-separated list of general synonyms")
     general_antonyms = models.TextField(blank=True, null=True, help_text="Comma-separated list of general antonyms")
+    # Spaced repetition scheduling fields
+    ease_factor = models.FloatField(default=2.5, help_text="SM-2 ease factor")
+    repetitions = models.PositiveIntegerField(default=0, help_text="Number of successful reviews in a row")
+    interval = models.PositiveIntegerField(default=0, help_text="Interval (days) until next review")
+    next_review = models.DateField(default=timezone.now)
+    last_reviewed = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

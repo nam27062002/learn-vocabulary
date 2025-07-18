@@ -19,6 +19,7 @@ urlpatterns = [
     path('api/save-flashcards/', views.save_flashcards, name='save_flashcards'),
     path('decks/', views.deck_list, name='deck_list'),
     path('decks/<int:deck_id>/', views.deck_detail, name='deck_detail'),
+    path('statistics/', views.statistics_view, name='statistics'),
     path('api/check-word-exists/', views.check_word_exists, name='check_word_exists'),
     path('api/delete-flashcard/', views.delete_flashcard, name='delete_flashcard'),
     path('api/translate-to-vietnamese/', views.translate_to_vietnamese, name='translate_to_vietnamese'),
@@ -26,4 +27,9 @@ urlpatterns = [
     path('api/get-related-image/', views.get_related_image, name='get_related_image'),
     path('debug/language/', views.debug_language, name='debug_language'),
     path('test/language/', views.language_test, name='language_test'),
+    path('study/', views.study_page, name='study'),
+    path('api/study/next-card/', views.api_next_card, name='api_next_card'),
+    path('api/study/submit-review/', views.api_submit_review, name='api_submit_review'),
+    path('api/study/next-question/', views.api_next_question, name='api_next_question'),
+    path('api/study/submit-answer/', views.api_submit_answer, name='api_submit_answer'),
 ] 

@@ -1,7 +1,7 @@
 {% extends "account/base.html" %}
 {% load i18n %}
 
-{% block title %}Verification Email Sent{% endblock %}
+{% block title %}{% trans "Verification Email Sent" %}{% endblock %}
 
 {% block content %}
 <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
@@ -13,8 +13,8 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                 </div>
-                <h2 class="text-2xl font-bold text-gray-900 mb-2">Check Your Email</h2>
-                <p class="text-gray-600 mb-6">We've sent a verification link to your email address. Please check your inbox and click the link to activate your account.</p>
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">{% trans "Check Your Email" %}</h2>
+                <p class="text-gray-600 mb-6">{% trans "We've sent a verification link to your email address. Please check your inbox and click the link to activate your account." %}</p>
             </div>
 
             <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
@@ -26,9 +26,9 @@
                     </div>
                     <div class="ml-3">
                         <p class="text-sm text-blue-700">
-                            <strong>Didn't receive the email?</strong><br>
-                            Check your spam folder or 
-                            <a href="{% url 'account_email' %}" class="underline hover:text-blue-800">resend verification email</a>
+                            <strong>{% trans "Didn't receive the email?" %}</strong><br>
+                            {% trans "Check your spam folder or" %} 
+                            <a href="{% url 'account_email' %}" class="underline hover:text-blue-800">{% trans "resend verification email" %}</a>
                         </p>
                     </div>
                 </div>
@@ -36,7 +36,7 @@
 
             <div class="text-center">
                 <a href="{% url 'account_login' %}" class="text-indigo-600 hover:text-indigo-500 text-sm">
-                    Back to Login
+                    {% trans "Back to Login" %}
                 </a>
             </div>
         </div>

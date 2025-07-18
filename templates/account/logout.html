@@ -1,7 +1,7 @@
 {% extends "account/base.html" %}
 {% load i18n %}
 
-{% block title %}{{ manual_texts.logout }}{% endblock %}
+{% block title %}{% trans "Confirm Logout" %}{% endblock %}
 
 {% block content %}
 <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
@@ -13,8 +13,8 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                     </svg>
                 </div>
-                <h2 class="text-2xl font-bold text-gray-900 mb-2">Confirm Logout</h2>
-                <p class="text-gray-600 mb-6">Are you sure you want to sign out?</p>
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">{% trans "Confirm Logout" %}</h2>
+                <p class="text-gray-600 mb-6">{% trans "Are you sure you want to sign out?" %}</p>
             </div>
 
             <form method="post" action="{% url 'account_logout' %}" class="space-y-6">
@@ -22,10 +22,10 @@
                 
                 <div class="flex space-x-4">
                     <button type="submit" class="flex-1 py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-200">
-                        Yes, Sign Out
+                        {% trans "Yes, Sign Out" %}
                     </button>
                     <a href="{% url 'dashboard' %}" class="flex-1 py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-200 text-center">
-                        Cancel
+                        {% trans "Cancel" %}
                     </a>
                 </div>
             </form>

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ manual_texts.study }} - {{ manual_texts.learn_english }}{% endblock %}
+
+{% block content %}
+<div class="study-page" style="max-width:800px;margin:0 auto;padding:20px;">
+  <h1 style="font-size:2em;font-weight:700;margin-bottom:20px;background:linear-gradient(135deg,var(--primary-color),#8e44ad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">📖 {{ manual_texts.study }}</h1>
+
+  <div id="deckSelectWrapper" style="margin-bottom:20px;">
+    <label class="" style="color:var(--card-text-main);font-weight:600;">{{ manual_texts.select_decks }}:</label>
+    <select id="deckSelect" multiple class="deck-select">
+      {% for d in decks %}
+        <option value="{{ d.id }}">{{ d.name }}</option>
+      {% endfor %}
+    </select>
+    <button id="startBtn" class="primary-btn mt-3">{{ manual_texts.start_study }}</button>
+  </div>
+
+  <div id="studyArea" style="display:none;">
+    <div id="studyHeader" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+        <button id="backBtn" style="background:transparent;color:var(--primary-color);border:none;font-weight:600;cursor:pointer;">← {{ manual_texts.select_decks }}</button>
+        <div id="statsInfo" style="color:var(--card-text-muted);font-weight:600;">{{ manual_texts.correct }}: 0 | {{ manual_texts.incorrect }}: 0</div>
+    </div>
+    <div id="cardBox" class="card-box">
+        <h2 id="cardWord" class="card-word"></h2>
+        <p id="cardPhonetic" class="card-phonetic"></p>
+        <img id="cardImage" src="" alt="image" class="mb-4 rounded-lg max-w-xs hidden" />
+        <div id="answerSection" style="display:none;">
+            <p id="cardDefs" style="color:var(--card-text-main);white-space:pre-line;margin-bottom:10px;"></p>
+            <div id="optionsArea" style="margin-top:10px;"></div>
+            <p id="feedbackMsg" style="display:none;font-weight:600;margin-top:10px;"></p>
+        </div>
+    </div>
+
+    <div id="gradeButtons" style="display:none;margin-top:20px;text-align:center;">
+        <button class="gradeBtn" data-grade="0" style="background:#e3342f;color:#fff;padding:10px 16px;border:none;border-radius:6px;margin:5px;">{{ manual_texts.grade_again }}</button>
+        <button class="gradeBtn" data-grade="1" style="background:#f6993f;color:#fff;padding:10px 16px;border:none;border-radius:6px;margin:5px;">{{ manual_texts.grade_hard }}</button>
+        <button class="gradeBtn" data-grade="2" style="background:#38c172;color:#fff;padding:10px 16px;border:none;border-radius:6px;margin:5px;">{{ manual_texts.grade_good }}</button>
+        <button class="gradeBtn" data-grade="3" style="background:#4dc0b5;color:#fff;padding:10px 16px;border:none;border-radius:6px;margin:5px;">{{ manual_texts.grade_easy }}</button>
+    </div>
+    <p id="noCardMsg" style="display:none;color:var(--card-text-muted);margin-top:20px;font-size:1.1em;">{{ manual_texts.no_cards_due }}</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<link rel="stylesheet" href="{% static 'css/study.css' %}">
+<script>
+  const STUDY_CFG = {
+    nextUrl: "{% url 'api_next_question' %}",
+    submitUrl: "{% url 'api_submit_answer' %}",
+    csrfToken: document.querySelector('meta[name="csrf-token"]').content,
+    labels: {
+      correct: "{{ manual_texts.correct }}",
+      incorrect: "{{ manual_texts.incorrect }}",
+      check: "{{ manual_texts.check }}",
+      placeholder: "{{ manual_texts.answer_placeholder }}",
+      answerLabel: "{{ manual_texts.correct_answer|default:'Đáp án' }}"
+    }
+  };
+</script>
+<script src="{% static 'js/study.js' %}"></script>
+{% endblock %} 

@@ -16,6 +16,106 @@ import os
 import json
 from django.contrib.auth.decorators import login_required
 from deep_translator import GoogleTranslator
+from django.db.models.functions import Random
+import random
+
+# Helper for SM-2 update
+def _update_sm2(card, correct: bool):
+    grade = 2 if correct else 0  # Good vs Again mapping
+    ef = card.ease_factor
+    reps = card.repetitions
+    interval = card.interval
+
+    if not correct:
+        reps = 0
+        interval = 1
+    else:
+        ef = max(1.3, ef + 0.1 - (5 - 4) * (0.08 + (5 - 4) * 0.02))  # grade 4 equivalent
+        reps += 1
+        if reps == 1:
+            interval = 1
+        elif reps == 2:
+            interval = 6
+        else:
+            interval = round(interval * ef)
+
+    next_review_date = datetime.now().date() + timedelta(days=interval)
+    card.ease_factor = ef
+    card.repetitions = reps
+    card.interval = interval
+    card.next_review = next_review_date
+    card.last_reviewed = datetime.now()
+    card.save()
+
+
+@login_required
+@require_GET
+def api_next_question(request):
+    import random as _rnd
+    mode = request.GET.get('mode')
+    if mode not in ['mc', 'type']:
+        mode = _rnd.choice(['mc', 'type'])
+    deck_ids = request.GET.getlist('deck_ids[]')
+
+    qs_due = Flashcard.objects.filter(user=request.user, next_review__lte=datetime.now().date())
+    if deck_ids:
+        qs_due = qs_due.filter(deck_id__in=deck_ids)
+
+    card = qs_due.order_by('next_review').first()
+    if not card:
+        qs_pool = Flashcard.objects.filter(user=request.user)
+        if deck_ids:
+            qs_pool = qs_pool.filter(deck_id__in=deck_ids)
+        card = qs_pool.order_by(Random()).first()
+        if not card:
+            return JsonResponse({'done': True})
+
+    defs = list(card.definitions.values('english_definition', 'vietnamese_definition'))
+
+    payload = {
+        'done': False,
+        'question': {
+            'id': card.id,
+            'word': card.word,
+            'phonetic': card.phonetic,
+            'part_of_speech': card.part_of_speech,
+            'image_url': card.image.url if card.image else card.related_image_url,
+            'audio_url': card.audio_url,
+            'definitions': defs,
+        }
+    }
+
+    if mode == 'mc':
+        # Build 3 distractors
+        distractors = Flashcard.objects.filter(user=request.user).exclude(id=card.id)
+        if deck_ids:
+            distractors = distractors.filter(deck_id__in=deck_ids)
+        distractor_words = list(distractors.values_list('word', flat=True)[:20])
+        random.shuffle(distractor_words)
+        options = [card.word] + distractor_words[:3]
+        random.shuffle(options)
+        payload['question']['options'] = options
+        payload['question']['type'] = 'mc'
+    else:
+        payload['question']['type'] = 'type'
+        payload['question']['answer'] = card.word
+
+    return JsonResponse(payload)
+
+
+@login_required
+@require_POST
+def api_submit_answer(request):
+    data = json.loads(request.body)
+    card_id = data.get('card_id')
+    correct = data.get('correct')  # bool
+    try:
+        card = Flashcard.objects.get(id=card_id, user=request.user)
+    except Flashcard.DoesNotExist:
+        return JsonResponse({'success': False}, status=404)
+
+    _update_sm2(card, correct)
+    return JsonResponse({'success': True})
 
 # Create your views here.
 
@@ -454,3 +554,103 @@ def language_test(request):
     }
     
     return render(request, 'vocabulary/language_test.html', context)
+
+@login_required
+def statistics_view(request):
+    user_decks = Deck.objects.filter(user=request.user)
+    total_decks = user_decks.count()
+    total_cards = Flashcard.objects.filter(user=request.user).count()
+    avg_cards = round(total_cards / total_decks, 2) if total_decks > 0 else 0
+
+    # Prepare data for chart (cards per deck)
+    deck_data = user_decks.annotate(card_count=Count('flashcards')).order_by('-card_count')
+    deck_labels = [deck.name for deck in deck_data]
+    deck_counts = [deck.card_count for deck in deck_data]
+
+    import json as _json
+    deck_labels_json = _json.dumps(deck_labels)
+    deck_counts_json = _json.dumps(deck_counts)
+
+    context = {
+        'total_decks': total_decks,
+        'total_cards': total_cards,
+        'avg_cards': avg_cards,
+        'deck_labels': deck_labels_json,
+        'deck_counts': deck_counts_json,
+    }
+    return render(request, 'vocabulary/statistics.html', context)
+
+@login_required
+def study_page(request):
+    decks = Deck.objects.filter(user=request.user)
+    return render(request, 'vocabulary/study.html', {'decks': decks})
+
+@login_required
+@require_GET
+def api_next_card(request):
+    deck_ids = request.GET.getlist('deck_ids[]')
+    qs = Flashcard.objects.filter(user=request.user, next_review__lte=datetime.now().date())
+    if deck_ids:
+        qs = qs.filter(deck_id__in=deck_ids)
+    from django.db.models.functions import Random
+
+    card = qs.order_by('next_review').first()
+    if not card:
+        # Fallback: pick random card from selected decks (practice extra)
+        qs_all = Flashcard.objects.filter(user=request.user)
+        if deck_ids:
+            qs_all = qs_all.filter(deck_id__in=deck_ids)
+        card = qs_all.order_by(Random()).first()
+        if not card:
+            return JsonResponse({'done': True})
+    defs = list(card.definitions.values('english_definition', 'vietnamese_definition'))
+    return JsonResponse({
+        'done': False,
+        'card': {
+            'id': card.id,
+            'word': card.word,
+            'phonetic': card.phonetic,
+            'part_of_speech': card.part_of_speech,
+            'audio_url': card.audio_url,
+            'image_url': card.image.url if card.image else card.related_image_url,
+            'definitions': defs,
+        }
+    })
+
+@login_required
+@require_POST
+def api_submit_review(request):
+    try:
+        data = json.loads(request.body)
+        card_id = data.get('card_id')
+        grade = int(data.get('grade'))  # 0-3 mapping Again,Hard,Good,Easy
+        card = Flashcard.objects.get(id=card_id, user=request.user)
+    except Exception:
+        return JsonResponse({'success': False}, status=400)
+
+    # SM-2 update
+    ef = card.ease_factor
+    reps = card.repetitions
+    interval = card.interval
+    if grade < 2:  # Again or Hard considered incorrect for SM-2 (<3)
+        reps = 0
+        interval = 1
+    else:
+        # Update ease factor
+        ef = max(1.3, ef + 0.1 - (5 - (grade+2)) * (0.08 + (5 - (grade+2)) * 0.02))  # translate grade 0-3 to 2-5 scale
+        reps += 1
+        if reps == 1:
+            interval = 1
+        elif reps == 2:
+            interval = 6
+        else:
+            interval = round(interval * ef)
+    next_review_date = datetime.now().date() + timedelta(days=interval)
+
+    card.ease_factor = ef
+    card.repetitions = reps
+    card.interval = interval
+    card.next_review = next_review_date
+    card.last_reviewed = datetime.now()
+    card.save()
+    return JsonResponse({'success': True})

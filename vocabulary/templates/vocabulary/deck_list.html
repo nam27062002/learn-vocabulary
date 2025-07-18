@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{% trans "My Decks" %} - {% trans "Learn English" %}{% endblock %}
+{% block title %}{{ manual_texts.my_decks }} - {{ manual_texts.learn_english }}{% endblock %}
 
 {% block content %}
 <style>
@@ -104,7 +104,7 @@
 
 <div class="deck-list-page">
     <div class="page-header">
-        <h1>📚 {% trans "My Decks" %}</h1>
+        <h1>📚 {{ manual_texts.my_decks }}</h1>
     </div>
 
     {% if decks %}

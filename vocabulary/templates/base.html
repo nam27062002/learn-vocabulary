@@ -83,11 +83,11 @@
                                     <span class="nav-icon">➕</span>
                                     <span>{{ manual_texts.add_word }}</span>
                                 </a>
-                                <a href="#" class="text-gray-500 dark:text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1">
+                                <a href="{% url 'study' %}" class="{% if request.resolver_match.url_name == 'study' %}bg-gray-900 text-white{% else %}text-gray-500 dark:text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1">
                                     <span class="nav-icon">📖</span>
                                     <span>{{ manual_texts.study }}</span>
                                 </a>
-                                <a href="#" class="text-gray-500 dark:text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1">
+                                <a href="{% url 'statistics' %}" class="{% if request.resolver_match.url_name == 'statistics' %}bg-gray-900 text-white{% else %}text-gray-500 dark:text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1">
                                     <span class="nav-icon">📊</span>
                                     <span>{{ manual_texts.statistics }}</span>
                                 </a>
@@ -189,11 +189,11 @@
                         <span class="nav-icon">➕</span>
                         <span>{{ manual_texts.add_word }}</span>
                     </a>
-                    <a href="#" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium flex items-center space-x-2">
+                    <a href="{% url 'study' %}" class="{% if request.resolver_match.url_name == 'study' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium flex items-center space-x-2">
                         <span class="nav-icon">📖</span>
                         <span>{{ manual_texts.study }}</span>
                     </a>
-                    <a href="#" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium flex items-center space-x-2">
+                    <a href="{% url 'statistics' %}" class="{% if request.resolver_match.url_name == 'statistics' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium flex items-center space-x-2">
                         <span class="nav-icon">📊</span>
                         <span>{{ manual_texts.statistics }}</span>
                     </a>

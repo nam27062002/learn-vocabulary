@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% block title %}{{ deck.name }} - {% trans "My Decks" %}{% endblock %}
+{% block title %}{{ deck.name }} - {{ manual_texts.my_decks }}{% endblock %}
 
 {% block content %}
 <style>
@@ -93,7 +93,7 @@
 <div class="deck-detail-page">
     <div class="page-header">
         <h1>{{ deck.name }}</h1>
-        <a href="{% url 'deck_list' %}" class="back-link">← {% trans "Back to all decks" %}</a>
+        <a href="{% url 'deck_list' %}" class="back-link">← {{ manual_texts.back_to_all_decks }}</a>
     </div>
 
     {% if flashcards %}
@@ -113,10 +113,10 @@
                     {% endif %}
                     {% for def in card.definitions.all %}
                         <div class="definition">
-                            EN: {{ def.english_definition }}
+                            {% trans "EN:" %} {{ def.english_definition }}
                         </div>
                         <div class="definition">
-                            VI: {{ def.vietnamese_definition }}
+                            {% trans "VI:" %} {{ def.vietnamese_definition }}
                         </div>
                     {% endfor %}
                 </div>
