@@ -6,7 +6,7 @@ services:
     name: learn-vocabulary
     env: python
     buildCommand: "./build.sh"
-    startCommand: "python -m gunicorn learn_english_project.wsgi:application --bind 0.0.0.0:$PORT"
+    startCommand: "gunicorn learn_english_project.wsgi --bind 0.0.0.0:$PORT"
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
