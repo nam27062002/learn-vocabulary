@@ -15,6 +15,8 @@
   const optionsArea = document.getElementById('optionsArea') || answerArea;
   const backBtn = document.getElementById('backBtn');
   const statsInfo = document.getElementById('statsInfo');
+  const cambridgeLinkEl = document.getElementById('cambridgeLink');
+  const cambridgeAnchorEl = document.getElementById('cambridgeAnchor');
   let correctCnt = 0, incorrectCnt = 0;
   let nextTimeout = null;
 
@@ -72,6 +74,7 @@
 
     // Reset UI elements
     feedbackMsg.style.display = 'none';
+    if (cambridgeLinkEl) { cambridgeLinkEl.style.display = 'none'; }
     if (cardWordEl) { cardWordEl.textContent = ''; }
     if (cardPhoneticEl) { cardPhoneticEl.style.display = 'none'; }
 
@@ -190,6 +193,12 @@
     if (cardPhoneticEl && currentQuestion.phonetic) {
       cardPhoneticEl.textContent = currentQuestion.phonetic;
       cardPhoneticEl.style.display = 'block';
+    }
+
+    // Show Cambridge Dictionary link
+    if (cambridgeLinkEl && cambridgeAnchorEl && currentQuestion.word) {
+      cambridgeAnchorEl.href = `https://dictionary.cambridge.org/dictionary/english/${currentQuestion.word}`;
+      cambridgeLinkEl.style.display = 'block';
     }
 
     // Disable all option buttons to prevent multiple clicks
