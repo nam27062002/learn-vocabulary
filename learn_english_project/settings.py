@@ -33,7 +33,7 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') + [
     'localhost',
     '127.0.0.1',
     '0.0.0.0',
-    '.render.com', # Thêm dòng này để cho phép Render.com hosts
+    '.onrender.com', # Thêm dòng này để cho phép Render.com hosts
 ]
 
 
