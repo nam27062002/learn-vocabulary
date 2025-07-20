@@ -17,7 +17,9 @@
                 {% for card in flashcards %}
                     <div class="flex-shrink-0 snap-center" style="width: 100%;">
                         <div class="word-item-tailwind p-6 bg-gray-900 rounded-lg shadow-lg w-full max-w-md mx-auto text-white flex flex-col items-start">
-                            <div class="text-3xl font-bold mb-2">{{ card.word }}</div>
+                            <div class="text-3xl font-bold mb-2">
+                                <a href="https://dictionary.cambridge.org/dictionary/english/{{ card.word }}" target="_blank" class="hover:underline focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 focus:ring-offset-gray-900">{{ card.word }}</a>
+                            </div>
                             {% if card.phonetic %}
                                 <div class="text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2">
                                     <span>{{ card.phonetic }}</span>
