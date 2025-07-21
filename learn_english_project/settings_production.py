@@ -14,6 +14,7 @@ if not SECRET_KEY:
 # Allowed hosts
 ALLOWED_HOSTS = [
     '.onrender.com',
+    'learn-english-app-4o7h.onrender.com',  # Your specific domain
     'localhost',
     '127.0.0.1',
 ]
