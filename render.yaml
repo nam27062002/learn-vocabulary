@@ -10,4 +10,4 @@ services:
       - key: WEB_CONCURRENCY
         value: 4
       - key: DJANGO_SETTINGS_MODULE
-        value: learn_english_project.settings_simple
+        value: learn_english_project.settings_minimal
