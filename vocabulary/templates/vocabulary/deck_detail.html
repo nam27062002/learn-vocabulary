@@ -20,6 +20,9 @@
                             <div class="text-3xl font-bold mb-2">
                                 <a href="https://dictionary.cambridge.org/dictionary/english/{{ card.word }}" target="_blank" class="hover:underline focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 focus:ring-offset-gray-900">{{ card.word }}</a>
                             </div>
+                            {% if card.part_of_speech %}
+                                <div class="text-lg text-gray-400 mb-2 italic">({{ card.part_of_speech }})</div>
+                            {% endif %}
                             {% if card.phonetic %}
                                 <div class="text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2">
                                     <span>{{ card.phonetic }}</span>
