@@ -6,7 +6,7 @@ django-allauth==65.10.0
 gunicorn==21.2.0
 
 # Database
-psycopg2-binary==2.9.9
+psycopg==3.1.18
 dj-database-url==2.1.0
 
 # Static files
