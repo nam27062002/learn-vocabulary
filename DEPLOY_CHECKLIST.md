@@ -1,4 +1,41 @@
-# Deploy to Render Checklist
+# 🚀 DEPLOYMENT CHECKLIST - RENDER
+
+## ❌ CURRENT ISSUE: DATABASE_URL Missing
+
+**Error:** `ValueError: No support for ''. We support: cockroach, mssql, ...`
+
+**Cause:** DATABASE_URL environment variable is empty or not set on Render.
+
+**✅ FIXED:** Updated `settings_production.py` to handle missing DATABASE_URL gracefully.
+
+## 🔧 IMMEDIATE FIX STEPS
+
+### 1. Set Environment Variables on Render
+Go to your Render service dashboard → Environment tab and add:
+
+```
+SECRET_KEY=django-insecure-your-new-secret-key-here-make-it-long-and-random
+DJANGO_SETTINGS_MODULE=learn_english_project.settings_production
+EMAIL_HOST_USER=nam27062002@gmail.com
+EMAIL_HOST_PASSWORD=xorn xvut fsif kljt
+```
+
+### 2. Add PostgreSQL Database (IMPORTANT!)
+- In Render dashboard: New → PostgreSQL
+- Name: `learn-english-db`
+- Copy the **Internal Database URL**
+- Add as environment variable: `DATABASE_URL=postgresql://...`
+
+### 3. Update Build Settings
+**Build Command:**
+```bash
+pip install -r requirements.txt && python manage.py collectstatic --noinput
+```
+
+**Start Command:**
+```bash
+gunicorn learn_english_project.wsgi:application
+```
 
 ## Chuẩn bị trước khi deploy
 
