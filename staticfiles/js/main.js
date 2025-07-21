@@ -2,7 +2,7 @@
    LearnEnglish App - Main JavaScript
    ========================================================================== */
 
-document.addEventListener('DOMContentLoaded', function() {
+   document.addEventListener('DOMContentLoaded', function() {
     
     // Generic dropdown toggle function
     const setupDropdown = (toggleId, menuId) => {

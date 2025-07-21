@@ -75,6 +75,9 @@ def manual_translations(request):
             'study_complete_title': 'Great job!',
             'study_complete_text': 'You have reviewed all due cards.',
             'next_card': 'Next Card →',
+            'vietnamese_meaning': 'Vietnamese meaning',
+            'dictation_placeholder': 'Listen and type the English word...',
+            'select_at_least_one_deck': 'Please select at least one deck',
         },
         'vi': {
             'learn_english': 'Học Tiếng Anh',
@@ -146,6 +149,9 @@ def manual_translations(request):
             'study_complete_title': 'Hoàn thành!',
             'study_complete_text': 'Bạn đã ôn xong tất cả thẻ cần ôn.',
             'next_card': 'Thẻ tiếp theo →',
+            'vietnamese_meaning': 'Nghĩa tiếng Việt',
+            'dictation_placeholder': 'Nghe và nhập từ tiếng Anh...',
+            'select_at_least_one_deck': 'Vui lòng chọn ít nhất một bộ thẻ',
         }
     }
     
