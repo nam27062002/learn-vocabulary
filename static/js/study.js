@@ -134,6 +134,67 @@
         });
         optionsArea.appendChild(btn);
       });
+    } else if (q.type === 'dictation') {
+      // Dictation mode: chỉ hiện nút nghe và ô nhập đáp án
+      // Ẩn từ, nghĩa, phiên âm
+      if (cardWordEl) cardWordEl.innerHTML = '';
+      if (cardPhoneticEl) cardPhoneticEl.style.display = 'none';
+      if (cardDefsEl) cardDefsEl.textContent = '';
+      // Tạo container căn giữa cho loa và input
+      const dictationBox = document.createElement('div');
+      dictationBox.style.display = 'flex';
+      dictationBox.style.flexDirection = 'column';
+      dictationBox.style.alignItems = 'center';
+      dictationBox.style.gap = '14px';
+      dictationBox.style.margin = '18px 0 10px 0';
+      // Nút nghe
+      if (q.audio_url) {
+        const replayAudioBtn = document.createElement('button');
+        replayAudioBtn.className = 'replay-audio-btn fas fa-volume-up';
+        replayAudioBtn.style.cssText = 'background:none;border:none;color:#007bff;font-size:2em;cursor:pointer;outline:none;';
+        replayAudioBtn.addEventListener('click', () => {
+          try {
+            const audio = new Audio(q.audio_url);
+            audio.play().catch(() => { });
+          } catch (e) {
+            console.log('Audio playback failed:', e);
+          }
+        });
+        dictationBox.appendChild(replayAudioBtn);
+      }
+      // Ô nhập đáp án
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.placeholder = STUDY_CFG.labels.answer_placeholder;
+      inp.className = 'type-input';
+      inp.style.cssText = 'padding:12px 16px;border:2px solid #dee2e6;border-radius:8px;font-size:18px;width:260px;max-width:100%;margin:0 auto;';
+      const btn = document.createElement('button');
+      btn.textContent = STUDY_CFG.labels.check;
+      btn.className = 'check-btn';
+      btn.style.cssText = 'background:#007bff;color:#fff;padding:12px 24px;border:none;border-radius:8px;cursor:pointer;font-weight:600;margin-left:10px;font-size:1em;';
+      // Đặt input và button trên cùng một dòng
+      const inputRow = document.createElement('div');
+      inputRow.style.display = 'flex';
+      inputRow.style.justifyContent = 'center';
+      inputRow.style.alignItems = 'center';
+      inputRow.style.gap = '10px';
+      inputRow.appendChild(inp);
+      inputRow.appendChild(btn);
+      dictationBox.appendChild(inputRow);
+      btn.addEventListener('click', () => {
+        if (!btn.disabled) {
+          const correct = inp.value.trim().toLowerCase() === q.answer.toLowerCase();
+          submitAnswer(correct);
+        }
+      });
+      inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (!btn.disabled) btn.click();
+        }
+      });
+      optionsArea.appendChild(dictationBox);
+      setTimeout(() => inp.focus(), 100);
     } else {
       // Type answer mode
       const inp = document.createElement('input');
@@ -141,30 +202,24 @@
       inp.placeholder = STUDY_CFG.labels.placeholder;
       inp.className = 'type-input';
       inp.style.cssText = 'padding:12px;border:2px solid #dee2e6;border-radius:8px;font-size:16px;width:200px;margin-right:10px;';
-
       const btn = document.createElement('button');
       btn.textContent = STUDY_CFG.labels.check;
       btn.className = 'check-btn';
       btn.style.cssText = 'background:#007bff;color:#fff;padding:12px 20px;border:none;border-radius:8px;cursor:pointer;font-weight:600;';
-
       btn.addEventListener('click', () => {
         if (!btn.disabled) {
           const correct = inp.value.trim().toLowerCase() === q.answer.toLowerCase();
           submitAnswer(correct);
         }
       });
-
       inp.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
           if (!btn.disabled) btn.click();
         }
       });
-
       optionsArea.appendChild(inp);
       optionsArea.appendChild(btn);
-
-      // Focus on input for better UX
       setTimeout(() => inp.focus(), 100);
     }
 
@@ -190,6 +245,20 @@
       feedbackMsg.style.color = '#e3342f';
     }
     updateStats();
+
+    // Nếu là dictation, show nghĩa tiếng Việt sau khi trả lời
+    if (currentQuestion && currentQuestion.type === 'dictation' && cardDefsEl && currentQuestion.definitions && currentQuestion.definitions.length > 0) {
+      // Lấy nghĩa tiếng Việt đầu tiên (hoặc tất cả)
+      const viDefs = currentQuestion.definitions.map(d => d.vietnamese_definition).filter(Boolean);
+      if (viDefs.length > 0) {
+        // Làm đẹp: tạo div nổi bật, có icon, dùng label dịch
+        cardDefsEl.innerHTML = `<div style="background:#f3f4f6;border-radius:10px;padding:10px 18px;margin:12px auto 0 auto;display:flex;align-items:center;justify-content:center;max-width:90%;font-size:1.08em;box-shadow:0 2px 8px #0001;">
+          <span style='font-size:1.2em;margin-right:8px;'>🇻🇳</span>
+          <span style='font-weight:600;color:#4b5563;'>${STUDY_CFG.labels.vietnamese_meaning || 'VI'}:</span>
+          <span style='margin-left:8px;color:#111827;'>${viDefs.join(' | ')}</span>
+        </div>`;
+      }
+    }
 
     // Show word and phonetic after answer
     if (cardWordEl) {
@@ -277,7 +346,7 @@
 
   startBtn.addEventListener('click', () => {
     const selectedDecks = Array.from(deckCheckboxes).filter(cb => cb.checked);
-    if (selectedDecks.length === 0) { alert('Vui lòng chọn ít nhất một bộ thẻ'); return; }
+    if (selectedDecks.length === 0) { alert(STUDY_CFG.labels.select_at_least_one_deck); return; }
     deckSelectWrapper.style.display = 'none';
     correctCnt = 0; incorrectCnt = 0; updateStats();
     studyArea.style.display = 'block';

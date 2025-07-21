@@ -52,20 +52,41 @@ def _update_sm2(card, correct: bool):
 @require_GET
 def api_next_question(request):
     import random as _rnd
-    mode = request.GET.get('mode')
-    if mode not in ['mc', 'type']:
-        mode = _rnd.choice(['mc', 'type'])
+    MODES = ['mc', 'type', 'dictation']
     deck_ids = request.GET.getlist('deck_ids[]')
 
+    # Lấy danh sách flashcard đủ điều kiện
     qs_due = Flashcard.objects.filter(user=request.user, next_review__lte=datetime.now().date())
     if deck_ids:
         qs_due = qs_due.filter(deck_id__in=deck_ids)
+
+    # Kiểm tra có flashcard có audio không
+    qs_audio = qs_due.exclude(audio_url__isnull=True).exclude(audio_url='')
+    has_audio = qs_audio.exists()
+
+    # Random mode phù hợp
+    if has_audio:
+        mode = _rnd.choice(MODES)
+    else:
+        mode = _rnd.choice(['mc', 'type'])
+
+    # Lọc flashcard theo mode
+    if mode == 'dictation':
+        qs_due = qs_audio
 
     card = qs_due.order_by('next_review').first()
     if not card:
         qs_pool = Flashcard.objects.filter(user=request.user)
         if deck_ids:
             qs_pool = qs_pool.filter(deck_id__in=deck_ids)
+        qs_audio_pool = qs_pool.exclude(audio_url__isnull=True).exclude(audio_url='')
+        has_audio_pool = qs_audio_pool.exists()
+        if has_audio_pool:
+            mode = _rnd.choice(MODES)
+        else:
+            mode = _rnd.choice(['mc', 'type'])
+        if mode == 'dictation':
+            qs_pool = qs_audio_pool
         card = qs_pool.order_by(Random()).first()
         if not card:
             return JsonResponse({'done': True})
@@ -96,6 +117,9 @@ def api_next_question(request):
         random.shuffle(options)
         payload['question']['options'] = options
         payload['question']['type'] = 'mc'
+    elif mode == 'dictation':
+        payload['question']['type'] = 'dictation'
+        payload['question']['answer'] = card.word
     else:
         payload['question']['type'] = 'type'
         payload['question']['answer'] = card.word
