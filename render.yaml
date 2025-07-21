@@ -1,0 +1,22 @@
+databases:
+  - name: learn-english-db
+    databaseName: learn_english_db
+    user: learn_english_user
+
+services:
+  - type: web
+    name: learn-english-app
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn learn_english_project.wsgi:application"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: learn-english-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: WEB_CONCURRENCY
+        value: 4
+      - key: DJANGO_SETTINGS_MODULE
+        value: learn_english_project.settings_production
