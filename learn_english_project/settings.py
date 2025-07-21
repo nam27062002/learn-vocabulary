@@ -11,8 +11,6 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
-import os
-import dj_database_url # Thêm dòng này để import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,19 +20,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-f-_cq&2k*qc_#=75#32=%kf$l5*fvq=*j)q6mdok&yb7yh^fis')
+SECRET_KEY = 'django-insecure-f-_cq&2k*qc_#=75#32=%kf$l5*fvq=*j)q6mdok&yb7yh^fis'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+DEBUG = True
 
 ENABLE_DEBUG = True
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') + [
-    'localhost',
-    '127.0.0.1',
-    '0.0.0.0',
-    '.onrender.com', # Thêm dòng này để cho phép Render.com hosts
-]
+ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -53,7 +46,6 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
-    'corsheaders', # Thêm corsheaders
     
     # Local apps
     'vocabulary',
@@ -62,7 +54,6 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'corsheaders.middleware.CorsMiddleware', # Thêm CorsMiddleware ở đầu
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.locale.LocaleMiddleware',  # Must be after SessionMiddleware and CommonMiddleware
@@ -102,10 +93,10 @@ WSGI_APPLICATION = 'learn_english_project.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default = 'sqlite:///db.sqlite3',
-        conn_max_age = 600
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
 
@@ -218,15 +209,15 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+EMAIL_HOST_USER = 'nam27062002@gmail.com'
+EMAIL_HOST_PASSWORD = 'xorn xvut fsif kljt'
 
 # Email timeout and additional settings
 EMAIL_TIMEOUT = 60
 EMAIL_USE_LOCALTIME = True
 
 # Default from email
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Learn Vocabulary <nam27062002@gmail.com>')
+DEFAULT_FROM_EMAIL = 'Learn Vocabulary <nam27062002@gmail.com>'
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # For development/testing, uncomment this line to use console backend:
@@ -247,39 +238,4 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 # Allowed hosts for OAuth
-ALLOWED_HOSTS += [os.environ.get('RENDER_EXTERNAL_HOSTNAME', '')] # Thêm RENDER_EXTERNAL_HOSTNAME vào ALLOWED_HOSTS
-
-# CORS Headers settings
-CORS_ALLOW_ALL_ORIGINS = True # Hoặc cấu hình cụ thể các domain được phép
-
-# WhiteNoise configuration
-# Thêm WhiteNoise vào MIDDLEWARE SAU SecurityMiddleware.
-# Tôi sẽ thêm nó bằng tay ở đây, nếu có lỗi thì bạn có thể di chuyển nó lên.
-MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
-
-# WhiteNoise static file storage
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-# Cấu hình HTTPS trên Render
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_SSL_REDIRECT = os.environ.get('SECURE_SSL_REDIRECT', 'False') == 'True'
-SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False') == 'True'
-CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'False') == 'True'
-
-# Cấu hình LOGGING để hiển thị log trên Render
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'),
-            'propagate': True,
-        },
-    },
-}
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
