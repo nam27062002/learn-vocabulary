@@ -20,6 +20,26 @@
   let correctCnt = 0, incorrectCnt = 0;
   let nextTimeout = null;
 
+  // Hàm chuyển đổi từ loại sang viết tắt
+  function getAbbreviatedPartOfSpeech(fullPartOfSpeech) {
+    if (!fullPartOfSpeech) return '';
+    const lowerCase = fullPartOfSpeech.toLowerCase();
+    switch (lowerCase) {
+      case 'noun': return 'n';
+      case 'verb': return 'v';
+      case 'adjective': return 'adj';
+      case 'adverb': return 'adv';
+      case 'preposition': return 'prep';
+      case 'conjunction': return 'conj';
+      case 'pronoun': return 'pron';
+      case 'interjection': return 'interj';
+      case 'determiner': return 'det';
+      case 'article': return 'art';
+      case 'auxiliary verb': return 'aux.v';
+      default: return fullPartOfSpeech; // Trả về nguyên gốc nếu không tìm thấy viết tắt
+    }
+  }
+
   function updateStats() {
     if (statsInfo) {
       statsInfo.textContent = `${STUDY_CFG.labels.correct}: ${correctCnt} | ${STUDY_CFG.labels.incorrect}: ${incorrectCnt}`;
@@ -75,7 +95,7 @@
     // Reset UI elements
     feedbackMsg.style.display = 'none';
     if (cambridgeLinkEl) { cambridgeLinkEl.style.display = 'none'; }
-    if (cardWordEl) { cardWordEl.textContent = ''; }
+    if (cardWordEl) { cardWordEl.innerHTML = ''; } // Đảm bảo làm sạch nội dung HTML trước khi thêm
     if (cardPhoneticEl) { cardPhoneticEl.style.display = 'none'; }
 
     // Handle image display
@@ -184,6 +204,14 @@
       wordLink.style.cssText = 'text-decoration: none; color: inherit; cursor: pointer;'; // Đảm bảo không có gạch chân và màu sắc phù hợp
 
       cardWordEl.appendChild(wordLink); // Thêm thẻ <a> vào cardWordEl
+
+      // Thêm từ loại nếu có
+      if (currentQuestion.part_of_speech) {
+        const partOfSpeechSpan = document.createElement('span');
+        partOfSpeechSpan.textContent = ` (${getAbbreviatedPartOfSpeech(currentQuestion.part_of_speech)})`;
+        partOfSpeechSpan.style.cssText = 'font-style: italic; font-size: 0.7em; color: gray; margin-left: 5px;'; // Đổi font-size nhỏ hơn
+        cardWordEl.appendChild(partOfSpeechSpan);
+      }
 
       // Append Replay Audio button if audio is available
       if (currentQuestion.audio_url) {
