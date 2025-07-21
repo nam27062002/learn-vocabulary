@@ -11,6 +11,9 @@ pip install PyJWT==2.10.1
 pip install jwt==1.3.1
 pip install python-jwt==4.0.0
 
+# Explicitly install database packages
+pip install dj-database-url==2.1.0
+
 # Set simple production settings (no PostgreSQL)
 export DJANGO_SETTINGS_MODULE=learn_english_project.settings_simple
 

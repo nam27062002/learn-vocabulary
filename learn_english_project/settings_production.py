@@ -1,5 +1,5 @@
 import os
-import dj_database_url
+# Remove dj_database_url dependency
 from .settings import *
 
 # Production settings
@@ -19,20 +19,13 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
 ]
 
-# Database configuration for PostgreSQL on Render
-DATABASE_URL = os.environ.get('DATABASE_URL')
-if DATABASE_URL:
-    DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL)
+# Use SQLite for simplicity
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
-else:
-    # Fallback to SQLite for development/testing
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 # Static files with WhiteNoise
 MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')

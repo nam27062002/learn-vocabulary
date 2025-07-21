@@ -36,6 +36,9 @@ pycparser==2.22
 beautifulsoup4==4.13.4
 soupsieve==2.7
 
+# Database utilities
+dj-database-url==2.1.0
+
 # Other essential dependencies
 certifi==2025.4.26
 typing_extensions==4.13.2
