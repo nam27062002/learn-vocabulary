@@ -6,10 +6,8 @@ set -o errexit
 pip install -r requirements.txt
 pip install -r requirements_simple.txt
 
-# Explicitly install jwt packages
+# Explicitly install PyJWT only (avoid conflicts)
 pip install PyJWT==2.10.1
-pip install jwt==1.3.1
-pip install python-jwt==4.0.0
 
 # Explicitly install database packages
 pip install dj-database-url==2.1.0
