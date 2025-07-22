@@ -137,10 +137,15 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelEdit(cardContainer);
             return;
         }
+
+
     });
 
     // Initial setup
     showSlide(currentSlideIndex);
+
+    // Initialize audio status functionality
+    initializeAudioStatusFeatures();
 
     // Keyboard navigation
     document.addEventListener('keydown', function(event) {
@@ -488,6 +493,9 @@ document.addEventListener('DOMContentLoaded', function() {
             noDefDiv.textContent = 'No definitions available';
             viewMode.appendChild(noDefDiv);
         }
+
+        // Update audio status after updating display
+        updateAudioStatusAfterSave(cardContainer, cardData);
     }
 
     function showMessage(message, type) {
@@ -536,5 +544,162 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Re-enable scrolling
         carouselSlides.style.overflowX = 'auto';
+    }
+
+    // Audio status functionality
+    function initializeAudioStatusFeatures() {
+        updateAudioStats();
+        setupAudioFilter();
+        setupAudioUrlFieldHandlers();
+    }
+
+    function updateAudioStats() {
+        const allCards = document.querySelectorAll('[data-card-id]');
+        let withAudioCount = 0;
+        let withoutAudioCount = 0;
+
+        allCards.forEach(card => {
+            // Check if card has audio button (indicates audio is available)
+            const hasAudioButton = card.querySelector('.audio-icon-tailwind');
+            if (hasAudioButton) {
+                withAudioCount++;
+            } else {
+                withoutAudioCount++;
+            }
+        });
+
+        // Update stats display
+        const withAudioElement = document.getElementById('cards-with-audio-count');
+        const withoutAudioElement = document.getElementById('cards-without-audio-count');
+
+        if (withAudioElement) withAudioElement.textContent = withAudioCount;
+        if (withoutAudioElement) withoutAudioElement.textContent = withoutAudioCount;
+    }
+
+    function setupAudioFilter() {
+        const filterSelect = document.getElementById('audio-filter');
+        if (!filterSelect) return;
+
+        filterSelect.addEventListener('change', function() {
+            const filterValue = this.value;
+            const allCards = document.querySelectorAll('[data-card-id]');
+
+            allCards.forEach(card => {
+                // Check if card has audio button (indicates audio is available)
+                const hasAudioButton = card.querySelector('.audio-icon-tailwind');
+                let shouldShow = true;
+
+                switch (filterValue) {
+                    case 'with-audio':
+                        shouldShow = !!hasAudioButton;
+                        break;
+                    case 'without-audio':
+                        shouldShow = !hasAudioButton;
+                        break;
+                    case 'all':
+                    default:
+                        shouldShow = true;
+                        break;
+                }
+
+                if (shouldShow) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // Update carousel after filtering
+            updateCarouselAfterFilter();
+        });
+    }
+
+    function updateCarouselAfterFilter() {
+        // Reset to first visible slide
+        const visibleCards = document.querySelectorAll('[data-card-id]:not([style*="display: none"])');
+        if (visibleCards.length > 0) {
+            // Update slides array and current index
+            slides.length = 0;
+            visibleCards.forEach(card => slides.push(card));
+            currentSlideIndex = 0;
+            showSlide(0);
+        }
+    }
+
+    function setupAudioUrlFieldHandlers() {
+        // Simplified audio URL field handling - no special styling needed
+        // The audio button visibility will be updated when the card is saved
+    }
+
+    // Update audio button visibility after successful card save
+    function updateAudioStatusAfterSave(cardContainer, cardData) {
+        const viewMode = cardContainer.querySelector('.card-view-mode');
+        const hasAudio = cardData.audio_url && cardData.audio_url.trim().length > 0;
+
+        // Update data attribute
+        viewMode.setAttribute('data-has-audio', hasAudio ? 'true' : 'false');
+
+        // Update audio button visibility in phonetic section
+        updateAudioButtonVisibility(viewMode, cardData);
+
+        // Update stats
+        updateAudioStats();
+    }
+
+    function updateAudioButtonVisibility(viewMode, cardData) {
+        const hasAudio = cardData.audio_url && cardData.audio_url.trim().length > 0;
+        const phoneticContainer = viewMode.querySelector('.text-lg.text-gray-400.font-serif.italic.mb-4');
+
+        if (hasAudio) {
+            // If we have audio, ensure the audio button exists
+            if (cardData.phonetic) {
+                // Update existing phonetic container with audio button
+                if (phoneticContainer) {
+                    const existingAudioBtn = phoneticContainer.querySelector('.audio-icon-tailwind');
+                    if (!existingAudioBtn) {
+                        // Add audio button to existing phonetic container
+                        const audioBtn = document.createElement('button');
+                        audioBtn.className = 'audio-icon-tailwind text-gray-500 hover:text-primary-color transition-colors duration-200';
+                        audioBtn.setAttribute('data-audio-url', cardData.audio_url);
+                        audioBtn.title = window.manual_texts?.listen || 'Listen';
+                        audioBtn.innerHTML = '<i class="fas fa-volume-up text-xl"></i>';
+                        phoneticContainer.appendChild(audioBtn);
+                    } else {
+                        // Update existing audio button
+                        existingAudioBtn.setAttribute('data-audio-url', cardData.audio_url);
+                    }
+                }
+            } else {
+                // No phonetic but has audio - create audio-only container
+                if (phoneticContainer) {
+                    phoneticContainer.remove();
+                }
+                const audioContainer = document.createElement('div');
+                audioContainer.className = 'text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2';
+                audioContainer.innerHTML = `
+                    <span class="text-gray-500 text-sm">${window.manual_texts?.listen || 'Listen'}:</span>
+                    <button class="audio-icon-tailwind text-gray-500 hover:text-primary-color transition-colors duration-200" data-audio-url="${cardData.audio_url}" title="${window.manual_texts?.listen || 'Listen'}">
+                        <i class="fas fa-volume-up text-xl"></i>
+                    </button>
+                `;
+
+                // Insert after the word title
+                const wordTitle = viewMode.querySelector('.text-3xl.font-bold.mb-2');
+                const partOfSpeech = viewMode.querySelector('.text-lg.text-gray-400.mb-2.italic');
+                const insertAfter = partOfSpeech || wordTitle;
+                insertAfter.parentNode.insertBefore(audioContainer, insertAfter.nextSibling);
+            }
+        } else {
+            // No audio - remove audio button
+            const existingAudioBtn = viewMode.querySelector('.audio-icon-tailwind');
+            if (existingAudioBtn) {
+                existingAudioBtn.remove();
+            }
+
+            // If phonetic container only has audio button, remove the whole container
+            if (phoneticContainer && !cardData.phonetic) {
+                phoneticContainer.remove();
+            }
+        }
     }
 });

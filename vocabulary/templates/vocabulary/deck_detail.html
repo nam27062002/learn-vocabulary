@@ -18,6 +18,27 @@
     </div>
 
     {% if flashcards %}
+        <!-- Audio Filter Controls -->
+        <div class="audio-filter-controls">
+            <label for="audio-filter">{{ manual_texts.filter_by_audio }}:</label>
+            <select id="audio-filter">
+                <option value="all">{{ manual_texts.show_all_cards }}</option>
+                <option value="with-audio">{{ manual_texts.show_cards_with_audio }}</option>
+                <option value="without-audio">{{ manual_texts.show_cards_without_audio }}</option>
+            </select>
+
+            <div class="audio-stats">
+                <div class="stat-item has-audio">
+                    <i class="fas fa-volume-up"></i>
+                    <span id="cards-with-audio-count">0</span>
+                </div>
+                <div class="stat-item no-audio">
+                    <i class="fas fa-volume-mute"></i>
+                    <span id="cards-without-audio-count">0</span>
+                </div>
+            </div>
+        </div>
+
         <div id="carousel-container" class="relative w-full max-w-xl mx-auto overflow-hidden rounded-xl shadow-2xl bg-gray-800 p-6">
             <!-- Edit Mode Overlay -->
             <div class="edit-mode-overlay"></div>
@@ -26,7 +47,7 @@
                 {% for card in flashcards %}
                     <div class="flex-shrink-0 snap-center" style="width: 100%;" data-card-id="{{ card.id }}">
                         <!-- View Mode -->
-                        <div class="card-view-mode word-item-tailwind p-6 bg-gray-900 rounded-lg shadow-lg w-full max-w-md mx-auto text-white flex flex-col items-start relative">
+                        <div class="card-view-mode word-item-tailwind p-6 bg-gray-900 rounded-lg shadow-lg w-full max-w-md mx-auto text-white flex flex-col items-start relative" data-has-audio="{% if card.audio_url %}true{% else %}false{% endif %}">
                             <!-- Edit Button -->
                             <button class="edit-card-btn absolute top-4 right-4 text-gray-400 hover:text-primary-color transition-colors duration-200 p-2 rounded-full hover:bg-gray-800" title="{{ manual_texts.edit_card }}">
                                 <i class="fas fa-edit text-lg"></i>
@@ -42,10 +63,18 @@
                                 <div class="text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2">
                                     <span>{{ card.phonetic }}</span>
                                     {% if card.audio_url %}
-                                        <button class="audio-icon-tailwind text-gray-500 hover:text-primary-color transition-colors duration-200" data-audio-url="{{ card.audio_url }}">
+                                        <button class="audio-icon-tailwind text-gray-500 hover:text-primary-color transition-colors duration-200" data-audio-url="{{ card.audio_url }}" title="{{ manual_texts.listen }}">
                                             <i class="fas fa-volume-up text-xl"></i>
                                         </button>
                                     {% endif %}
+                                </div>
+                            {% elif card.audio_url %}
+                                <!-- Show audio button even without phonetic if audio is available -->
+                                <div class="text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2">
+                                    <span class="text-gray-500 text-sm">{{ manual_texts.listen }}:</span>
+                                    <button class="audio-icon-tailwind text-gray-500 hover:text-primary-color transition-colors duration-200" data-audio-url="{{ card.audio_url }}" title="{{ manual_texts.listen }}">
+                                        <i class="fas fa-volume-up text-xl"></i>
+                                    </button>
                                 </div>
                             {% endif %}
                             {% for def in card.definitions.all %}
@@ -96,7 +125,7 @@
                                     <!-- Audio URL -->
                                     <div>
                                         <label class="block text-sm font-medium text-gray-300 mb-1">Audio URL</label>
-                                        <input type="url" class="edit-audio-url w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent" value="{{ card.audio_url|default:'' }}">
+                                        <input type="url" class="edit-audio-url w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent" value="{{ card.audio_url|default:'' }}" placeholder="https://example.com/audio.mp3">
                                     </div>
 
                                     <!-- Definitions -->

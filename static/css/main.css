@@ -669,3 +669,99 @@ body[data-edit-mode="true"] .card-edit-mode {
         font-size: 0.7rem;
     }
 }
+
+/* ==========================================================================
+   Simplified Audio Button Styling
+   ========================================================================== */
+
+/* Enhanced audio button styling */
+.audio-icon-tailwind {
+    transition: all 0.3s ease;
+    border-radius: 50%;
+    padding: 4px;
+}
+
+.audio-icon-tailwind:hover {
+    background: rgba(99, 102, 241, 0.1);
+    transform: scale(1.1);
+}
+
+/* Filter controls */
+.audio-filter-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: rgba(55, 65, 81, 0.5);
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+}
+
+.audio-filter-controls label {
+    color: #d1d5db;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.audio-filter-controls select {
+    background: #374151;
+    border: 1px solid #4b5563;
+    border-radius: 8px;
+    color: white;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    min-width: 180px;
+}
+
+.audio-filter-controls select:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.audio-stats {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 0.875rem;
+    color: #9ca3af;
+}
+
+.audio-stats .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.audio-stats .stat-item i {
+    font-size: 1rem;
+}
+
+.audio-stats .stat-item.has-audio {
+    color: #22c55e;
+}
+
+.audio-stats .stat-item.no-audio {
+    color: #ef4444;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .audio-filter-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .audio-filter-controls select {
+        min-width: auto;
+    }
+
+    .audio-stats {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+}

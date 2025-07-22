@@ -123,6 +123,16 @@ def manual_translations(request):
             'confirm_cancel_edit': 'Are you sure you want to cancel? Unsaved changes will be lost.',
             'this_deck_empty': 'This deck is empty.',
             'add_some_cards': 'Add some cards!',
+            # Audio status indicators
+            'has_audio': 'Has Audio',
+            'no_audio': 'No Audio',
+            'audio_available': 'Audio Available',
+            'audio_missing': 'Audio Missing',
+            'add_audio_url': 'Add audio URL to enable pronunciation',
+            'filter_by_audio': 'Filter by Audio Status',
+            'show_all_cards': 'Show All Cards',
+            'show_cards_with_audio': 'Cards with Audio',
+            'show_cards_without_audio': 'Cards without Audio',
         },
         'vi': {
             'learn_english': 'Học Tiếng Anh',
@@ -242,6 +252,16 @@ def manual_translations(request):
             'confirm_cancel_edit': 'Bạn có chắc muốn hủy? Các thay đổi chưa lưu sẽ bị mất.',
             'this_deck_empty': 'Bộ thẻ này trống.',
             'add_some_cards': 'Thêm một số thẻ!',
+            # Audio status indicators
+            'has_audio': 'Có âm thanh',
+            'no_audio': 'Không có âm thanh',
+            'audio_available': 'Có âm thanh',
+            'audio_missing': 'Thiếu âm thanh',
+            'add_audio_url': 'Thêm URL âm thanh để bật phát âm',
+            'filter_by_audio': 'Lọc theo trạng thái âm thanh',
+            'show_all_cards': 'Hiển thị tất cả thẻ',
+            'show_cards_with_audio': 'Thẻ có âm thanh',
+            'show_cards_without_audio': 'Thẻ không có âm thanh',
         }
     }
     
