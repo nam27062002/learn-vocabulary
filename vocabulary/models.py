@@ -32,10 +32,39 @@ class Flashcard(models.Model):
     interval = models.PositiveIntegerField(default=0, help_text="Interval (days) until next review")
     next_review = models.DateField(default=timezone.now)
     last_reviewed = models.DateTimeField(blank=True, null=True)
+
+    # Enhanced spaced repetition fields
+    times_seen_today = models.PositiveIntegerField(default=0, help_text="Number of times seen today (reset daily)")
+    last_seen_date = models.DateField(blank=True, null=True, help_text="Last date this card was shown")
+    difficulty_score = models.FloatField(default=0.0, help_text="Difficulty score based on user performance")
+    total_reviews = models.PositiveIntegerField(default=0, help_text="Total number of times reviewed")
+    correct_reviews = models.PositiveIntegerField(default=0, help_text="Number of correct reviews")
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.word
+
+    @property
+    def difficulty_level(self):
+        """Return a user-friendly difficulty level based on difficulty_score."""
+        if self.difficulty_score <= 0.2:
+            return "Very Easy"
+        elif self.difficulty_score <= 0.4:
+            return "Easy"
+        elif self.difficulty_score <= 0.6:
+            return "Medium"
+        elif self.difficulty_score <= 0.8:
+            return "Hard"
+        else:
+            return "Very Hard"
+
+    @property
+    def accuracy_percentage(self):
+        """Return accuracy as a percentage."""
+        if self.total_reviews == 0:
+            return 0
+        return round((self.correct_reviews / self.total_reviews) * 100, 1)
 
     def save(self, *args, **kwargs):
         # Xóa file cũ khi update với hình ảnh mới

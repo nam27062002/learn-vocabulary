@@ -17,18 +17,157 @@ import json
 from django.contrib.auth.decorators import login_required
 from deep_translator import GoogleTranslator
 from django.db.models.functions import Random
+
+# Enhanced Spaced Repetition Configuration
+SPACED_REPETITION_CONFIG = {
+    'MAX_DAILY_REVIEWS': 3,          # Maximum times a card can be shown per day
+    'NEGLECT_THRESHOLD_DAYS': 14,    # Days after which a card is considered neglected
+    'SIMILARITY_THRESHOLD': 0.6,     # Threshold for semantic similarity filtering
+    'DIFFICULTY_ADJUSTMENT': 0.3,    # How much difficulty affects interval (0.0-1.0)
+    'MIN_DISTRACTORS': 10,          # Minimum distractors to collect for filtering
+}
 import random
 
-# Helper for SM-2 update
+# Helper function to filter semantically similar distractors
+def _filter_semantic_distractors(correct_word, candidates):
+    """
+    Filter out distractors that are too similar to the correct word.
+    This improves multiple choice question quality by avoiding confusing options.
+    """
+    import difflib
+
+    correct_word_lower = correct_word.lower()
+    filtered = []
+
+    for candidate in candidates:
+        candidate_lower = candidate.lower()
+
+        # Skip if words are too similar (edit distance)
+        similarity = difflib.SequenceMatcher(None, correct_word_lower, candidate_lower).ratio()
+        if similarity > SPACED_REPETITION_CONFIG['SIMILARITY_THRESHOLD']:
+            continue
+
+        # Skip if one word is contained in another
+        if (correct_word_lower in candidate_lower or
+            candidate_lower in correct_word_lower):
+            continue
+
+        # Skip if words start with the same 3+ characters (too similar)
+        if (len(correct_word_lower) >= 3 and len(candidate_lower) >= 3 and
+            correct_word_lower[:3] == candidate_lower[:3]):
+            continue
+
+        filtered.append(candidate)
+
+        # Stop when we have enough good distractors
+        if len(filtered) >= SPACED_REPETITION_CONFIG['MIN_DISTRACTORS']:
+            break
+
+    return filtered
+
+# Enhanced word selection algorithm
+def _get_next_card_enhanced(user, deck_ids=None):
+    """
+    Enhanced card selection algorithm that prevents short-term repetition
+    and long-term neglect while maintaining spaced repetition principles.
+    """
+    from django.db.models import F, Q, Case, When, FloatField
+    from django.db.models.functions import Random
+    from datetime import datetime, timedelta
+
+    today = datetime.now().date()
+    now = datetime.now()
+
+    # Base queryset
+    qs = Flashcard.objects.filter(user=user)
+    if deck_ids:
+        qs = qs.filter(deck_id__in=deck_ids)
+
+    # Reset daily counters if needed
+    qs.filter(last_seen_date__lt=today).update(times_seen_today=0)
+
+    # Priority 1: Cards due for review that haven't been seen too much today
+    due_cards = qs.filter(
+        next_review__lte=today,
+        times_seen_today__lt=SPACED_REPETITION_CONFIG['MAX_DAILY_REVIEWS']
+    ).annotate(
+        # Priority score: older due dates get higher priority
+        priority_score=Case(
+            When(next_review__lt=today - timedelta(days=7), then=10.0),  # Very overdue
+            When(next_review__lt=today - timedelta(days=3), then=8.0),   # Overdue
+            When(next_review__lt=today - timedelta(days=1), then=6.0),   # Yesterday
+            When(next_review=today, then=4.0),                           # Due today
+            default=2.0,
+            output_field=FloatField()
+        )
+    ).order_by('-priority_score', 'next_review', Random())
+
+    card = due_cards.first()
+    if card:
+        return card
+
+    # Priority 2: Cards that haven't been seen in a long time (prevent neglect)
+    neglected_threshold = today - timedelta(days=SPACED_REPETITION_CONFIG['NEGLECT_THRESHOLD_DAYS'])
+    neglected_cards = qs.filter(
+        Q(last_reviewed__lt=neglected_threshold) | Q(last_reviewed__isnull=True),
+        times_seen_today__lt=SPACED_REPETITION_CONFIG['MAX_DAILY_REVIEWS'] - 1  # Less strict limit for neglected cards
+    ).order_by('last_reviewed', Random())
+
+    card = neglected_cards.first()
+    if card:
+        return card
+
+    # Priority 3: Random card from available pool (practice mode)
+    available_cards = qs.filter(times_seen_today__lt=1).order_by(Random())
+    card = available_cards.first()
+    if card:
+        return card
+
+    # Fallback: Any card (but this should rarely happen)
+    return qs.order_by(Random()).first()
+
+# Helper to update tracking when card is shown
+def _update_card_shown_tracking(card):
+    """Update tracking fields when a card is shown to the user."""
+    from datetime import datetime
+
+    today = datetime.now().date()
+
+    # Update daily tracking
+    if card.last_seen_date != today:
+        card.times_seen_today = 1
+        card.last_seen_date = today
+    else:
+        card.times_seen_today += 1
+
+    card.save(update_fields=['times_seen_today', 'last_seen_date'])
+
+# Helper for SM-2 update with enhanced tracking
 def _update_sm2(card, correct: bool):
+    from datetime import datetime, timedelta
+
     grade = 2 if correct else 0  # Good vs Again mapping
     ef = card.ease_factor
     reps = card.repetitions
     interval = card.interval
+    today = datetime.now().date()
 
+    # Update review tracking fields
+    card.total_reviews += 1
+    if correct:
+        card.correct_reviews += 1
+
+    # Calculate difficulty score (0.0 = easy, 1.0 = very difficult)
+    if card.total_reviews > 0:
+        accuracy = card.correct_reviews / card.total_reviews
+        card.difficulty_score = 1.0 - accuracy
+
+    # SM-2 algorithm
     if not correct:
         reps = 0
         interval = 1
+        # Increase difficulty for incorrect answers
+        card.difficulty_score = min(1.0, card.difficulty_score + 0.1)
     else:
         ef = max(1.3, ef + 0.1 - (5 - 4) * (0.08 + (5 - 4) * 0.02))  # grade 4 equivalent
         reps += 1
@@ -39,7 +178,11 @@ def _update_sm2(card, correct: bool):
         else:
             interval = round(interval * ef)
 
-    next_review_date = datetime.now().date() + timedelta(days=interval)
+        # Adjust interval based on difficulty score
+        difficulty_multiplier = 1.0 - (card.difficulty_score * SPACED_REPETITION_CONFIG['DIFFICULTY_ADJUSTMENT'])
+        interval = max(1, round(interval * difficulty_multiplier))
+
+    next_review_date = today + timedelta(days=interval)
     card.ease_factor = ef
     card.repetitions = reps
     card.interval = interval
@@ -55,41 +198,28 @@ def api_next_question(request):
     MODES = ['mc', 'type', 'dictation']
     deck_ids = request.GET.getlist('deck_ids[]')
 
-    # Lấy danh sách flashcard đủ điều kiện
-    qs_due = Flashcard.objects.filter(user=request.user, next_review__lte=datetime.now().date())
-    if deck_ids:
-        qs_due = qs_due.filter(deck_id__in=deck_ids)
+    # Use enhanced card selection algorithm
+    card = _get_next_card_enhanced(request.user, deck_ids)
+    if not card:
+        return JsonResponse({'done': True})
 
-    # Kiểm tra có flashcard có audio không
-    qs_audio = qs_due.exclude(audio_url__isnull=True).exclude(audio_url='')
-    has_audio = qs_audio.exists()
+    # Check if card has audio for dictation mode
+    has_audio = card.audio_url and card.audio_url.strip()
 
-    # Random mode phù hợp
+    # Determine available modes based on audio availability
+    available_modes = ['mc', 'type']
     if has_audio:
-        mode = _rnd.choice(MODES)
-    else:
+        available_modes.append('dictation')
+
+    # Select random mode from available options
+    mode = _rnd.choice(available_modes)
+
+    # For dictation mode, ensure we have audio
+    if mode == 'dictation' and not has_audio:
         mode = _rnd.choice(['mc', 'type'])
 
-    # Lọc flashcard theo mode
-    if mode == 'dictation':
-        qs_due = qs_audio
-
-    card = qs_due.order_by('next_review').first()
-    if not card:
-        qs_pool = Flashcard.objects.filter(user=request.user)
-        if deck_ids:
-            qs_pool = qs_pool.filter(deck_id__in=deck_ids)
-        qs_audio_pool = qs_pool.exclude(audio_url__isnull=True).exclude(audio_url='')
-        has_audio_pool = qs_audio_pool.exists()
-        if has_audio_pool:
-            mode = _rnd.choice(MODES)
-        else:
-            mode = _rnd.choice(['mc', 'type'])
-        if mode == 'dictation':
-            qs_pool = qs_audio_pool
-        card = qs_pool.order_by(Random()).first()
-        if not card:
-            return JsonResponse({'done': True})
+    # Update tracking fields when card is shown
+    _update_card_shown_tracking(card)
 
     defs = list(card.definitions.values('english_definition', 'vietnamese_definition'))
 
@@ -107,13 +237,24 @@ def api_next_question(request):
     }
 
     if mode == 'mc':
-        # Build 3 distractors
+        # Build 3 distractors from ALL user's words (not just selected decks)
         distractors = Flashcard.objects.filter(user=request.user).exclude(id=card.id)
-        if deck_ids:
-            distractors = distractors.filter(deck_id__in=deck_ids)
-        distractor_words = list(distractors.values_list('word', flat=True)[:20])
-        random.shuffle(distractor_words)
-        options = [card.word] + distractor_words[:3]
+
+        # Get more candidates to improve semantic filtering
+        distractor_candidates = list(distractors.values_list('word', flat=True)[:50])
+        random.shuffle(distractor_candidates)
+
+        # Filter out semantically similar words to improve question quality
+        filtered_distractors = _filter_semantic_distractors(card.word, distractor_candidates)
+
+        # Take the first 3 filtered distractors, or fall back to random if not enough
+        final_distractors = filtered_distractors[:3]
+        if len(final_distractors) < 3:
+            # Fill remaining slots with random words if semantic filtering didn't provide enough
+            remaining_candidates = [w for w in distractor_candidates if w not in final_distractors]
+            final_distractors.extend(remaining_candidates[:3-len(final_distractors)])
+
+        options = [card.word] + final_distractors[:3]
         random.shuffle(options)
         payload['question']['options'] = options
         payload['question']['type'] = 'mc'
@@ -613,20 +754,14 @@ def study_page(request):
 @require_GET
 def api_next_card(request):
     deck_ids = request.GET.getlist('deck_ids[]')
-    qs = Flashcard.objects.filter(user=request.user, next_review__lte=datetime.now().date())
-    if deck_ids:
-        qs = qs.filter(deck_id__in=deck_ids)
-    from django.db.models.functions import Random
 
-    card = qs.order_by('next_review').first()
+    # Use enhanced card selection algorithm
+    card = _get_next_card_enhanced(request.user, deck_ids)
     if not card:
-        # Fallback: pick random card from selected decks (practice extra)
-        qs_all = Flashcard.objects.filter(user=request.user)
-        if deck_ids:
-            qs_all = qs_all.filter(deck_id__in=deck_ids)
-        card = qs_all.order_by(Random()).first()
-        if not card:
-            return JsonResponse({'done': True})
+        return JsonResponse({'done': True})
+
+    # Update tracking when card is shown
+    _update_card_shown_tracking(card)
     defs = list(card.definitions.values('english_definition', 'vietnamese_definition'))
     return JsonResponse({
         'done': False,
@@ -652,29 +787,7 @@ def api_submit_review(request):
     except Exception:
         return JsonResponse({'success': False}, status=400)
 
-    # SM-2 update
-    ef = card.ease_factor
-    reps = card.repetitions
-    interval = card.interval
-    if grade < 2:  # Again or Hard considered incorrect for SM-2 (<3)
-        reps = 0
-        interval = 1
-    else:
-        # Update ease factor
-        ef = max(1.3, ef + 0.1 - (5 - (grade+2)) * (0.08 + (5 - (grade+2)) * 0.02))  # translate grade 0-3 to 2-5 scale
-        reps += 1
-        if reps == 1:
-            interval = 1
-        elif reps == 2:
-            interval = 6
-        else:
-            interval = round(interval * ef)
-    next_review_date = datetime.now().date() + timedelta(days=interval)
-
-    card.ease_factor = ef
-    card.repetitions = reps
-    card.interval = interval
-    card.next_review = next_review_date
-    card.last_reviewed = datetime.now()
-    card.save()
+    # Use enhanced SM-2 update with grade mapping
+    correct = grade >= 2  # Good or Easy considered correct
+    _update_sm2(card, correct)
     return JsonResponse({'success': True})
