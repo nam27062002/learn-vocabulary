@@ -469,4 +469,203 @@ a.button:hover {
 
 .pagination-dot.active {
     background-color: var(--primary-color);
-} 
+}
+
+/* ==========================================================================
+   Edit Flashcard Styles
+   ========================================================================== */
+
+.edit-card-btn {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.word-item-tailwind:hover .edit-card-btn {
+    opacity: 1;
+}
+
+.card-edit-mode {
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.card-edit-mode::-webkit-scrollbar {
+    width: 6px;
+}
+
+.card-edit-mode::-webkit-scrollbar-track {
+    background: #374151;
+    border-radius: 3px;
+}
+
+.card-edit-mode::-webkit-scrollbar-thumb {
+    background: #6b7280;
+    border-radius: 3px;
+}
+
+.card-edit-mode::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+
+.definition-pair {
+    border-left: 3px solid #6366f1;
+}
+
+.edit-mode-header {
+    position: sticky;
+    top: 0;
+    background: #111827;
+    z-index: 10;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #374151;
+}
+
+/* Success/Error message animations */
+.message-toast {
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Loading state for save button */
+.save-card-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Edit Mode Navigation Hiding */
+body[data-edit-mode="true"] .carousel-nav-btn,
+body[data-edit-mode="true"] .carousel-pagination {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+body[data-edit-mode="true"] .carousel-slides {
+    scroll-snap-type: none;
+    pointer-events: none;
+}
+
+body[data-edit-mode="true"] .carousel-slides .card-edit-mode {
+    pointer-events: all;
+}
+
+/* Edit mode visual feedback */
+.edit-mode-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.05);
+    z-index: 5;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    border-radius: 12px;
+}
+
+body[data-edit-mode="true"] .edit-mode-overlay {
+    opacity: 1;
+}
+
+/* Position overlay relative to carousel container */
+.carousel-container {
+    position: relative;
+}
+
+/* ESC hint */
+.esc-hint {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-size: 0.875rem;
+    z-index: 60;
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+body[data-edit-mode="true"] .esc-hint {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.esc-hint kbd {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    margin: 0 4px;
+}
+
+/* Disable text selection during edit mode for better UX */
+body[data-edit-mode="true"] .carousel-container {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+body[data-edit-mode="true"] .card-edit-mode {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+}
+
+/* Responsive adjustments for edit mode */
+@media (max-width: 640px) {
+    .card-edit-mode {
+        max-height: 90vh;
+    }
+
+    .edit-mode-header {
+        position: relative;
+    }
+
+    .edit-mode-header .flex {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .edit-mode-header .flex > div {
+        width: 100%;
+    }
+
+    .edit-mode-header button {
+        width: 100%;
+    }
+
+    .esc-hint {
+        top: 10px;
+        font-size: 0.75rem;
+        padding: 8px 16px;
+        border-radius: 20px;
+    }
+
+    .esc-hint kbd {
+        padding: 1px 4px;
+        font-size: 0.7rem;
+    }
+}

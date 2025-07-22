@@ -791,3 +791,84 @@ def api_submit_review(request):
     correct = grade >= 2  # Good or Easy considered correct
     _update_sm2(card, correct)
     return JsonResponse({'success': True})
+
+@login_required
+@require_POST
+def api_update_flashcard(request):
+    """API endpoint to update a flashcard."""
+    try:
+        data = json.loads(request.body)
+        card_id = data.get('card_id')
+
+        # Get the flashcard and verify ownership
+        try:
+            card = Flashcard.objects.get(id=card_id, user=request.user)
+        except Flashcard.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Flashcard not found'}, status=404)
+
+        # Update basic fields
+        card.word = data.get('word', card.word).strip()
+        card.phonetic = data.get('phonetic', card.phonetic or '').strip()
+        card.part_of_speech = data.get('part_of_speech', card.part_of_speech or '').strip()
+        card.audio_url = data.get('audio_url', card.audio_url or '').strip()
+        card.related_image_url = data.get('related_image_url', card.related_image_url or '').strip()
+        card.general_synonyms = data.get('general_synonyms', card.general_synonyms or '').strip()
+        card.general_antonyms = data.get('general_antonyms', card.general_antonyms or '').strip()
+
+        # Validate required fields
+        if not card.word:
+            return JsonResponse({'success': False, 'error': 'Word is required'}, status=400)
+
+        # Check for duplicate words (excluding current card)
+        if Flashcard.objects.filter(user=request.user, word__iexact=card.word).exclude(id=card.id).exists():
+            return JsonResponse({'success': False, 'error': 'A card with this word already exists'}, status=400)
+
+        # Save the card (don't reset spaced repetition data)
+        card.save()
+
+        # Update definitions
+        definitions_data = data.get('definitions', [])
+        if definitions_data:
+            # Clear existing definitions
+            card.definitions.all().delete()
+
+            # Create new definitions
+            for def_data in definitions_data:
+                english_def = def_data.get('english_definition', '').strip()
+                vietnamese_def = def_data.get('vietnamese_definition', '').strip()
+
+                if english_def and vietnamese_def:
+                    Definition.objects.create(
+                        flashcard=card,
+                        english_definition=english_def,
+                        vietnamese_definition=vietnamese_def,
+                        definition_synonyms=def_data.get('definition_synonyms', '').strip(),
+                        definition_antonyms=def_data.get('definition_antonyms', '').strip()
+                    )
+
+        # Return updated card data
+        definitions = list(card.definitions.values(
+            'english_definition', 'vietnamese_definition',
+            'definition_synonyms', 'definition_antonyms'
+        ))
+
+        return JsonResponse({
+            'success': True,
+            'card': {
+                'id': card.id,
+                'word': card.word,
+                'phonetic': card.phonetic,
+                'part_of_speech': card.part_of_speech,
+                'audio_url': card.audio_url,
+                'related_image_url': card.related_image_url,
+                'general_synonyms': card.general_synonyms,
+                'general_antonyms': card.general_antonyms,
+                'definitions': definitions,
+                'image_url': card.image.url if card.image else card.related_image_url,
+            }
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

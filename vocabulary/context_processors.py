@@ -113,6 +113,16 @@ def manual_translations(request):
             'no_decks_selected': 'No decks selected',
             'back_to_login': 'Back to Login',
             'no_decks_available': 'No decks available',
+            # Edit functionality
+            'edit_card': 'Edit Card',
+            'save_changes': 'Save Changes',
+            'cancel_edit': 'Cancel',
+            'edit_mode': 'Edit Mode',
+            'card_updated_successfully': 'Card updated successfully!',
+            'error_updating_card': 'Error updating card',
+            'confirm_cancel_edit': 'Are you sure you want to cancel? Unsaved changes will be lost.',
+            'this_deck_empty': 'This deck is empty.',
+            'add_some_cards': 'Add some cards!',
         },
         'vi': {
             'learn_english': 'Học Tiếng Anh',
@@ -222,6 +232,16 @@ def manual_translations(request):
             'no_decks_selected': 'Chưa chọn bộ thẻ nào',
             'back_to_login': 'Quay lại Đăng nhập',
             'no_decks_available': 'Không có bộ thẻ nào',
+            # Edit functionality
+            'edit_card': 'Chỉnh sửa thẻ',
+            'save_changes': 'Lưu thay đổi',
+            'cancel_edit': 'Hủy',
+            'edit_mode': 'Chế độ chỉnh sửa',
+            'card_updated_successfully': 'Cập nhật thẻ thành công!',
+            'error_updating_card': 'Lỗi khi cập nhật thẻ',
+            'confirm_cancel_edit': 'Bạn có chắc muốn hủy? Các thay đổi chưa lưu sẽ bị mất.',
+            'this_deck_empty': 'Bộ thẻ này trống.',
+            'add_some_cards': 'Thêm một số thẻ!',
         }
     }
     
