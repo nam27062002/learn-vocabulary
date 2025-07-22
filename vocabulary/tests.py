@@ -114,3 +114,82 @@ class DuplicateCheckTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)
         self.assertFalse(data['exists'])  # Should be False for different user
+
+
+class QuickAddWordsTestCase(TestCase):
+    def setUp(self):
+        """Set up test data"""
+        self.client = Client()
+        self.user = User.objects.create_user(
+            email='testuser@example.com',
+            password='testpass123'
+        )
+        self.deck = Deck.objects.create(
+            user=self.user,
+            name='Test Deck'
+        )
+
+    def test_quick_add_section_in_template(self):
+        """Test that the quick add section is present in the add flashcard page"""
+        self.client.login(email='testuser@example.com', password='testpass123')
+
+        response = self.client.get(reverse('add_flashcard'))
+        self.assertEqual(response.status_code, 200)
+
+        # Check for Quick Add elements
+        self.assertContains(response, 'quick-add-section')
+        self.assertContains(response, 'quick-add-input')
+        self.assertContains(response, 'generate-cards-btn')
+        self.assertContains(response, 'Quick Add Multiple Words')
+        self.assertContains(response, 'separated by | (pipe)')
+
+    def test_quick_add_javascript_functions(self):
+        """Test that the JavaScript functions for Quick Add are included"""
+        self.client.login(email='testuser@example.com', password='testpass123')
+
+        response = self.client.get(reverse('add_flashcard'))
+        self.assertEqual(response.status_code, 200)
+
+        # Check for JavaScript function names
+        self.assertContains(response, 'parseQuickAddInput')
+        self.assertContains(response, 'generateCardsFromWords')
+        self.assertContains(response, 'createNewCardForWord')
+        self.assertContains(response, 'showQuickAddResults')
+
+    def test_quick_add_styling(self):
+        """Test that the CSS styling for Quick Add is included"""
+        self.client.login(email='testuser@example.com', password='testpass123')
+
+        response = self.client.get(reverse('add_flashcard'))
+        self.assertEqual(response.status_code, 200)
+
+        # Check for CSS classes
+        self.assertContains(response, '.quick-add-section')
+        self.assertContains(response, '.generate-cards-btn')
+        self.assertContains(response, '.processing-indicator')
+        self.assertContains(response, '.spinner')
+
+    def test_quick_add_clearing_functionality(self):
+        """Test that the JavaScript includes card clearing functionality"""
+        self.client.login(email='testuser@example.com', password='testpass123')
+
+        response = self.client.get(reverse('add_flashcard'))
+        self.assertEqual(response.status_code, 200)
+
+        # Check for clearing-related functions and text
+        self.assertContains(response, 'clearAllCardsExceptFirst')
+        self.assertContains(response, 'Clearing existing cards')
+        self.assertContains(response, 'Replace Existing Cards?')
+        self.assertContains(response, 'clear all current cards')
+
+    def test_quick_add_confirmation_dialog(self):
+        """Test that confirmation dialog elements are present"""
+        self.client.login(email='testuser@example.com', password='testpass123')
+
+        response = self.client.get(reverse('add_flashcard'))
+        self.assertEqual(response.status_code, 200)
+
+        # Check for confirmation dialog text
+        self.assertContains(response, 'Yes, Replace All')
+        self.assertContains(response, 'hasContent')
+        self.assertContains(response, 'showCancelButton: true')

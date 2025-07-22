@@ -528,6 +528,128 @@
       color: #fff;
     }
 
+    /* Quick Add Words Section */
+    .quick-add-section {
+      background-color: var(--background-light);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .quick-add-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .quick-add-header h3 {
+      margin: 0;
+      color: var(--text-main);
+      font-size: 1.2em;
+      font-weight: 600;
+    }
+
+    .quick-add-icon {
+      color: var(--primary-color);
+      font-size: 1.3em;
+    }
+
+    .quick-add-input {
+      width: 100%;
+      min-height: 80px;
+      background-color: #1f1f3a;
+      border: 1px solid #4a4a70;
+      border-radius: 8px;
+      padding: 12px;
+      color: var(--text-main);
+      font-size: 0.95em;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      resize: vertical;
+      transition: all 0.2s ease-in-out;
+      margin-bottom: 15px;
+    }
+
+    .quick-add-input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(106, 108, 255, 0.25);
+    }
+
+    .quick-add-input::placeholder {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .quick-add-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .quick-add-info {
+      color: var(--text-muted);
+      font-size: 0.9em;
+      flex: 1;
+    }
+
+    .generate-cards-btn {
+      background: linear-gradient(135deg, var(--primary-color), #8e44ad);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 0.95em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .generate-cards-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(106, 108, 255, 0.3);
+    }
+
+    .generate-cards-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .processing-indicator {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      color: var(--primary-color);
+      font-size: 0.9em;
+      margin-top: 10px;
+    }
+
+    .processing-indicator.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(106, 108, 255, 0.3);
+      border-top: 2px solid var(--primary-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
     @media (max-width: 820px) {
       .card-content-wrapper {
         flex-direction: column-reverse;
@@ -548,6 +670,16 @@
         width: 100%;
         height: 140px;
       }
+
+      .quick-add-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+
+      .quick-add-info {
+        text-align: center;
+      }
     }
   </style>
 
@@ -560,6 +692,34 @@
       {% endfor %}
       <option value="new_deck">{{ manual_texts.create_new_deck }}</option>
     </select>
+  </div>
+
+  <!-- Quick Add Words Section -->
+  <div class="quick-add-section">
+    <div class="quick-add-header">
+      <span class="quick-add-icon">⚡</span>
+      <h3>Quick Add Multiple Words</h3>
+    </div>
+    <textarea
+      id="quick-add-input"
+      class="quick-add-input"
+      placeholder="Enter multiple words separated by | (pipe character). Example: assistant|cry|usual|file|ban|ice|column|currently|prepare|acceptable"
+      rows="3"></textarea>
+    <div class="quick-add-controls">
+      <div class="quick-add-info">
+        Separate words with | (pipe) character. Each word will be automatically processed for spelling, definitions, and duplicates.
+      </div>
+      <button id="generate-cards-btn" class="generate-cards-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+        </svg>
+        Generate Cards
+      </button>
+    </div>
+    <div id="processing-indicator" class="processing-indicator">
+      <div class="spinner"></div>
+      <span id="processing-text">Processing words...</span>
+    </div>
   </div>
 
   <div class="flashcard-container" id="flashcard-container"
@@ -730,6 +890,12 @@ document.addEventListener('DOMContentLoaded', function() {
     let wordApiCache = {};
 
     const deckSelector = document.getElementById('deck-selector');
+
+    // Quick Add elements
+    const quickAddInput = document.getElementById('quick-add-input');
+    const generateCardsBtn = document.getElementById('generate-cards-btn');
+    const processingIndicator = document.getElementById('processing-indicator');
+    const processingText = document.getElementById('processing-text');
 
     deckSelector.addEventListener('change', async function() {
         if (this.value === 'new_deck') {
@@ -1152,6 +1318,277 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // =============================================
+    // QUICK ADD WORDS FUNCTIONALITY
+    // =============================================
+
+    function parseQuickAddInput(input) {
+        if (!input || typeof input !== 'string') return [];
+
+        return input
+            .split('|')
+            .map(word => word.trim())
+            .filter(word => word.length > 0)
+            .filter(word => word.length <= 255) // Respect database field limit
+            .filter((word, index, arr) => arr.indexOf(word.toLowerCase()) === arr.findIndex(w => w.toLowerCase() === word.toLowerCase())); // Remove case-insensitive duplicates
+    }
+
+    function showProcessingIndicator(show, text = 'Processing words...') {
+        if (show) {
+            processingText.textContent = text;
+            processingIndicator.classList.add('active');
+            generateCardsBtn.disabled = true;
+        } else {
+            processingIndicator.classList.remove('active');
+            generateCardsBtn.disabled = false;
+        }
+    }
+
+    function clearAllCardsExceptFirst() {
+        const allCards = flashcardContainer.querySelectorAll('.flashcard-section');
+
+        // Remove all cards except the first one
+        allCards.forEach((card, index) => {
+            if (index > 0) {
+                card.remove();
+            }
+        });
+
+        // Reset the first card to empty state
+        const firstCard = flashcardContainer.querySelector('.flashcard-section');
+        if (firstCard) {
+            // Clear all input values
+            firstCard.querySelectorAll('input, textarea').forEach(input => {
+                input.value = '';
+            });
+
+            // Clear suggestions and hide them
+            firstCard.querySelectorAll('.suggestions-list, .definition-suggestions').forEach(el => {
+                el.innerHTML = '';
+                el.style.display = 'none';
+            });
+
+            // Reset CSS classes
+            firstCard.querySelector('.term-input').classList.remove('correct-spelling', 'incorrect-spelling', 'duplicate-warning');
+
+            // Reset card UI
+            resetCardUI(firstCard);
+
+            // Reset image preview
+            const imgPreview = firstCard.querySelector('.preview');
+            const deleteImgBtn = firstCard.querySelector('.delete-img-btn');
+            if (imgPreview) {
+                imgPreview.src = '';
+                imgPreview.style.display = 'none';
+            }
+            if (deleteImgBtn) {
+                deleteImgBtn.style.display = 'none';
+            }
+
+            // Reset card number to 1
+            firstCard.querySelector('.card-number').textContent = '1';
+            firstCard.dataset.cardIndex = '1';
+        }
+
+        // Reset card counter
+        cardCount = 1;
+
+        // Update card numbers (should just be the first card now)
+        updateCardNumbers();
+    }
+
+    async function generateCardsFromWords(words) {
+        if (!words || words.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Words Found',
+                text: 'Please enter some words separated by | (pipe) character.',
+                background: 'var(--background-light)',
+                color: 'var(--text-main)',
+                confirmButtonColor: 'var(--primary-color)'
+            });
+            return;
+        }
+
+        // Check if a deck is selected
+        const selectedDeckId = deckSelector.value;
+        if (!selectedDeckId || selectedDeckId === 'new_deck') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Deck Selected',
+                text: 'Please select a deck before adding words.',
+                background: 'var(--background-light)',
+                color: 'var(--text-main)',
+                confirmButtonColor: 'var(--primary-color)'
+            });
+            return;
+        }
+
+        showProcessingIndicator(true, 'Clearing existing cards...');
+
+        // Clear all existing cards first, keeping one empty card as template
+        clearAllCardsExceptFirst();
+
+        showProcessingIndicator(true, `Processing ${words.length} words...`);
+
+        const results = {
+            successful: [],
+            duplicates: [],
+            errors: []
+        };
+
+        try {
+            for (let i = 0; i < words.length; i++) {
+                const word = words[i];
+                showProcessingIndicator(true, `Processing "${word}" (${i + 1}/${words.length})...`);
+
+                try {
+                    // Check for duplicates first
+                    const duplicateCheck = await fetch(`${checkWordExistsUrl}?word=${encodeURIComponent(word)}`);
+                    const duplicateData = await duplicateCheck.json();
+
+                    if (duplicateData.exists) {
+                        results.duplicates.push(word);
+                        continue;
+                    }
+
+                    // Use first empty card for first word, create new cards for subsequent words
+                    let targetCard;
+                    if (i === 0) {
+                        // Use the existing first card for the first word
+                        targetCard = flashcardContainer.querySelector('.flashcard-section');
+                        targetCard.querySelector('.term-input').value = word;
+                    } else {
+                        // Create new card for subsequent words
+                        targetCard = createNewCardForWord(word);
+                    }
+
+                    if (targetCard) {
+                        results.successful.push(word);
+
+                        // Trigger spell check and word details fetching
+                        const termInput = targetCard.querySelector('.term-input');
+                        const suggestionsList = targetCard.querySelector('.suggestions-list');
+
+                        // Small delay to allow DOM to settle
+                        await new Promise(resolve => setTimeout(resolve, 100));
+
+                        // Trigger the existing spell check functionality
+                        checkSpelling(termInput, suggestionsList, targetCard);
+                    }
+                } catch (error) {
+                    console.error(`Error processing word "${word}":`, error);
+                    results.errors.push(word);
+                }
+            }
+
+            showProcessingIndicator(false);
+            showQuickAddResults(results);
+
+            // Clear the input if successful
+            if (results.successful.length > 0) {
+                quickAddInput.value = '';
+            }
+
+        } catch (error) {
+            console.error('Error in generateCardsFromWords:', error);
+            showProcessingIndicator(false);
+            Swal.fire({
+                icon: 'error',
+                title: 'Processing Error',
+                text: 'An error occurred while processing the words. Please try again.',
+                background: 'var(--background-light)',
+                color: 'var(--text-main)',
+                confirmButtonColor: 'var(--primary-color)'
+            });
+        }
+    }
+
+    function createNewCardForWord(word) {
+        try {
+            cardCount++;
+            const template = document.querySelector('.flashcard-section');
+            const newCard = template.cloneNode(true);
+            newCard.dataset.cardIndex = cardCount;
+            newCard.querySelector('.card-number').textContent = cardCount;
+
+            // Reset all input values
+            newCard.querySelectorAll('input, textarea').forEach(input => {
+                input.value = '';
+                input.placeholder = input.placeholder; // Keep placeholder
+            });
+            newCard.querySelectorAll('.suggestions-list, .definition-suggestions').forEach(el => {
+                el.innerHTML = '';
+                el.style.display = 'none';
+            });
+
+            // Reset UI state
+            newCard.querySelector('.term-input').classList.remove('correct-spelling', 'incorrect-spelling', 'duplicate-warning');
+            resetCardUI(newCard);
+
+            // Update IDs to be unique
+            newCard.querySelectorAll('[id]').forEach(el => {
+                el.id = el.id.replace(/\d+$/, '') + cardCount;
+            });
+            newCard.querySelectorAll('[for]').forEach(el => {
+                el.htmlFor = el.htmlFor.replace(/\d+$/, '') + cardCount;
+            });
+
+            // Remove image preview from cloned card
+            const imgPreview = newCard.querySelector('.preview');
+            const deleteImgBtn = newCard.querySelector('.delete-img-btn');
+            imgPreview.src = '';
+            imgPreview.style.display = 'none';
+            deleteImgBtn.style.display = 'none';
+
+            // Set the word in the term input
+            newCard.querySelector('.term-input').value = word;
+
+            flashcardContainer.appendChild(newCard);
+            initializeCard(newCard);
+            updateCardNumbers(); // Update numbers after adding
+
+            return newCard;
+        } catch (error) {
+            console.error('Error creating card for word:', word, error);
+            return null;
+        }
+    }
+
+    function showQuickAddResults(results) {
+        let message = '';
+        let icon = 'success';
+
+        if (results.successful.length > 0) {
+            message += `✅ Successfully added ${results.successful.length} words: ${results.successful.join(', ')}\n\n`;
+        }
+
+        if (results.duplicates.length > 0) {
+            message += `⚠️ Skipped ${results.duplicates.length} duplicate words: ${results.duplicates.join(', ')}\n\n`;
+            icon = results.successful.length > 0 ? 'warning' : 'warning';
+        }
+
+        if (results.errors.length > 0) {
+            message += `❌ Failed to process ${results.errors.length} words: ${results.errors.join(', ')}\n\n`;
+            icon = results.successful.length > 0 ? 'warning' : 'error';
+        }
+
+        if (results.successful.length === 0 && results.duplicates.length === 0 && results.errors.length === 0) {
+            message = 'No words were processed. Please check your input.';
+            icon = 'warning';
+        }
+
+        Swal.fire({
+            icon: icon,
+            title: 'Quick Add Results',
+            html: message.replace(/\n/g, '<br>'),
+            background: 'var(--background-light)',
+            color: 'var(--text-main)',
+            confirmButtonColor: 'var(--primary-color)',
+            width: '600px'
+        });
+    }
+
+    // =============================================
     // INITIALIZATION
     // =============================================
 
@@ -1224,6 +1661,66 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event listener for adding a new card
     if(addCardBtn) {
         addCardBtn.addEventListener('click', createNewCard);
+    }
+
+    // Event listeners for Quick Add functionality
+    if(generateCardsBtn) {
+        generateCardsBtn.addEventListener('click', () => {
+            const input = quickAddInput.value.trim();
+            if (!input) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Empty Input',
+                    text: 'Please enter some words separated by | (pipe) character.',
+                    background: 'var(--background-light)',
+                    color: 'var(--text-main)',
+                    confirmButtonColor: 'var(--primary-color)'
+                });
+                return;
+            }
+
+            const words = parseQuickAddInput(input);
+
+            // Check if there are existing cards with content
+            const existingCards = flashcardContainer.querySelectorAll('.flashcard-section');
+            const hasContent = Array.from(existingCards).some(card => {
+                const termInput = card.querySelector('.term-input');
+                return termInput && termInput.value.trim().length > 0;
+            });
+
+            if (hasContent && existingCards.length > 0) {
+                // Show confirmation dialog
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Replace Existing Cards?',
+                    html: `This will <strong>clear all current cards</strong> and replace them with ${words.length} new cards.<br><br>Are you sure you want to continue?`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, Replace All',
+                    cancelButtonText: 'Cancel',
+                    confirmButtonColor: 'var(--primary-color)',
+                    cancelButtonColor: '#6c757d',
+                    background: 'var(--background-light)',
+                    color: 'var(--text-main)'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        generateCardsFromWords(words);
+                    }
+                });
+            } else {
+                // No existing content, proceed directly
+                generateCardsFromWords(words);
+            }
+        });
+    }
+
+    // Allow Enter key to trigger generation (with Ctrl/Cmd)
+    if(quickAddInput) {
+        quickAddInput.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                generateCardsBtn.click();
+            }
+        });
     }
     
     // Drag and drop sorting
