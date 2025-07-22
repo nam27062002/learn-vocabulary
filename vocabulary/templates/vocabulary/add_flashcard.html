@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "Add Flashcard" %} - {% trans "Learn English" %}{% endblock %}
+{% block title %}{{ manual_texts.add_flashcard }} - {{ manual_texts.learn_english }}{% endblock %}
 
 {% block content %}
 <meta name="csrf-token" content="{{ csrf_token }}" />
@@ -10,8 +10,8 @@
 
 <div class="add-flashcard-page">
   <div class="page-header">
-    <h1>➕ {% trans "Add New Flashcard" %}</h1>
-    <p>{% trans "Add new vocabulary to your collection" %}</p>
+    <h1>➕ {{ manual_texts.add_new_flashcard }}</h1>
+    <p>{{ manual_texts.add_vocabulary_description }}</p>
   </div>
 
   <style>
@@ -531,13 +531,13 @@
   </style>
 
   <div class="deck-selection-area">
-    <label for="deck-selector">Chọn bộ thẻ:</label>
+    <label for="deck-selector">{{ manual_texts.select_deck }}</label>
     <select id="deck-selector" name="deck">
-      <option value="">-- Vui lòng chọn một bộ thẻ --</option>
+      <option value="">{{ manual_texts.please_select_deck }}</option>
       {% for deck in decks %}
         <option value="{{ deck.id }}">{{ deck.name }}</option>
       {% endfor %}
-      <option value="new_deck">-- Tạo bộ thẻ mới --</option>
+      <option value="new_deck">{{ manual_texts.create_new_deck }}</option>
     </select>
   </div>
 
@@ -550,7 +550,7 @@
       <div class="flashcard-header">
         <span class="card-number">1</span>
         <div class="actions">
-          <button class="action-icon drag-handle" title="Kéo để di chuyển thẻ">
+          <button class="action-icon drag-handle" title="{{ manual_texts.drag_to_move }}">
             <svg
               width="22"
               height="22"
@@ -567,7 +567,7 @@
               <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
-          <button class="action-icon delete-card-btn" title="Xóa thẻ">
+          <button class="action-icon delete-card-btn" title="{{ manual_texts.delete_card }}">
             <svg
               width="20"
               height="20"
@@ -593,8 +593,8 @@
         <div class="main-content-area">
             <!-- Term -->
             <div class="input-field">
-              <label for="term1">THUẬT NGỮ</label>
-              <input type="text" id="term1" name="term1" class="term-input" placeholder="e.g., 'serendipity'" />
+              <label for="term1">{{ manual_texts.term_label }}</label>
+              <input type="text" id="term1" name="term1" class="term-input" placeholder="{{ manual_texts.term_placeholder }}" />
               <div
                 id="suggestions1"
                 class="suggestions-list"
@@ -604,15 +604,15 @@
 
             <!-- Phonetic -->
             <div class="input-field">
-              <label for="phonetic1">PHÁT ÂM</label>
-              <input type="text" id="phonetic1" name="phonetic1" class="phonetic-input" placeholder="/ˌser.ənˈdɪp.ə.t̬i/" readonly style="background-color: #1f1f3a; color: #a0a0b8; cursor: not-allowed;" />
+              <label for="phonetic1">{{ manual_texts.phonetic_label }}</label>
+              <input type="text" id="phonetic1" name="phonetic1" class="phonetic-input" placeholder="{{ manual_texts.phonetic_placeholder }}" readonly style="background-color: #1f1f3a; color: #a0a0b8; cursor: not-allowed;" />
             </div>
 
             <!-- English Definition -->
             <div class="english-def-container">
                 <div class="input-field">
-                    <label for="definition1">ĐỊNH NGHĨA (ENGLISH)</label>
-                    <textarea id="definition1" name="definition1" class="definition-textarea" rows="4" placeholder="A concise and clear definition..."></textarea>
+                    <label for="definition1">{{ manual_texts.english_definition_label }}</label>
+                    <textarea id="definition1" name="definition1" class="definition-textarea" rows="4" placeholder="{{ manual_texts.definition_placeholder }}"></textarea>
                     <div class="definition-suggestions suggestions-list" style="display: none;"></div>
                 </div>
             </div>
@@ -620,20 +620,20 @@
             <!-- Vietnamese Block -->
             <div class="vietnamese-block-container">
                 <div class="auto-info inactive" style="margin-bottom: 10px;">
-                    <span class="auto-pos">từ loại</span>
+                    <span class="auto-pos">{{ manual_texts.part_of_speech }}</span>
                     <span class="auto-audio">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path></svg>
-                        <span>Nghe</span>
+                        <span>{{ manual_texts.listen }}</span>
                     </span>
                 </div>
                 <div class="input-field">
-                    <label for="vietnamese_definition1">ĐỊNH NGHĨA (VIETNAMESE)</label>
+                    <label for="vietnamese_definition1">{{ manual_texts.vietnamese_definition_label }}</label>
                     <textarea
                         id="vietnamese_definition1"
                         name="vietnamese_definition1"
                         class="vietnamese-textarea"
                         rows="3"
-                        placeholder="Bản dịch tiếng Việt..."
+                        placeholder="{{ manual_texts.vietnamese_placeholder }}"
                     ></textarea>
                 </div>
             </div>
@@ -673,7 +673,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                   <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z" />
                 </svg>
-                <span>Tải ảnh lên</span>
+                <span>{{ manual_texts.upload_image }}</span>
               </div>
             </div>
         </div>
@@ -681,11 +681,11 @@
     </div>
   </div>
   <div class="button-group">
-    <button id="add-card-btn" class="button">➕ Thêm thẻ mới</button>
+    <button id="add-card-btn" class="button">{{ manual_texts.add_new_card }}</button>
   </div>
   <div class="save-section">
     <button id="save-all-btn" class="save-button">
-      💾 Lưu tất cả Flashcards
+      {{ manual_texts.save_all_flashcards }}
     </button>
   </div>
 
@@ -920,7 +920,7 @@ document.addEventListener('DOMContentLoaded', function() {
             autoAudio.dataset.audioUrl = audioUrl;
             autoAudio.innerHTML = audioUrl ? `
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path></svg>
-                <span>Nghe</span>` : "";
+                <span>{{ manual_texts.listen }}</span>` : "";
         }
         if (autoInfo) autoInfo.style.display = "flex";
 
@@ -977,13 +977,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (autoInfo) {
             autoInfo.classList.add('inactive');
             const autoPos = card.querySelector(".auto-pos");
-            if (autoPos) autoPos.textContent = "từ loại";
+            if (autoPos) autoPos.textContent = "{{ manual_texts.part_of_speech }}";
             const autoAudio = card.querySelector(".auto-audio");
             if (autoAudio) {
                 autoAudio.dataset.audioUrl = "";
                 autoAudio.innerHTML = `
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path></svg>
-                    <span>Nghe</span>`;
+                    <span>{{ manual_texts.listen }}</span>`;
             }
         }
 

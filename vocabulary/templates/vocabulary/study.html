@@ -46,7 +46,7 @@
             <p id="feedbackMsg" style="display:none;font-weight:600;margin-top:10px;"></p>
             <div id="cambridgeLink" class="mt-4" style="display:none;">
                 <a href="#" id="cambridgeAnchor" target="_blank" class="text-primary-color hover:underline text-sm">
-                    {% trans "Search on Cambridge Dictionary" %}
+                    {{ manual_texts.search_cambridge }}
                     <i class="fas fa-external-link-alt ml-1"></i>
                 </a>
             </div>
@@ -76,8 +76,8 @@
       incorrect: "{{ manual_texts.incorrect }}",
       check: "{{ manual_texts.check }}",
       placeholder: "{{ manual_texts.answer_placeholder }}",
-      answerLabel: "{{ manual_texts.correct_answer|default:'Đáp án' }}",
-      nextCard: "{{ manual_texts.next_card|default:'Thẻ tiếp theo →' }}",
+      answerLabel: "{{ manual_texts.correct_answer }}",
+      nextCard: "{{ manual_texts.next_card }}",
       vi: "{{ manual_texts.vi|default:'VI' }}",
       vietnamese_meaning: "{{ manual_texts.vietnamese_meaning }}",
       dictation_placeholder: "{{ manual_texts.dictation_placeholder }}",

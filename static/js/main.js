@@ -109,8 +109,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // ==========================================================================
     // Console Welcome Message
     // ==========================================================================
-    
-    console.log('%c🎓 LearnEnglish App', 'color: #667eea; font-size: 20px; font-weight: bold;');
-    console.log('%cWelcome to the developer console!', 'color: #764ba2; font-size: 14px;');
-    console.log('Built with Django + Tailwind CSS + JavaScript ❤️');
+
+    // Get localized text from global context if available
+    const consoleTexts = window.manual_texts || {};
+    console.log(`%c${consoleTexts.console_welcome || '🎓 LearnEnglish App'}`, 'color: #667eea; font-size: 20px; font-weight: bold;');
+    console.log(`%c${consoleTexts.console_subtitle || 'Welcome to the developer console!'}`, 'color: #764ba2; font-size: 14px;');
+    console.log(consoleTexts.console_built_with || 'Built with Django + Tailwind CSS + JavaScript ❤️');
 }); 

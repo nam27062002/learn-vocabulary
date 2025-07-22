@@ -115,7 +115,7 @@
                         <h2>{{ deck.name }}</h2>
                     </div>
                     <div class="deck-info">
-                        <span>{% blocktrans with count=deck.card_count %}{{ count }} cards{% endblocktrans %}</span>
+                        <span>{{ deck.card_count }} {{ manual_texts.cards_text }}</span>
                         <span class="created-date">{{ deck.created_at|date:"d M Y" }}</span>
                     </div>
                 </a>
@@ -123,8 +123,8 @@
         </div>
     {% else %}
         <div class="no-decks">
-            <h2>{% trans "You don't have any decks yet." %}</h2>
-            <p>{% trans "Get started by" %} <a href="{% url 'add_flashcard' %}">{% trans "adding some new flashcards" %}</a>!</p>
+            <h2>{{ manual_texts.no_decks_yet }}</h2>
+            <p>{{ manual_texts.get_started_by }} <a href="{% url 'add_flashcard' %}">{{ manual_texts.adding_flashcards }}</a>!</p>
         </div>
     {% endif %}
 </div>

@@ -239,6 +239,15 @@
       </div>
     </main>
 
+    <!-- Expose localized texts to JavaScript -->
+    <script>
+        window.manual_texts = {
+            console_welcome: "{{ manual_texts.console_welcome }}",
+            console_subtitle: "{{ manual_texts.console_subtitle }}",
+            console_built_with: "{{ manual_texts.console_built_with }}"
+        };
+    </script>
+
     <!-- Custom JavaScript -->
     <script src="{% static 'js/main.js' %}"></script>
     
