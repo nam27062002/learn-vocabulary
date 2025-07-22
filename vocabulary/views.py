@@ -912,3 +912,113 @@ def api_update_deck_name(request):
         return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@require_POST
+def api_fetch_missing_audio(request):
+    """API endpoint to fetch missing audio for flashcards in a deck."""
+    try:
+        data = json.loads(request.body)
+        deck_id = data.get('deck_id')
+
+        # Get the deck and verify ownership
+        try:
+            deck = Deck.objects.get(id=deck_id, user=request.user)
+        except Deck.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Deck not found'}, status=404)
+
+        # Get flashcards without audio
+        from django.db import models
+        cards_without_audio = deck.flashcards.filter(
+            models.Q(audio_url__isnull=True) | models.Q(audio_url='')
+        )
+
+        if not cards_without_audio.exists():
+            return JsonResponse({
+                'success': True,
+                'message': 'No cards need audio fetching',
+                'updated_count': 0
+            })
+
+        # Import audio service
+        from .audio_service import fetch_audio_for_word
+        import logging
+        logger = logging.getLogger(__name__)
+
+        updated_count = 0
+        words_processed = []
+
+        for card in cards_without_audio:
+            try:
+                audio_url = fetch_audio_for_word(card.word)
+                if audio_url:
+                    card.audio_url = audio_url
+                    card.save(update_fields=['audio_url'])
+                    updated_count += 1
+                    words_processed.append({'word': card.word, 'found': True, 'url': audio_url})
+                else:
+                    words_processed.append({'word': card.word, 'found': False, 'url': None})
+            except Exception as e:
+                logger.error(f"Error fetching audio for word '{card.word}': {e}")
+                words_processed.append({'word': card.word, 'found': False, 'error': str(e)})
+
+        return JsonResponse({
+            'success': True,
+            'updated_count': updated_count,
+            'total_processed': len(words_processed),
+            'words_processed': words_processed
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@require_POST
+def api_fetch_audio_for_card(request):
+    """API endpoint to fetch audio for a specific flashcard."""
+    try:
+        data = json.loads(request.body)
+        card_id = data.get('card_id')
+
+        # Get the flashcard and verify ownership
+        try:
+            card = Flashcard.objects.get(id=card_id, user=request.user)
+        except Flashcard.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Flashcard not found'}, status=404)
+
+        # Import audio service
+        from .audio_service import fetch_audio_for_word
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            audio_url = fetch_audio_for_word(card.word)
+            if audio_url:
+                card.audio_url = audio_url
+                card.save(update_fields=['audio_url'])
+
+                return JsonResponse({
+                    'success': True,
+                    'audio_url': audio_url,
+                    'word': card.word
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'No audio found for this word',
+                    'word': card.word
+                })
+        except Exception as e:
+            logger.error(f"Error fetching audio for word '{card.word}': {e}")
+            return JsonResponse({
+                'success': False,
+                'error': f'Error fetching audio: {str(e)}',
+                'word': card.word
+            })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

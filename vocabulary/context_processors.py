@@ -141,6 +141,15 @@ def manual_translations(request):
             'deck_name_updated': 'Deck name updated successfully!',
             'error_updating_deck': 'Error updating deck name',
             'deck_name_required': 'Deck name is required',
+            # Audio fetching
+            'fetch_missing_audio': 'Fetch Missing Audio',
+            'fetching_audio': 'Fetching audio...',
+            'audio_fetched_successfully': 'Audio fetched successfully!',
+            'no_audio_found': 'No audio found for some words',
+            'audio_fetch_error': 'Error fetching audio',
+            'audio_fetch_complete': 'Audio fetch complete',
+            'cards_updated': 'cards updated',
+            'auto_fetch_audio': 'Auto-fetch audio for new cards',
         },
         'vi': {
             'learn_english': 'Học Tiếng Anh',
@@ -278,6 +287,15 @@ def manual_translations(request):
             'deck_name_updated': 'Cập nhật tên bộ thẻ thành công!',
             'error_updating_deck': 'Lỗi khi cập nhật tên bộ thẻ',
             'deck_name_required': 'Tên bộ thẻ là bắt buộc',
+            # Audio fetching
+            'fetch_missing_audio': 'Lấy âm thanh thiếu',
+            'fetching_audio': 'Đang lấy âm thanh...',
+            'audio_fetched_successfully': 'Lấy âm thanh thành công!',
+            'no_audio_found': 'Không tìm thấy âm thanh cho một số từ',
+            'audio_fetch_error': 'Lỗi khi lấy âm thanh',
+            'audio_fetch_complete': 'Hoàn thành lấy âm thanh',
+            'cards_updated': 'thẻ đã cập nhật',
+            'auto_fetch_audio': 'Tự động lấy âm thanh cho thẻ mới',
         }
     }
     

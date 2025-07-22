@@ -171,6 +171,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize deck name editing functionality
     initializeDeckNameEditing();
 
+    // Initialize audio fetching functionality
+    initializeAudioFetching();
+
     // Keyboard navigation
     document.addEventListener('keydown', function(event) {
         // Handle ESC key to exit edit mode
@@ -880,5 +883,142 @@ document.addEventListener('DOMContentLoaded', function() {
                 cancelBtn.disabled = false;
             });
         }
+    }
+
+    // Audio fetching functionality
+    function initializeAudioFetching() {
+        const fetchBtn = document.getElementById('fetch-missing-audio-btn');
+        if (!fetchBtn) return;
+
+        fetchBtn.addEventListener('click', function() {
+            fetchMissingAudioForDeck();
+        });
+    }
+
+    function fetchMissingAudioForDeck() {
+        const fetchBtn = document.getElementById('fetch-missing-audio-btn');
+        const pathParts = window.location.pathname.split('/');
+        const deckId = pathParts[pathParts.length - 2]; // Get deck ID from URL
+        const languagePrefix = pathParts[1]; // Get language code (en/vi)
+
+        // Show loading state
+        fetchBtn.disabled = true;
+        fetchBtn.classList.add('loading');
+        const originalText = fetchBtn.innerHTML;
+        fetchBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${window.manual_texts?.fetching_audio || 'Fetching audio...'}`;
+
+        // Create progress indicator
+        const progressDiv = createProgressIndicator();
+        document.body.appendChild(progressDiv);
+
+        // Make API request
+        fetch(`/${languagePrefix}/api/fetch-missing-audio/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                deck_id: deckId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateProgressIndicator(progressDiv, data);
+
+                if (data.updated_count > 0) {
+                    // Refresh the page to show updated audio buttons
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+
+                    showMessage(
+                        `${window.manual_texts?.audio_fetched_successfully || 'Audio fetched successfully!'} ${data.updated_count} ${window.manual_texts?.cards_updated || 'cards updated'}`,
+                        'success'
+                    );
+                } else {
+                    showMessage(
+                        window.manual_texts?.no_audio_found || 'No audio found for some words',
+                        'info'
+                    );
+                }
+            } else {
+                showMessage(data.error || (window.manual_texts?.audio_fetch_error || 'Error fetching audio'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching audio:', error);
+            showMessage(window.manual_texts?.audio_fetch_error || 'Error fetching audio', 'error');
+        })
+        .finally(() => {
+            // Restore button state
+            fetchBtn.disabled = false;
+            fetchBtn.classList.remove('loading');
+            fetchBtn.innerHTML = originalText;
+
+            // Remove progress indicator after delay
+            setTimeout(() => {
+                if (progressDiv.parentNode) {
+                    progressDiv.parentNode.removeChild(progressDiv);
+                }
+            }, 3000);
+        });
+    }
+
+    function createProgressIndicator() {
+        const progressDiv = document.createElement('div');
+        progressDiv.className = 'audio-fetch-progress';
+        progressDiv.innerHTML = `
+            <button class="close-btn" onclick="this.parentNode.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="progress-header">
+                <i class="fas fa-download"></i>
+                <span>${window.manual_texts?.fetching_audio || 'Fetching audio...'}</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: 0%"></div>
+            </div>
+            <div class="progress-text">
+                <span class="current-word">Starting...</span>
+            </div>
+        `;
+        return progressDiv;
+    }
+
+    function updateProgressIndicator(progressDiv, data) {
+        const progressFill = progressDiv.querySelector('.progress-fill');
+        const progressText = progressDiv.querySelector('.progress-text');
+        const header = progressDiv.querySelector('.progress-header span');
+
+        if (data.total_processed > 0) {
+            const percentage = (data.updated_count / data.total_processed) * 100;
+            progressFill.style.width = `${percentage}%`;
+        }
+
+        header.textContent = window.manual_texts?.audio_fetch_complete || 'Audio fetch complete';
+        progressText.innerHTML = `
+            <div>Found: ${data.updated_count} / ${data.total_processed}</div>
+            <div class="text-xs mt-1">
+                ${data.words_processed.filter(w => w.found).map(w => w.word).join(', ')}
+            </div>
+        `;
+    }
+
+    function fetchAudioForSingleCard(cardId) {
+        const languagePrefix = window.location.pathname.split('/')[1];
+
+        return fetch(`/${languagePrefix}/api/fetch-audio-for-card/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                card_id: cardId
+            })
+        })
+        .then(response => response.json());
     }
 });
