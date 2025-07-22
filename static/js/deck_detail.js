@@ -461,16 +461,37 @@ document.addEventListener('DOMContentLoaded', function() {
         saveBtn.textContent = 'Saving...';
         saveBtn.disabled = true;
 
+        // Prepare request details with language prefix
+        const currentPath = window.location.pathname;
+        const languagePrefix = currentPath.split('/')[1]; // Get language code (en/vi)
+        const requestUrl = `/${languagePrefix}/api/update-flashcard/`;
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        const requestHeaders = {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken ? csrfToken.content : ''
+        };
+        const requestBody = JSON.stringify(formData);
+
         // Send update request
-        fetch('/api/update-flashcard/', {
+        fetch(requestUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify(formData)
+            headers: requestHeaders,
+            body: requestBody
         })
-        .then(response => response.json())
+        .then(response => {
+            // Check if response is ok first
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            // Check if response has content before parsing JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Server did not return JSON response');
+            }
+
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 updateCardDisplay(cardContainer, data.card);
@@ -482,7 +503,20 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             console.error('Error updating card:', error);
-            showMessage(window.manual_texts?.error_updating_card || 'Error updating card', 'error');
+            let errorMessage = window.manual_texts?.error_updating_card || 'Error updating card';
+
+            // Provide more specific error messages
+            if (error.message.includes('HTTP 405')) {
+                errorMessage = 'Method not allowed. Please refresh the page and try again.';
+            } else if (error.message.includes('HTTP 403')) {
+                errorMessage = 'Permission denied. Please refresh the page and try again.';
+            } else if (error.message.includes('HTTP 404')) {
+                errorMessage = 'Card not found. Please refresh the page and try again.';
+            } else if (error.message.includes('JSON')) {
+                errorMessage = 'Server response error. Please try again.';
+            }
+
+            showMessage(errorMessage, 'error');
         })
         .finally(() => {
             saveBtn.textContent = originalText;

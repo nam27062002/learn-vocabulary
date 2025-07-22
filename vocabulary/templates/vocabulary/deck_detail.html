@@ -4,6 +4,7 @@
 {% block title %}{{ deck.name }} - {{ manual_texts.my_decks }}{% endblock %}
 
 {% block content %}
+<meta name="csrf-token" content="{{ csrf_token }}" />
 
 <!-- ESC Hint -->
 <div class="esc-hint">

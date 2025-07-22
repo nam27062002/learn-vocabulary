@@ -797,8 +797,16 @@ def api_submit_review(request):
 def api_update_flashcard(request):
     """API endpoint to update a flashcard."""
     try:
+        # Validate request body
+        if not request.body:
+            return JsonResponse({'success': False, 'error': 'No data provided'}, status=400)
+
         data = json.loads(request.body)
         card_id = data.get('card_id')
+
+        # Validate card_id
+        if not card_id:
+            return JsonResponse({'success': False, 'error': 'Card ID is required'}, status=400)
 
         # Get the flashcard and verify ownership
         try:
@@ -868,10 +876,45 @@ def api_update_flashcard(request):
             }
         })
 
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"JSON decode error in api_update_flashcard: {str(e)}")
         return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
     except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Unexpected error in api_update_flashcard: {str(e)}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+def api_test_update_flashcard(request):
+    """Test endpoint to debug flashcard update issues."""
+    if request.method == 'GET':
+        return JsonResponse({
+            'success': True,
+            'message': 'Test endpoint is working',
+            'method': request.method,
+            'user': str(request.user),
+            'csrf_token_present': bool(request.META.get('HTTP_X_CSRFTOKEN'))
+        })
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body) if request.body else {}
+            return JsonResponse({
+                'success': True,
+                'message': 'POST request received successfully',
+                'data_received': data,
+                'csrf_token_present': bool(request.META.get('HTTP_X_CSRFTOKEN'))
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e),
+                'method': request.method
+            })
+    else:
+        return JsonResponse({'success': False, 'error': f'Method {request.method} not allowed'}, status=405)
 
 @login_required
 @require_POST

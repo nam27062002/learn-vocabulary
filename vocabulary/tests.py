@@ -193,3 +193,152 @@ class QuickAddWordsTestCase(TestCase):
         self.assertContains(response, 'Yes, Replace All')
         self.assertContains(response, 'hasContent')
         self.assertContains(response, 'showCancelButton: true')
+
+
+class FlashcardUpdateTestCase(TestCase):
+    def setUp(self):
+        """Set up test data"""
+        self.client = Client()
+        self.user = User.objects.create_user(
+            email='testuser@example.com',
+            password='testpass123'
+        )
+        self.deck = Deck.objects.create(
+            user=self.user,
+            name='Test Deck'
+        )
+        self.flashcard = Flashcard.objects.create(
+            user=self.user,
+            deck=self.deck,
+            word='testword',
+            phonetic='test',
+            part_of_speech='noun',
+            audio_url='http://example.com/audio.mp3'
+        )
+        # Create a definition
+        from .models import Definition
+        Definition.objects.create(
+            flashcard=self.flashcard,
+            english_definition='Test definition',
+            vietnamese_definition='Định nghĩa test'
+        )
+
+    def test_api_update_flashcard_success(self):
+        """Test successful flashcard update"""
+        self.client.login(email='testuser@example.com', password='testpass123')
+
+        update_data = {
+            'card_id': self.flashcard.id,
+            'word': 'updatedword',
+            'phonetic': 'updated',
+            'part_of_speech': 'verb',
+            'audio_url': 'http://example.com/updated.mp3',
+            'definitions': [
+                {
+                    'english_definition': 'Updated definition',
+                    'vietnamese_definition': 'Định nghĩa đã cập nhật'
+                }
+            ]
+        }
+
+        response = self.client.post(
+            reverse('api_update_flashcard'),
+            data=json.dumps(update_data),
+            content_type='application/json',
+            HTTP_X_CSRFTOKEN='test-token'
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertTrue(data['success'])
+        self.assertEqual(data['card']['word'], 'updatedword')
+        self.assertEqual(data['card']['phonetic'], 'updated')
+        self.assertEqual(data['card']['audio_url'], 'http://example.com/updated.mp3')
+
+        # Verify database was updated
+        updated_card = Flashcard.objects.get(id=self.flashcard.id)
+        self.assertEqual(updated_card.word, 'updatedword')
+        self.assertEqual(updated_card.audio_url, 'http://example.com/updated.mp3')
+
+    def test_api_update_flashcard_not_found(self):
+        """Test updating non-existent flashcard"""
+        self.client.login(email='testuser@example.com', password='testpass123')
+
+        update_data = {
+            'card_id': 99999,  # Non-existent ID
+            'word': 'test',
+            'definitions': [{'english_definition': 'test', 'vietnamese_definition': 'test'}]
+        }
+
+        response = self.client.post(
+            reverse('api_update_flashcard'),
+            data=json.dumps(update_data),
+            content_type='application/json',
+            HTTP_X_CSRFTOKEN='test-token'
+        )
+
+        self.assertEqual(response.status_code, 404)
+        data = json.loads(response.content)
+        self.assertFalse(data['success'])
+        self.assertIn('not found', data['error'].lower())
+
+    def test_api_update_flashcard_wrong_method(self):
+        """Test API with wrong HTTP method"""
+        self.client.login(email='testuser@example.com', password='testpass123')
+
+        response = self.client.get(reverse('api_update_flashcard'))
+        self.assertEqual(response.status_code, 405)  # Method Not Allowed
+
+    def test_api_update_flashcard_with_language_prefix(self):
+        """Test that the API works with language prefix"""
+        self.client.login(email='testuser@example.com', password='testpass123')
+
+        update_data = {
+            'card_id': self.flashcard.id,
+            'word': 'updatedword',
+            'definitions': [
+                {
+                    'english_definition': 'Updated definition',
+                    'vietnamese_definition': 'Định nghĩa đã cập nhật'
+                }
+            ]
+        }
+
+        # Test with English language prefix
+        response = self.client.post(
+            '/en/api/update-flashcard/',
+            data=json.dumps(update_data),
+            content_type='application/json',
+            HTTP_X_CSRFTOKEN='test-token'
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertTrue(data['success'])
+        self.assertEqual(data['card']['word'], 'updatedword')
+
+    def test_api_update_flashcard_without_language_prefix_fails(self):
+        """Test that the API fails without language prefix (404)"""
+        self.client.login(email='testuser@example.com', password='testpass123')
+
+        update_data = {
+            'card_id': self.flashcard.id,
+            'word': 'updatedword',
+            'definitions': [
+                {
+                    'english_definition': 'Updated definition',
+                    'vietnamese_definition': 'Định nghĩa đã cập nhật'
+                }
+            ]
+        }
+
+        # Test without language prefix - should fail
+        response = self.client.post(
+            '/api/update-flashcard/',  # No language prefix
+            data=json.dumps(update_data),
+            content_type='application/json',
+            HTTP_X_CSRFTOKEN='test-token'
+        )
+
+        # Should return 302 (redirect) or 404 because the URL doesn't exist without language prefix
+        self.assertIn(response.status_code, [302, 404])

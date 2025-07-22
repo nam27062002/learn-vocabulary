@@ -33,6 +33,7 @@ urlpatterns = [
     path('api/study/next-question/', views.api_next_question, name='api_next_question'),
     path('api/study/submit-answer/', views.api_submit_answer, name='api_submit_answer'),
     path('api/update-flashcard/', views.api_update_flashcard, name='api_update_flashcard'),
+    path('api/test-update-flashcard/', views.api_test_update_flashcard, name='api_test_update_flashcard'),
     path('api/update-deck-name/', views.api_update_deck_name, name='api_update_deck_name'),
     path('api/fetch-missing-audio/', views.api_fetch_missing_audio, name='api_fetch_missing_audio'),
     path('api/fetch-audio-for-card/', views.api_fetch_audio_for_card, name='api_fetch_audio_for_card'),
