@@ -33,4 +33,5 @@ urlpatterns = [
     path('api/study/next-question/', views.api_next_question, name='api_next_question'),
     path('api/study/submit-answer/', views.api_submit_answer, name='api_submit_answer'),
     path('api/update-flashcard/', views.api_update_flashcard, name='api_update_flashcard'),
+    path('api/update-deck-name/', views.api_update_deck_name, name='api_update_deck_name'),
 ]

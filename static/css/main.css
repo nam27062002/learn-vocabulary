@@ -686,6 +686,62 @@ body[data-edit-mode="true"] .card-edit-mode {
     transform: scale(1.1);
 }
 
+/* ==========================================================================
+   Deck Name Editing
+   ========================================================================== */
+
+#edit-deck-name-btn {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#deck-name-view:hover #edit-deck-name-btn {
+    opacity: 1;
+}
+
+#deck-name-input {
+    min-width: 300px;
+    max-width: 500px;
+}
+
+#deck-name-input:focus {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Deck name edit buttons */
+#save-deck-name-btn:disabled,
+#cancel-deck-edit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Responsive deck name editing */
+@media (max-width: 768px) {
+    #deck-name-edit {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        width: 100%;
+    }
+
+    #deck-name-input {
+        min-width: auto;
+        max-width: none;
+        width: 100%;
+        font-size: 1.5rem;
+    }
+
+    #deck-name-edit .flex {
+        flex-direction: row;
+        gap: 8px;
+    }
+
+    #save-deck-name-btn,
+    #cancel-deck-edit-btn {
+        flex: 1;
+    }
+}
+
 /* Filter controls */
 .audio-filter-controls {
     display: flex;

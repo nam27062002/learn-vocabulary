@@ -13,7 +13,28 @@
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
     <div class="flex justify-between items-center mb-8 pb-4 border-b border-gray-700">
-        <h1 class="text-4xl font-extrabold text-white">{{ deck.name }}</h1>
+        <!-- Deck Name Display/Edit -->
+        <div class="flex items-center gap-4">
+            <!-- View Mode -->
+            <div id="deck-name-view" class="flex items-center gap-3">
+                <h1 class="text-4xl font-extrabold text-white">{{ deck.name }}</h1>
+                <button id="edit-deck-name-btn" class="text-gray-400 hover:text-primary-color transition-colors duration-200 p-2 rounded-full hover:bg-gray-800" title="{{ manual_texts.edit_deck_name }}">
+                    <i class="fas fa-edit text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Edit Mode (Hidden by default) -->
+            <div id="deck-name-edit" class="hidden flex items-center gap-3">
+                <input type="text" id="deck-name-input" class="text-3xl font-bold bg-gray-800 border border-gray-600 rounded-md text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent" value="{{ deck.name }}" maxlength="100">
+                <button id="save-deck-name-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">
+                    {{ manual_texts.save_deck_name }}
+                </button>
+                <button id="cancel-deck-edit-btn" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">
+                    {{ manual_texts.cancel_deck_edit }}
+                </button>
+            </div>
+        </div>
+
         <a href="{% url 'deck_list' %}" class="text-primary-color hover:text-primary-color-dark font-semibold transition-colors duration-200">← {{ manual_texts.back_to_all_decks }}</a>
     </div>
 

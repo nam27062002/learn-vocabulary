@@ -72,6 +72,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (document.body.getAttribute('data-edit-mode') === 'true') {
                         return;
                     }
+
+                    // Disable pagination during deck name editing
+                    const deckNameEdit = document.getElementById('deck-name-edit');
+                    if (deckNameEdit && !deckNameEdit.classList.contains('hidden')) {
+                        return;
+                    }
+
                     showSlide(index);
                 });
                 paginationDotsContainer.appendChild(dot);
@@ -86,6 +93,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (document.body.getAttribute('data-edit-mode') === 'true') {
                 return;
             }
+
+            // Disable navigation during deck name editing
+            const deckNameEdit = document.getElementById('deck-name-edit');
+            if (deckNameEdit && !deckNameEdit.classList.contains('hidden')) {
+                return;
+            }
+
             prevSlide();
         });
     }
@@ -95,6 +109,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (document.body.getAttribute('data-edit-mode') === 'true') {
                 return;
             }
+
+            // Disable navigation during deck name editing
+            const deckNameEdit = document.getElementById('deck-name-edit');
+            if (deckNameEdit && !deckNameEdit.classList.contains('hidden')) {
+                return;
+            }
+
             nextSlide();
         });
     }
@@ -147,6 +168,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize audio status functionality
     initializeAudioStatusFeatures();
 
+    // Initialize deck name editing functionality
+    initializeDeckNameEditing();
+
     // Keyboard navigation
     document.addEventListener('keydown', function(event) {
         // Handle ESC key to exit edit mode
@@ -166,6 +190,12 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Disable arrow key navigation during deck name editing
+        const deckNameEdit = document.getElementById('deck-name-edit');
+        if (deckNameEdit && !deckNameEdit.classList.contains('hidden')) {
+            return;
+        }
+
         if (event.key === 'ArrowLeft') {
             prevSlide();
         } else if (event.key === 'ArrowRight') {
@@ -181,6 +211,12 @@ document.addEventListener('DOMContentLoaded', function() {
     carouselSlides.addEventListener('mousedown', (e) => {
         // Disable drag during edit mode
         if (document.body.getAttribute('data-edit-mode') === 'true') {
+            return;
+        }
+
+        // Disable drag during deck name editing
+        const deckNameEdit = document.getElementById('deck-name-edit');
+        if (deckNameEdit && !deckNameEdit.classList.contains('hidden')) {
             return;
         }
 
@@ -211,6 +247,12 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Disable drag during deck name editing
+        const deckNameEdit = document.getElementById('deck-name-edit');
+        if (deckNameEdit && !deckNameEdit.classList.contains('hidden')) {
+            return;
+        }
+
         e.preventDefault();
         const x = e.pageX;
         const walk = (x - startX) * 1.5;
@@ -220,6 +262,13 @@ document.addEventListener('DOMContentLoaded', function() {
     carouselSlides.addEventListener('touchend', (e) => {
         // Prevent touch interactions during edit mode
         if (document.body.getAttribute('data-edit-mode') === 'true') {
+            e.preventDefault();
+            return;
+        }
+
+        // Prevent touch interactions during deck name editing
+        const deckNameEdit = document.getElementById('deck-name-edit');
+        if (deckNameEdit && !deckNameEdit.classList.contains('hidden')) {
             e.preventDefault();
             return;
         }
@@ -247,6 +296,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Prevent touch interactions during deck name editing
+        const deckNameEdit = document.getElementById('deck-name-edit');
+        if (deckNameEdit && !deckNameEdit.classList.contains('hidden')) {
+            e.preventDefault();
+            return;
+        }
+
         const x = e.touches[0].pageX;
         const walk = (x - startX) * 1.5;
         carouselSlides.scrollLeft = initialScrollLeft - walk;
@@ -255,6 +311,13 @@ document.addEventListener('DOMContentLoaded', function() {
     carouselSlides.addEventListener('touchstart', (e) => {
         // Prevent touch interactions during edit mode
         if (document.body.getAttribute('data-edit-mode') === 'true') {
+            e.preventDefault();
+            return;
+        }
+
+        // Prevent touch interactions during deck name editing
+        const deckNameEdit = document.getElementById('deck-name-edit');
+        if (deckNameEdit && !deckNameEdit.classList.contains('hidden')) {
             e.preventDefault();
             return;
         }
@@ -700,6 +763,122 @@ document.addEventListener('DOMContentLoaded', function() {
             if (phoneticContainer && !cardData.phonetic) {
                 phoneticContainer.remove();
             }
+        }
+    }
+
+    // Deck name editing functionality
+    function initializeDeckNameEditing() {
+        const editBtn = document.getElementById('edit-deck-name-btn');
+        const saveBtn = document.getElementById('save-deck-name-btn');
+        const cancelBtn = document.getElementById('cancel-deck-edit-btn');
+        const deckNameView = document.getElementById('deck-name-view');
+        const deckNameEdit = document.getElementById('deck-name-edit');
+        const deckNameInput = document.getElementById('deck-name-input');
+
+        if (!editBtn || !saveBtn || !cancelBtn || !deckNameView || !deckNameEdit || !deckNameInput) {
+            return; // Elements not found
+        }
+
+        let originalName = deckNameInput.value;
+
+        // Enter edit mode
+        editBtn.addEventListener('click', function() {
+            originalName = deckNameInput.value;
+            deckNameView.classList.add('hidden');
+            deckNameEdit.classList.remove('hidden');
+            deckNameInput.focus();
+            deckNameInput.select();
+        });
+
+        // Cancel edit
+        cancelBtn.addEventListener('click', function() {
+            deckNameInput.value = originalName;
+            exitDeckNameEditMode();
+        });
+
+        // Save deck name
+        saveBtn.addEventListener('click', function() {
+            saveDeckName();
+        });
+
+        // Handle Enter key to save
+        deckNameInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                saveDeckName();
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                deckNameInput.value = originalName;
+                exitDeckNameEditMode();
+            }
+        });
+
+        function exitDeckNameEditMode() {
+            deckNameView.classList.remove('hidden');
+            deckNameEdit.classList.add('hidden');
+        }
+
+        function saveDeckName() {
+            const newName = deckNameInput.value.trim();
+
+            if (!newName) {
+                showMessage(window.manual_texts?.deck_name_required || 'Deck name is required', 'error');
+                deckNameInput.focus();
+                return;
+            }
+
+            if (newName === originalName) {
+                exitDeckNameEditMode();
+                return;
+            }
+
+            // Show loading state
+            saveBtn.textContent = 'Saving...';
+            saveBtn.disabled = true;
+            cancelBtn.disabled = true;
+
+            // Get deck ID from URL
+            const pathParts = window.location.pathname.split('/');
+            const deckId = pathParts[pathParts.length - 2]; // Assuming URL is /decks/{id}/
+
+            // Send update request (with language prefix)
+            const currentPath = window.location.pathname;
+            const languagePrefix = currentPath.split('/')[1]; // Get language code (en/vi)
+            fetch(`/${languagePrefix}/api/update-deck-name/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({
+                    deck_id: deckId,
+                    name: newName
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the display
+                    const deckNameTitle = deckNameView.querySelector('h1');
+                    deckNameTitle.textContent = data.deck.name;
+                    originalName = data.deck.name;
+                    deckNameInput.value = data.deck.name;
+
+                    exitDeckNameEditMode();
+                    showMessage(window.manual_texts?.deck_name_updated || 'Deck name updated successfully!', 'success');
+                } else {
+                    showMessage(data.error || (window.manual_texts?.error_updating_deck || 'Error updating deck name'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating deck name:', error);
+                showMessage(window.manual_texts?.error_updating_deck || 'Error updating deck name', 'error');
+            })
+            .finally(() => {
+                saveBtn.textContent = window.manual_texts?.save_deck_name || 'Save Name';
+                saveBtn.disabled = false;
+                cancelBtn.disabled = false;
+            });
         }
     }
 });

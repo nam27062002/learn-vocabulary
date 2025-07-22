@@ -133,6 +133,14 @@ def manual_translations(request):
             'show_all_cards': 'Show All Cards',
             'show_cards_with_audio': 'Cards with Audio',
             'show_cards_without_audio': 'Cards without Audio',
+            # Deck editing
+            'edit_deck_name': 'Edit Deck Name',
+            'deck_name': 'Deck Name',
+            'save_deck_name': 'Save Name',
+            'cancel_deck_edit': 'Cancel',
+            'deck_name_updated': 'Deck name updated successfully!',
+            'error_updating_deck': 'Error updating deck name',
+            'deck_name_required': 'Deck name is required',
         },
         'vi': {
             'learn_english': 'Học Tiếng Anh',
@@ -262,6 +270,14 @@ def manual_translations(request):
             'show_all_cards': 'Hiển thị tất cả thẻ',
             'show_cards_with_audio': 'Thẻ có âm thanh',
             'show_cards_without_audio': 'Thẻ không có âm thanh',
+            # Deck editing
+            'edit_deck_name': 'Chỉnh sửa tên bộ thẻ',
+            'deck_name': 'Tên bộ thẻ',
+            'save_deck_name': 'Lưu tên',
+            'cancel_deck_edit': 'Hủy',
+            'deck_name_updated': 'Cập nhật tên bộ thẻ thành công!',
+            'error_updating_deck': 'Lỗi khi cập nhật tên bộ thẻ',
+            'deck_name_required': 'Tên bộ thẻ là bắt buộc',
         }
     }
     

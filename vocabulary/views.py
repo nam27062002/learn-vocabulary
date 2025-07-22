@@ -872,3 +872,43 @@ def api_update_flashcard(request):
         return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+@require_POST
+def api_update_deck_name(request):
+    """API endpoint to update a deck name."""
+    try:
+        data = json.loads(request.body)
+        deck_id = data.get('deck_id')
+        new_name = data.get('name', '').strip()
+
+        # Validate input
+        if not new_name:
+            return JsonResponse({'success': False, 'error': 'Deck name is required'}, status=400)
+
+        # Get the deck and verify ownership
+        try:
+            deck = Deck.objects.get(id=deck_id, user=request.user)
+        except Deck.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Deck not found'}, status=404)
+
+        # Check for duplicate names (excluding current deck)
+        if Deck.objects.filter(user=request.user, name__iexact=new_name).exclude(id=deck.id).exists():
+            return JsonResponse({'success': False, 'error': 'A deck with this name already exists'}, status=400)
+
+        # Update the deck name
+        deck.name = new_name
+        deck.save()
+
+        return JsonResponse({
+            'success': True,
+            'deck': {
+                'id': deck.id,
+                'name': deck.name,
+            }
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
