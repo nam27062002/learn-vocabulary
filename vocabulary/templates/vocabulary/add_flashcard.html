@@ -297,6 +297,11 @@
        color: var(--error-color);
     }
 
+    .input-field input.duplicate-warning {
+       border-color: #ff9800;
+       color: #ff9800;
+    }
+
     .image-upload {
       width: 140px;
       height: 140px;
@@ -392,6 +397,22 @@
     .suggestion-item:hover {
       background-color: var(--primary-color);
       color: #fff;
+    }
+
+    .duplicate-warning-item {
+      background-color: rgba(255, 152, 0, 0.1);
+      border-left: 3px solid #ff9800;
+      color: #ff9800;
+      padding: 10px 15px;
+      margin: 5px 0;
+      border-radius: 4px;
+      font-size: 0.9em;
+      cursor: default;
+      border-bottom: 1px solid rgba(255, 152, 0, 0.3);
+    }
+
+    .duplicate-warning-item:hover {
+      background-color: rgba(255, 152, 0, 0.15);
     }
 
     .button-group {
@@ -541,11 +562,12 @@
     </select>
   </div>
 
-  <div class="flashcard-container" id="flashcard-container" 
+  <div class="flashcard-container" id="flashcard-container"
        data-check-spelling-url="{% url 'check_spelling' %}"
        data-suggest-words-url="{% url 'suggest_words' %}"
        data-word-details-url="{% url 'get_word_details_api' %}"
-       data-translate-url="{% url 'translate_to_vietnamese' %}">
+       data-translate-url="{% url 'translate_to_vietnamese' %}"
+       data-check-word-exists-url="{% url 'check_word_exists' %}">
     <div class="flashcard-section" data-card-index="1">
       <div class="flashcard-header">
         <span class="card-number">1</span>
@@ -699,6 +721,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const suggestWordsUrl = flashcardContainer.dataset.suggestWordsUrl;
     const wordDetailsUrl = flashcardContainer.dataset.wordDetailsUrl;
     const translateUrl = flashcardContainer.dataset.translateUrl;
+    const checkWordExistsUrl = flashcardContainer.dataset.checkWordExistsUrl;
     
     const addCardBtn = document.getElementById('add-card-btn');
     const saveAllBtn = document.getElementById('save-all-btn');
@@ -787,13 +810,50 @@ document.addEventListener('DOMContentLoaded', function() {
     // =============================================
     // CORE LOGIC: SPELLING, SUGGESTIONS, DETAILS
     // =============================================
-    
-    // 1. Check Spelling
+
+    // 1. Check for Duplicate Words
+    function checkDuplicates(word, input, suggestionsList, card) {
+        fetch(`${checkWordExistsUrl}?word=${encodeURIComponent(word)}`)
+        .then(res => res.ok ? res.json() : Promise.reject('Network error'))
+        .then(data => {
+            if (data.exists) {
+                // Word already exists - show duplicate warning
+                input.classList.add("duplicate-warning");
+                showDuplicateWarning(suggestionsList, word);
+            } else {
+                // Word doesn't exist - remove duplicate warning and proceed normally
+                input.classList.remove("duplicate-warning");
+                fetchWordDetailsAndCache(word, card);
+            }
+        })
+        .catch(err => {
+            console.error("Duplicate check error:", err);
+            // On error, proceed normally without duplicate warning
+            input.classList.remove("duplicate-warning");
+            fetchWordDetailsAndCache(word, card);
+        });
+    }
+
+    // Show duplicate warning in suggestions list
+    function showDuplicateWarning(suggestionsList, word) {
+        suggestionsList.innerHTML = "";
+        const warningItem = document.createElement("div");
+        warningItem.className = "duplicate-warning-item";
+        warningItem.innerHTML = `
+            <strong>⚠️ Duplicate Word Detected</strong><br>
+            The word "<strong>${word}</strong>" already exists in your vocabulary.<br>
+            Please use a different word or modify the existing one.
+        `;
+        suggestionsList.appendChild(warningItem);
+        suggestionsList.style.display = "block";
+    }
+
+    // 2. Check Spelling
     function checkSpelling(input, suggestionsList, card) {
         const word = input.value.trim();
         if (word.length < 2) {
             suggestionsList.style.display = "none";
-            input.classList.remove("correct-spelling", "incorrect-spelling");
+            input.classList.remove("correct-spelling", "incorrect-spelling", "duplicate-warning");
             return;
         }
 
@@ -814,14 +874,17 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isCorrect) {
                 suggestionsList.innerHTML = "";
                 suggestionsList.style.display = "none";
-                fetchWordDetailsAndCache(word, card);
+                // Check for duplicates after confirming correct spelling
+                checkDuplicates(word, input, suggestionsList, card);
             } else {
+                // Remove duplicate warning for incorrect spelling
+                input.classList.remove("duplicate-warning");
                 fetchSuggestions(word, suggestionsList, card);
             }
         })
         .catch(err => {
             console.error("Spelling check error:", err);
-            input.classList.remove("correct-spelling", "incorrect-spelling");
+            input.classList.remove("correct-spelling", "incorrect-spelling", "duplicate-warning");
             suggestionsList.style.display = "none";
         });
     }
@@ -1050,7 +1113,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Reset UI state
-        newCard.querySelector('.term-input').classList.remove('correct-spelling', 'incorrect-spelling');
+        newCard.querySelector('.term-input').classList.remove('correct-spelling', 'incorrect-spelling', 'duplicate-warning');
         resetCardUI(newCard);
         
         // Update IDs to be unique
@@ -1187,6 +1250,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 return;
             }
+
+            // Check for duplicate warnings before saving
+            const duplicateInputs = document.querySelectorAll('.term-input.duplicate-warning');
+            if (duplicateInputs.length > 0) {
+                const duplicateWords = Array.from(duplicateInputs).map(input => input.value.trim()).filter(word => word);
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Duplicate Words Detected',
+                    html: `The following words already exist in your vocabulary:<br><strong>${duplicateWords.join(', ')}</strong><br><br>Please remove or modify these words before saving.`,
+                    background: 'var(--background-light)',
+                    color: 'var(--text-main)',
+                    confirmButtonColor: 'var(--primary-color)'
+                });
+                return;
+            }
+
             formData.append('deck_id', selectedDeckId);
 
             const cards = document.querySelectorAll('.flashcard-section');
@@ -1251,7 +1330,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const firstCard = document.querySelector('.flashcard-section');
                     if(firstCard){
                         firstCard.querySelectorAll('input, textarea').forEach(input => input.value = '');
-                        firstCard.querySelector('.term-input').classList.remove('correct-spelling', 'incorrect-spelling');
+                        firstCard.querySelector('.term-input').classList.remove('correct-spelling', 'incorrect-spelling', 'duplicate-warning');
                         resetCardUI(firstCard);
                         const imgPreview = firstCard.querySelector('.preview');
                         const deleteImgBtn = firstCard.querySelector('.delete-img-btn');
