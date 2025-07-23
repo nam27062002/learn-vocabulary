@@ -13,6 +13,7 @@ Thư mục này chứa tất cả documentation của dự án LearnEnglish Voca
 ### 🔧 Sửa lỗi và cải tiến
 - **[DROPDOWN_FIX.md](DROPDOWN_FIX.md)** - Sửa lỗi dropdown menu chồng lấp
 - **[FLASHCARD_UPDATE_FIX.md](FLASHCARD_UPDATE_FIX.md)** - Sửa lỗi cập nhật flashcard
+- **[test_dropdown.html](test_dropdown.html)** - File test cho dropdown mutual exclusion
 
 ### 📝 Quy tắc và hướng dẫn
 - **[LOCALIZATION_RULE.md](LOCALIZATION_RULE.md)** - Quy tắc sử dụng localization
