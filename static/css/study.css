@@ -1386,9 +1386,27 @@
   box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
 }
 
-/* Hidden elements after answer submission */
-.hidden {
+/* Hidden elements after answer submission - scoped to study area to avoid navigation conflicts */
+.study-area .hidden,
+.study-options-section .hidden,
+.options-area .hidden,
+.option-btn.hidden,
+.input-row.hidden,
+.dictation-input-row.hidden,
+.check-btn.hidden,
+.type-input.hidden {
   display: none !important;
+}
+
+/* Ensure Tailwind navigation classes work properly - override any conflicts */
+nav .hidden.md\:block {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  nav .hidden.md\:block {
+    display: block !important;
+  }
 }
 
 /* Specific rules for hidden input-row elements to override flex display */
