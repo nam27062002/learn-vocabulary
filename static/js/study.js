@@ -513,7 +513,10 @@
       if (studyModeSection) studyModeSection.style.display = 'none';
       if (deckStudyOptions) deckStudyOptions.classList.add('hidden');
       if (randomStudyOptions) randomStudyOptions.classList.add('hidden');
-      if (studyArea) studyArea.className = 'study-area active';
+      if (studyArea) {
+        studyArea.style.display = 'block';
+        studyArea.className = 'study-area active';
+      }
       if (studyHeader) studyHeader.style.display = 'none';
       
       // Start studying
@@ -534,7 +537,10 @@
       if (studyModeSection) studyModeSection.style.display = 'none';
       if (deckStudyOptions) deckStudyOptions.classList.add('hidden');
       if (randomStudyOptions) randomStudyOptions.classList.add('hidden');
-      if (studyArea) studyArea.className = 'study-area active';
+      if (studyArea) {
+        studyArea.style.display = 'block';
+        studyArea.className = 'study-area active';
+      }
       if (studyHeader) studyHeader.style.display = 'none';
       
       // Start studying
