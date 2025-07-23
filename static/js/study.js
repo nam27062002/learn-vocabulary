@@ -215,10 +215,8 @@
     // Hide grade buttons initially
     const gradeButtons = document.getElementById('gradeButtons');
     if (gradeButtons) {
-      console.log('Hiding grade buttons for new question');
       gradeButtons.className = 'grade-buttons';
       gradeButtons.classList.remove('hidden'); // Ensure no hidden class
-      console.log('Grade buttons classes after reset:', gradeButtons.className);
     }
 
     // Hide audio button during question phase - it will be shown after answer submission
@@ -480,10 +478,6 @@
       // Input mode: hide the entire input row (input field and check button)
       const inputRow = optionsArea.querySelector('.input-row');
       if (inputRow) {
-        console.log('Hiding input row:', inputRow);
-        console.log('Input row classes before:', inputRow.className);
-        console.log('Input row computed display before:', window.getComputedStyle(inputRow).display);
-
         inputRow.classList.add('hidden');
 
         // Fallback: Force hide with inline styles if CSS doesn't work
@@ -492,13 +486,8 @@
         inputRow.style.opacity = '0';
         inputRow.style.height = '0';
         inputRow.style.overflow = 'hidden';
-
-        console.log('Input row classes after:', inputRow.className);
-        console.log('Input row computed display after:', window.getComputedStyle(inputRow).display);
-        console.log('Input row computed visibility after:', window.getComputedStyle(inputRow).visibility);
-      } else {
-        console.error('Input row not found for hiding!');
       }
+    }
     }
 
     // Update stats
@@ -578,20 +567,10 @@
     // Show grade buttons
     const gradeButtons = document.getElementById('gradeButtons');
     if (gradeButtons) {
-      console.log('Grade buttons element found:', gradeButtons);
-      console.log('Grade buttons classes before:', gradeButtons.className);
-      console.log('Grade buttons inline style before:', gradeButtons.style.display);
-
       // Clear any inline styles and hidden classes
       gradeButtons.style.display = '';
       gradeButtons.classList.remove('hidden');
       gradeButtons.className = 'grade-buttons show';
-
-      console.log('Grade buttons classes after:', gradeButtons.className);
-      console.log('Grade buttons inline style after:', gradeButtons.style.display);
-      console.log('Grade buttons computed display:', window.getComputedStyle(gradeButtons).display);
-    } else {
-      console.error('Grade buttons element NOT found!');
     }
 
     // Handle grade button clicks
@@ -621,12 +600,26 @@
         question_type: currentQuestion.type || 'multiple_choice'
       })
     })
-    .then(r => r.json())
+    .then(r => {
+      if (!r.ok) {
+        throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+      }
+      return r.json();
+    })
     .then(data => {
       if (data.success) {
         // Chuyển sang câu hỏi tiếp theo NGAY LẬP TỨC, không delay
         getNextQuestion();
+      } else {
+        console.error('Grade submission failed:', data.error || 'Unknown error');
+        // Still proceed to next question to avoid getting stuck
+        getNextQuestion();
       }
+    })
+    .catch(error => {
+      console.error('Error submitting grade:', error);
+      // Still proceed to next question to avoid getting stuck
+      getNextQuestion();
     });
   }
 

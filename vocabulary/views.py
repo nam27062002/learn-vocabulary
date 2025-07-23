@@ -184,7 +184,16 @@ def _update_sm2(card, correct: bool):
         difficulty_multiplier = 1.0 - (card.difficulty_score * SPACED_REPETITION_CONFIG['DIFFICULTY_ADJUSTMENT'])
         interval = max(1, round(interval * difficulty_multiplier))
 
-    next_review_date = today + timedelta(days=interval)
+    # Prevent date overflow by limiting maximum interval to 10 years (3650 days)
+    MAX_INTERVAL_DAYS = 3650
+    interval = min(interval, MAX_INTERVAL_DAYS)
+
+    try:
+        next_review_date = today + timedelta(days=interval)
+    except OverflowError:
+        # Fallback: set to maximum safe date (1 year from now)
+        next_review_date = today + timedelta(days=365)
+        interval = 365
     card.ease_factor = ef
     card.repetitions = reps
     card.interval = interval
@@ -307,30 +316,41 @@ def api_next_question(request):
 @login_required
 @require_POST
 def api_submit_answer(request):
-    data = json.loads(request.body)
-    card_id = data.get('card_id')
-    correct = data.get('correct')  # bool
-    response_time = data.get('response_time', 0)  # Time in seconds
-    question_type = data.get('question_type', 'multiple_choice')
-
     try:
-        card = Flashcard.objects.get(id=card_id, user=request.user)
-    except Flashcard.DoesNotExist:
-        return JsonResponse({'success': False}, status=404)
+        data = json.loads(request.body)
+        card_id = data.get('card_id')
+        correct = data.get('correct')  # bool
+        response_time = data.get('response_time', 0)  # Time in seconds
+        question_type = data.get('question_type', 'multiple_choice')
 
-    # Get current study session
-    current_session_id = request.session.get('current_study_session_id')
-    if current_session_id:
         try:
-            session = StudySession.objects.get(id=current_session_id, user=request.user)
-            # Record the answer in the session
-            record_answer(session, card, correct, response_time, question_type)
-        except StudySession.DoesNotExist:
-            pass  # Session doesn't exist, continue without recording
+            card = Flashcard.objects.get(id=card_id, user=request.user)
+        except Flashcard.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Card not found'}, status=404)
 
-    # Update SM-2 algorithm
-    _update_sm2(card, correct)
-    return JsonResponse({'success': True})
+        # Get current study session
+        current_session_id = request.session.get('current_study_session_id')
+        if current_session_id:
+            try:
+                session = StudySession.objects.get(id=current_session_id, user=request.user)
+                # Record the answer in the session
+                record_answer(session, card, correct, response_time, question_type)
+            except StudySession.DoesNotExist:
+                pass  # Session doesn't exist, continue without recording
+            except Exception as e:
+                # Log the error but continue with SM-2 update
+                print(f"Error recording answer in session: {e}")
+
+        # Update SM-2 algorithm
+        _update_sm2(card, correct)
+        return JsonResponse({'success': True})
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        # Log the error for debugging
+        print(f"Error in api_submit_answer: {e}")
+        return JsonResponse({'success': False, 'error': 'Internal server error'}, status=500)
 
 
 @login_required
