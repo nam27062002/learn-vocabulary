@@ -315,3 +315,49 @@ class WeeklyStatistics(models.Model):
     def consistency_percentage(self):
         """Calculate study consistency (days studied / 7 days)."""
         return round((self.study_days_count / 7) * 100, 1)
+
+
+class IncorrectWordReview(models.Model):
+    """Track words that users answered incorrectly for review purposes."""
+
+    QUESTION_TYPE_CHOICES = [
+        ('mc', 'Multiple Choice'),
+        ('type', 'Input Mode'),
+        ('dictation', 'Dictation Mode'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='incorrect_words')
+    flashcard = models.ForeignKey(Flashcard, on_delete=models.CASCADE, related_name='incorrect_reviews')
+    question_type = models.CharField(max_length=10, choices=QUESTION_TYPE_CHOICES)
+    error_count = models.PositiveIntegerField(default=1, help_text="Number of times answered incorrectly in this question type")
+    first_error_date = models.DateTimeField(auto_now_add=True)
+    last_error_date = models.DateTimeField(auto_now=True)
+    is_resolved = models.BooleanField(default=False, help_text="True when answered correctly in this question type")
+    resolved_date = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ['user', 'flashcard', 'question_type']
+        ordering = ['-last_error_date']
+        indexes = [
+            models.Index(fields=['user', 'is_resolved']),
+            models.Index(fields=['user', 'question_type', 'is_resolved']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.flashcard.word} ({self.get_question_type_display()})"
+
+    def mark_resolved(self):
+        """Mark this incorrect word as resolved (answered correctly)."""
+        self.is_resolved = True
+        self.resolved_date = timezone.now()
+        self.save()
+
+    def add_error(self):
+        """Increment error count and update last error date."""
+        self.error_count += 1
+        self.last_error_date = timezone.now()
+        if self.is_resolved:
+            # If it was previously resolved but now incorrect again, unresolve it
+            self.is_resolved = False
+            self.resolved_date = None
+        self.save()

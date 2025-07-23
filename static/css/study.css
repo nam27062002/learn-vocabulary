@@ -455,6 +455,32 @@
   font-size: 1rem;
 }
 
+/* Review Mode Styling */
+.review-count {
+  margin-top: 8px;
+  padding: 4px 8px;
+  background: rgba(var(--primary-color-rgb), 0.1);
+  border: 1px solid var(--primary-color);
+  border-radius: 12px;
+  font-size: 0.8rem;
+  color: var(--primary-color);
+  font-weight: 600;
+  text-align: center;
+}
+
+#reviewModeOption .mode-card {
+  position: relative;
+}
+
+#reviewModeOption.disabled .mode-card {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#reviewModeOption.disabled input[type="radio"] {
+  cursor: not-allowed;
+}
+
 /* Flashcard Container - Optimized for no scrolling */
 .flashcard-container {
   background: var(--card-background);

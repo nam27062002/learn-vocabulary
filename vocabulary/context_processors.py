@@ -214,6 +214,9 @@ def manual_translations(request):
             'deck_study_description': 'Study specific flashcard decks',
             'random_study_description': 'Study random words from all decks',
             'sound_feedback': 'Sound Feedback',
+            'review_incorrect_words': 'Review Incorrect Words',
+            'review_study_description': 'Study words you previously answered incorrectly',
+            'incorrect_words_count': 'incorrect words to review',
         },
         'vi': {
             'learn_english': 'Học Tiếng Anh',
@@ -424,6 +427,9 @@ def manual_translations(request):
             'deck_study_description': 'Học theo từng bộ thẻ cụ thể',
             'random_study_description': 'Học từ ngẫu nhiên từ tất cả bộ thẻ',
             'sound_feedback': 'Âm thanh phản hồi',
+            'review_incorrect_words': 'Ôn lại từ đã sai',
+            'review_study_description': 'Học lại những từ bạn đã trả lời sai trước đây',
+            'incorrect_words_count': 'từ sai cần ôn lại',
         }
     }
     

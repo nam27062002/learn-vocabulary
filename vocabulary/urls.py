@@ -41,4 +41,8 @@ urlpatterns = [
     path('api/update-deck-name/', views.api_update_deck_name, name='api_update_deck_name'),
     path('api/fetch-missing-audio/', views.api_fetch_missing_audio, name='api_fetch_missing_audio'),
     path('api/fetch-audio-for-card/', views.api_fetch_audio_for_card, name='api_fetch_audio_for_card'),
+    # Incorrect Words Review API
+    path('api/incorrect-words/add/', views.api_add_incorrect_word, name='api_add_incorrect_word'),
+    path('api/incorrect-words/resolve/', views.api_resolve_incorrect_word, name='api_resolve_incorrect_word'),
+    path('api/incorrect-words/count/', views.api_get_incorrect_words_count, name='api_get_incorrect_words_count'),
 ]

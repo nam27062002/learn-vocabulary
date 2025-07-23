@@ -118,6 +118,9 @@
   const totalWordsAvailableSpan = document.getElementById('totalWordsAvailable');
   const startBtnDecks = document.getElementById('startBtn');
   const startBtnRandom = document.getElementById('startRandomBtn');
+  const reviewModeOption = document.getElementById('reviewModeOption');
+  const reviewCount = document.getElementById('reviewCount');
+  const reviewCountText = document.getElementById('reviewCountText');
 
   let correctCnt = 0, incorrectCnt = 0;
   let nextTimeout = null;
@@ -160,6 +163,9 @@
     if (currentStudyMode === 'random') {
       params.append('study_mode', 'random');
       params.append('word_count', wordCount);
+      seenCardIds.forEach(id => params.append('seen_card_ids[]', id));
+    } else if (currentStudyMode === 'review') {
+      params.append('study_mode', 'review');
       seenCardIds.forEach(id => params.append('seen_card_ids[]', id));
     } else {
       // Normal deck study mode
@@ -488,7 +494,6 @@
         inputRow.style.overflow = 'hidden';
       }
     }
-    }
 
     // Update stats
     if (correct) {
@@ -627,9 +632,12 @@
   function handleStudyModeChange() {
     const selectedMode = document.querySelector('input[name="study_mode"]:checked').value;
     currentStudyMode = selectedMode;
-    
+
     if (selectedMode === 'decks') {
       deckStudyOptions.classList.remove('hidden');
+      randomStudyOptions.classList.add('hidden');
+    } else if (selectedMode === 'review') {
+      deckStudyOptions.classList.add('hidden');
       randomStudyOptions.classList.add('hidden');
     } else {
       deckStudyOptions.classList.add('hidden');
@@ -661,6 +669,12 @@
 
         // Store selected deck IDs
         deckIds = selectedDeckIds;
+      } else if (currentStudyMode === 'review') {
+        // Check if there are incorrect words to review
+        if (!reviewModeOption || reviewModeOption.classList.contains('disabled')) {
+          alert('No incorrect words to review. Answer some questions incorrectly first!');
+          return;
+        }
       }
 
       // Reset session data
@@ -723,7 +737,6 @@
       if (optionsArea) optionsArea.innerHTML = '';
       if (feedbackMsg) feedbackMsg.style.display = 'none';
 
-      
       const gradeButtons = document.getElementById('gradeButtons');
       if (gradeButtons) {
         gradeButtons.className = 'grade-buttons'; // Use class instead of inline style
@@ -740,6 +753,9 @@
       // Show appropriate options based on current mode
       if (currentStudyMode === 'decks') {
         if (deckStudyOptions) deckStudyOptions.classList.remove('hidden');
+        if (randomStudyOptions) randomStudyOptions.classList.add('hidden');
+      } else if (currentStudyMode === 'review') {
+        if (deckStudyOptions) deckStudyOptions.classList.add('hidden');
         if (randomStudyOptions) randomStudyOptions.classList.add('hidden');
       } else {
         if (deckStudyOptions) deckStudyOptions.classList.add('hidden');
@@ -819,6 +835,57 @@
 
   // End session when user navigates away
   window.addEventListener('pagehide', endStudySession);
+
+  // Load incorrect words count
+  function loadIncorrectWordsCount() {
+    // Check if required elements exist
+    if (!reviewCountText || !reviewCount || !reviewModeOption) {
+      console.log('Review mode elements not found, skipping incorrect words count loading');
+      return;
+    }
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (!csrfToken) {
+      console.error('CSRF token not found');
+      return;
+    }
+
+    fetch('/en/api/incorrect-words/count/', {
+      method: 'GET',
+      headers: {
+        'X-CSRFToken': csrfToken.value,
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        const totalCount = data.counts.total;
+        if (totalCount > 0) {
+          reviewCountText.textContent = `${totalCount} ${STUDY_CFG.labels.incorrect_words_count || 'incorrect words to review'}`;
+          reviewCount.style.display = 'block';
+          reviewModeOption.classList.remove('disabled');
+        } else {
+          reviewCount.style.display = 'none';
+          reviewModeOption.classList.add('disabled');
+          // If review mode is selected but no words available, switch to decks mode
+          if (currentStudyMode === 'review') {
+            const decksRadio = document.querySelector('input[name="study_mode"][value="decks"]');
+            if (decksRadio) {
+              decksRadio.checked = true;
+              handleStudyModeChange();
+            }
+          }
+        }
+      }
+    })
+    .catch(err => {
+      console.error('Error loading incorrect words count:', err);
+    });
+  }
+
+  // Initialize incorrect words count
+  loadIncorrectWordsCount();
 
   // Initialize audio feedback system
   AudioFeedback.init();

@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
-from .models import Flashcard, Definition, Deck, StudySession, StudySessionAnswer # Import Deck model
+from .models import Flashcard, Definition, Deck, StudySession, StudySessionAnswer, IncorrectWordReview # Import Deck model
 from django.conf import settings # Import settings
 from .api_services import get_word_suggestions_from_datamuse, check_word_spelling_with_languagetool # Import new service functions
 from .word_details_service import get_word_details # Import the new service function
@@ -186,12 +186,15 @@ def _update_sm2(card, correct: bool):
 
     # Prevent date overflow by limiting maximum interval to 10 years (3650 days)
     MAX_INTERVAL_DAYS = 3650
-    interval = min(interval, MAX_INTERVAL_DAYS)
+    if interval > MAX_INTERVAL_DAYS:
+        print(f"Warning: Interval {interval} exceeds maximum, capping at {MAX_INTERVAL_DAYS}")
+        interval = MAX_INTERVAL_DAYS
 
     try:
-        next_review_date = today + timedelta(days=interval)
-    except OverflowError:
+        next_review_date = today + timedelta(days=int(interval))
+    except (OverflowError, ValueError) as e:
         # Fallback: set to maximum safe date (1 year from now)
+        print(f"Date overflow error with interval {interval}: {e}")
         next_review_date = today + timedelta(days=365)
         interval = 365
     card.ease_factor = ef
@@ -236,13 +239,29 @@ def api_next_question(request):
     if study_mode == 'random':
         # Random study mode: select random words from entire vocabulary
         available_cards = Flashcard.objects.filter(user=request.user).exclude(id__in=seen_card_ids)
-        
+
         if not available_cards.exists():
             return JsonResponse({'done': True})
-        
+
         # Get random card
         card = available_cards.order_by('?').first()
-        
+
+        # Update tracking fields when card is shown
+        _update_card_shown_tracking(card)
+    elif study_mode == 'review':
+        # Review incorrect words mode: select from incorrect words list
+        incorrect_words = IncorrectWordReview.objects.filter(
+            user=request.user,
+            is_resolved=False
+        ).exclude(flashcard_id__in=seen_card_ids).select_related('flashcard')
+
+        if not incorrect_words.exists():
+            return JsonResponse({'done': True})
+
+        # Get a random incorrect word
+        incorrect_word = incorrect_words.order_by('?').first()
+        card = incorrect_word.flashcard
+
         # Update tracking fields when card is shown
         _update_card_shown_tracking(card)
     else:
@@ -340,6 +359,43 @@ def api_submit_answer(request):
             except Exception as e:
                 # Log the error but continue with SM-2 update
                 print(f"Error recording answer in session: {e}")
+
+        # Handle incorrect word tracking
+        # Map question_type to our model's format
+        question_type_map = {
+            'multiple_choice': 'mc',
+            'input': 'type',
+            'dictation': 'dictation'
+        }
+        mapped_question_type = question_type_map.get(question_type, question_type)
+
+        if not correct:
+            # Add to incorrect words list
+            try:
+                incorrect_review, created = IncorrectWordReview.objects.get_or_create(
+                    user=request.user,
+                    flashcard=card,
+                    question_type=mapped_question_type,
+                    defaults={'error_count': 1}
+                )
+                if not created:
+                    incorrect_review.add_error()
+            except Exception as e:
+                print(f"Error tracking incorrect word: {e}")
+        else:
+            # Mark as resolved if it was in the incorrect list
+            try:
+                incorrect_review = IncorrectWordReview.objects.get(
+                    user=request.user,
+                    flashcard=card,
+                    question_type=mapped_question_type,
+                    is_resolved=False
+                )
+                incorrect_review.mark_resolved()
+            except IncorrectWordReview.DoesNotExist:
+                pass  # Word wasn't in incorrect list, which is fine
+            except Exception as e:
+                print(f"Error resolving incorrect word: {e}")
 
         # Update SM-2 algorithm
         _update_sm2(card, correct)
@@ -1383,5 +1439,130 @@ def api_fetch_audio_for_card(request):
 
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+# Incorrect Words Review API Endpoints
+
+@login_required
+@require_POST
+def api_add_incorrect_word(request):
+    """Add a word to the incorrect words review list."""
+    try:
+        data = json.loads(request.body)
+        card_id = data.get('card_id')
+        question_type = data.get('question_type')
+
+        if not card_id or not question_type:
+            return JsonResponse({'success': False, 'error': 'Missing card_id or question_type'}, status=400)
+
+        if question_type not in ['mc', 'type', 'dictation']:
+            return JsonResponse({'success': False, 'error': 'Invalid question_type'}, status=400)
+
+        try:
+            card = Flashcard.objects.get(id=card_id, user=request.user)
+        except Flashcard.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Card not found'}, status=404)
+
+        # Get or create the incorrect word review record
+        incorrect_review, created = IncorrectWordReview.objects.get_or_create(
+            user=request.user,
+            flashcard=card,
+            question_type=question_type,
+            defaults={'error_count': 1}
+        )
+
+        if not created:
+            # If it already exists, increment the error count
+            incorrect_review.add_error()
+
+        return JsonResponse({
+            'success': True,
+            'created': created,
+            'error_count': incorrect_review.error_count
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def api_resolve_incorrect_word(request):
+    """Mark an incorrect word as resolved (answered correctly)."""
+    try:
+        data = json.loads(request.body)
+        card_id = data.get('card_id')
+        question_type = data.get('question_type')
+
+        if not card_id or not question_type:
+            return JsonResponse({'success': False, 'error': 'Missing card_id or question_type'}, status=400)
+
+        try:
+            card = Flashcard.objects.get(id=card_id, user=request.user)
+        except Flashcard.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Card not found'}, status=404)
+
+        # Find and resolve the incorrect word review
+        try:
+            incorrect_review = IncorrectWordReview.objects.get(
+                user=request.user,
+                flashcard=card,
+                question_type=question_type,
+                is_resolved=False
+            )
+            incorrect_review.mark_resolved()
+
+            return JsonResponse({
+                'success': True,
+                'resolved': True
+            })
+
+        except IncorrectWordReview.DoesNotExist:
+            # Word wasn't in incorrect list, which is fine
+            return JsonResponse({
+                'success': True,
+                'resolved': False,
+                'message': 'Word was not in incorrect list'
+            })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_GET
+def api_get_incorrect_words_count(request):
+    """Get count of incorrect words for the user."""
+    try:
+        # Count unresolved incorrect words grouped by question type
+        counts = {
+            'total': 0,
+            'mc': 0,
+            'type': 0,
+            'dictation': 0
+        }
+
+        incorrect_words = IncorrectWordReview.objects.filter(
+            user=request.user,
+            is_resolved=False
+        ).values('question_type').annotate(count=Count('id'))
+
+        for item in incorrect_words:
+            question_type = item['question_type']
+            count = item['count']
+            counts[question_type] = count
+            counts['total'] += count
+
+        return JsonResponse({
+            'success': True,
+            'counts': counts
+        })
+
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)

@@ -39,6 +39,20 @@
           </div>
         </div>
       </label>
+
+      <label class="mode-option" id="reviewModeOption">
+        <input type="radio" name="study_mode" value="review">
+        <div class="mode-card">
+          <div class="mode-icon">🔄</div>
+          <div class="mode-content">
+            <h3>{{ manual_texts.review_incorrect_words }}</h3>
+            <p>{{ manual_texts.review_study_description }}</p>
+            <div class="review-count" id="reviewCount" style="display: none;">
+              <span id="reviewCountText">0 {{ manual_texts.incorrect_words_count }}</span>
+            </div>
+          </div>
+        </div>
+      </label>
     </div>
   </div>
 
