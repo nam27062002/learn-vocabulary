@@ -494,7 +494,7 @@
       if (currentStudyMode === 'decks') {
         const selectedDeckIds = Array.from(document.querySelectorAll('input[name="deck_ids"]:checked')).map(cb => cb.value);
         if (selectedDeckIds.length === 0) {
-          alert('Please select at least one deck to study.');
+          alert(STUDY_CFG.labels.select_deck_alert || 'Please select at least one deck to study.');
           return;
         }
 
@@ -600,7 +600,7 @@
     const selectedDecksText = document.getElementById('selectedDecksText');
     
     if (selectedDecks.length === 0) {
-      selectedDecksText.textContent = 'No decks selected';
+      selectedDecksText.textContent = STUDY_CFG.labels.no_decks_selected || 'No decks selected';
     } else if (selectedDecks.length === 1) {
       selectedDecksText.textContent = selectedDecks[0].nextElementSibling.textContent;
     } else {

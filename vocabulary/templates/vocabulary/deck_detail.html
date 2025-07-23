@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load i18n %}
 {% load static %}
 {% block title %}{{ deck.name }} - {{ manual_texts.my_decks }}{% endblock %}
 
@@ -107,10 +106,10 @@
                             {% endif %}
                             {% for def in card.definitions.all %}
                                 <div class="text-base text-gray-300 leading-relaxed mb-2">
-                                    <span class="font-semibold text-primary-color">{% trans "EN:" %}</span> {{ def.english_definition }}
+                                    <span class="font-semibold text-primary-color">{{ manual_texts.english_label }}</span> {{ def.english_definition }}
                                 </div>
                                 <div class="text-base text-gray-300 leading-relaxed mb-2">
-                                    <span class="font-semibold text-primary-color">{% trans "VI:" %}</span> {{ def.vietnamese_definition }}
+                                    <span class="font-semibold text-primary-color">{{ manual_texts.vietnamese_label }}</span> {{ def.vietnamese_definition }}
                                 </div>
                             {% endfor %}
                         </div>
@@ -152,13 +151,13 @@
 
                                     <!-- Audio URL -->
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-300 mb-1">Audio URL</label>
-                                        <input type="url" class="edit-audio-url w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent" value="{{ card.audio_url|default:'' }}" placeholder="https://example.com/audio.mp3">
+                                        <label class="block text-sm font-medium text-gray-300 mb-1">{{ manual_texts.audio_url_label }}</label>
+                                        <input type="url" class="edit-audio-url w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent" value="{{ card.audio_url|default:'' }}" placeholder="{{ manual_texts.audio_url_placeholder }}">
                                     </div>
 
                                     <!-- Definitions -->
                                     <div class="definitions-container">
-                                        <label class="block text-sm font-medium text-gray-300 mb-2">Definitions</label>
+                                        <label class="block text-sm font-medium text-gray-300 mb-2">{{ manual_texts.definitions_label }}</label>
                                         {% for def in card.definitions.all %}
                                             <div class="definition-pair mb-4 p-4 bg-gray-800 rounded-md">
                                                 <div class="mb-2">

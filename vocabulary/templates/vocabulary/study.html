@@ -24,7 +24,7 @@
           <div class="mode-icon">📚</div>
           <div class="mode-content">
             <h3>{{ manual_texts.normal_study_by_decks }}</h3>
-            <p>Học theo từng bộ thẻ cụ thể</p>
+            <p>{{ manual_texts.deck_study_description }}</p>
           </div>
         </div>
       </label>
@@ -35,7 +35,7 @@
           <div class="mode-icon">🎲</div>
           <div class="mode-content">
             <h3>{{ manual_texts.study_random_words }}</h3>
-            <p>Học từ ngẫu nhiên từ tất cả bộ thẻ</p>
+            <p>{{ manual_texts.random_study_description }}</p>
           </div>
         </div>
       </label>
@@ -57,7 +57,7 @@
           <label class="deck-option">
             <input type="checkbox" name="deck_ids" value="{{ d.id }}">
             <span class="deck-name">{{ d.name }}</span>
-            <span class="deck-count">{{ d.flashcards.count }} từ</span>
+            <span class="deck-count">{{ d.flashcards.count }} {{ manual_texts.words_unit }}</span>
           </label>
         {% empty %}
           <p class="no-decks-message">{{ manual_texts.no_decks_available }}</p>

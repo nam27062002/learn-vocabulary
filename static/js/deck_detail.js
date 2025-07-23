@@ -446,19 +446,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Validate required fields
         if (!formData.word) {
-            showMessage('Word is required', 'error');
+            showMessage(window.manual_texts?.word_required || 'Word is required', 'error');
             return;
         }
 
         if (formData.definitions.length === 0) {
-            showMessage('At least one definition is required', 'error');
+            showMessage(window.manual_texts?.definition_required || 'At least one definition is required', 'error');
             return;
         }
 
         // Show loading state
         const saveBtn = editMode.querySelector('.save-card-btn');
         const originalText = saveBtn.textContent;
-        saveBtn.textContent = 'Saving...';
+        saveBtn.textContent = window.manual_texts?.saving || 'Saving...';
         saveBtn.disabled = true;
 
         // Prepare request details with language prefix
@@ -507,13 +507,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Provide more specific error messages
             if (error.message.includes('HTTP 405')) {
-                errorMessage = 'Method not allowed. Please refresh the page and try again.';
+                errorMessage = window.manual_texts?.method_not_allowed || 'Method not allowed. Please refresh the page and try again.';
             } else if (error.message.includes('HTTP 403')) {
-                errorMessage = 'Permission denied. Please refresh the page and try again.';
+                errorMessage = window.manual_texts?.permission_denied || 'Permission denied. Please refresh the page and try again.';
             } else if (error.message.includes('HTTP 404')) {
-                errorMessage = 'Card not found. Please refresh the page and try again.';
+                errorMessage = window.manual_texts?.card_not_found || 'Card not found. Please refresh the page and try again.';
             } else if (error.message.includes('JSON')) {
-                errorMessage = 'Server response error. Please try again.';
+                errorMessage = window.manual_texts?.server_response_error || 'Server response error. Please try again.';
             }
 
             showMessage(errorMessage, 'error');
@@ -590,7 +590,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show a message if no definitions
             const noDefDiv = document.createElement('div');
             noDefDiv.className = 'text-base text-gray-400 leading-relaxed mb-2 italic';
-            noDefDiv.textContent = 'No definitions available';
+            noDefDiv.textContent = window.manual_texts?.no_definitions_available || 'No definitions available';
             viewMode.appendChild(noDefDiv);
         }
 
@@ -870,7 +870,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Show loading state
-            saveBtn.textContent = 'Saving...';
+            saveBtn.textContent = window.manual_texts?.saving || 'Saving...';
             saveBtn.disabled = true;
             cancelBtn.disabled = true;
 
@@ -1033,7 +1033,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         header.textContent = window.manual_texts?.audio_fetch_complete || 'Audio fetch complete';
         progressText.innerHTML = `
-            <div>Found: ${data.updated_count} / ${data.total_processed}</div>
+            <div>${window.manual_texts?.found_label || 'Found:'} ${data.updated_count} / ${data.total_processed}</div>
             <div class="text-xs mt-1">
                 ${data.words_processed.filter(w => w.found).map(w => w.word).join(', ')}
             </div>
