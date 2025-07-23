@@ -222,6 +222,9 @@ def manual_translations(request):
             'multiple_choice': 'Multiple Choice',
             'input_mode': 'Input Mode',
             'dictation_mode': 'Dictation Mode',
+            'review_completed_title': 'Congratulations!',
+            'review_completed_message': 'You have successfully reviewed all incorrect words!',
+            'continue_studying': 'Continue Studying',
         },
         'vi': {
             'learn_english': 'Học Tiếng Anh',
@@ -440,6 +443,9 @@ def manual_translations(request):
             'multiple_choice': 'Trắc nghiệm',
             'input_mode': 'Nhập từ',
             'dictation_mode': 'Chính tả',
+            'review_completed_title': 'Chúc mừng!',
+            'review_completed_message': 'Bạn đã ôn tập thành công tất cả các từ sai!',
+            'continue_studying': 'Tiếp tục học',
         }
     }
     

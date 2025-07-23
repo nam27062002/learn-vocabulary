@@ -208,6 +208,25 @@
     </div>
   </div>
 </div>
+
+<!-- Review Completion Success Modal -->
+<div id="reviewCompletionModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content success-modal">
+    <div class="modal-header">
+      <h2 class="modal-title">{{ manual_texts.review_completed_title }}</h2>
+    </div>
+    <div class="modal-body">
+      <div class="success-icon">🎉</div>
+      <p class="success-message">{{ manual_texts.review_completed_message }}</p>
+    </div>
+    <div class="modal-footer">
+      <button id="continueStudyingBtn" class="modal-button primary">
+        {{ manual_texts.continue_studying }}
+      </button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -234,7 +253,10 @@
       incorrect_answer: "{{ manual_texts.incorrect_answer }}",
       replay_audio: "{{ manual_texts.replay_audio }}",
       english_label: "{{ manual_texts.english_label }}",
-      vietnamese_label: "{{ manual_texts.vietnamese_label }}"
+      vietnamese_label: "{{ manual_texts.vietnamese_label }}",
+      review_completed_title: "{{ manual_texts.review_completed_title }}",
+      review_completed_message: "{{ manual_texts.review_completed_message }}",
+      continue_studying: "{{ manual_texts.continue_studying }}"
     }
   };
 </script>

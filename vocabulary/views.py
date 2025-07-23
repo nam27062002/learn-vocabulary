@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 import os
 import json
+import sys
 from django.contrib.auth.decorators import login_required
 from deep_translator import GoogleTranslator
 from django.db.models.functions import Random
@@ -255,27 +256,63 @@ def api_next_question(request):
         _update_card_shown_tracking(card)
     elif study_mode == 'review':
         # Review incorrect words mode: select from incorrect words list
+        # First, check if there are any unresolved incorrect words at all
+        total_incorrect_words = IncorrectWordReview.objects.filter(
+            user=request.user,
+            is_resolved=False
+        ).count()
+
+        print(f"Total unresolved incorrect words: {total_incorrect_words}", file=sys.stderr)
+
+        if total_incorrect_words == 0:
+            # All incorrect words have been resolved - session complete!
+            print("Review session completed - all words resolved!", file=sys.stderr)
+            return JsonResponse({
+                'done': True,
+                'session_completed': True,
+                'message': 'All incorrect words have been successfully reviewed!'
+            })
+
+        # Get incorrect words excluding those already seen in this session
         incorrect_words = IncorrectWordReview.objects.filter(
             user=request.user,
             is_resolved=False
         ).exclude(flashcard_id__in=seen_card_ids).select_related('flashcard')
 
         if not incorrect_words.exists():
-            # If no more incorrect words, loop back to all incorrect words
+            # If no more unseen incorrect words, loop back to all incorrect words
+            print("Looping back to start of review session", file=sys.stderr)
             incorrect_words = IncorrectWordReview.objects.filter(
                 user=request.user,
                 is_resolved=False
             ).select_related('flashcard')
 
+            # Double-check that we still have words (this should not happen due to check above)
             if not incorrect_words.exists():
-                return JsonResponse({'done': True})
+                print("No incorrect words found in loop-back - session complete!", file=sys.stderr)
+                return JsonResponse({
+                    'done': True,
+                    'session_completed': True,
+                    'message': 'All incorrect words have been successfully reviewed!'
+                })
 
         # Get a random incorrect word
         incorrect_word = incorrect_words.order_by('?').first()
+
+        if not incorrect_word:
+            print("No incorrect word found - this should not happen!", file=sys.stderr)
+            return JsonResponse({
+                'done': True,
+                'session_completed': True,
+                'message': 'No incorrect words found!'
+            })
+
         card = incorrect_word.flashcard
 
         # Store the original question type for this review session
         original_question_type = incorrect_word.question_type
+
+        print(f"Selected word for review: {card.word} (type: {original_question_type})", file=sys.stderr)
 
         # Update tracking fields when card is shown
         _update_card_shown_tracking(card)

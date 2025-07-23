@@ -188,10 +188,17 @@
     .then(data => {
       if (data.done) {
         if (currentStudyMode === 'review') {
-          // For review mode, loop back to the beginning instead of ending
-          seenCardIds = []; // Reset seen cards to start over
-          getNextQuestion(); // Restart the loop
-          return;
+          // Check if this is a session completion (all words resolved)
+          if (data.session_completed) {
+            console.log('Review session completed successfully!');
+            showReviewCompletionModal();
+            return;
+          } else {
+            // For review mode, loop back to the beginning instead of ending
+            seenCardIds = []; // Reset seen cards to start over
+            getNextQuestion(); // Restart the loop
+            return;
+          }
         } else {
           noCardMsg.className = 'no-cards-message show';
           studyArea.className = 'study-area';
@@ -978,5 +985,88 @@
 
   // Initialize audio feedback system
   AudioFeedback.init();
+
+  // Review Completion Modal Functions
+  function showReviewCompletionModal() {
+    const modal = document.getElementById('reviewCompletionModal');
+    const continueBtn = document.getElementById('continueStudyingBtn');
+
+    console.log('Showing review completion modal');
+
+    if (modal) {
+      modal.style.display = 'flex';
+
+      // Handle continue button click
+      if (continueBtn) {
+        continueBtn.onclick = function() {
+          console.log('Continue studying button clicked');
+          hideReviewCompletionModal();
+          returnToStudySelection();
+        };
+      }
+
+      // Close modal when clicking outside
+      modal.onclick = function(e) {
+        if (e.target === modal) {
+          console.log('Modal overlay clicked - closing');
+          hideReviewCompletionModal();
+          returnToStudySelection();
+        }
+      };
+    }
+  }
+
+  function hideReviewCompletionModal() {
+    const modal = document.getElementById('reviewCompletionModal');
+    if (modal) {
+      modal.style.display = 'none';
+      console.log('Review completion modal hidden');
+    }
+  }
+
+  function returnToStudySelection() {
+    console.log('Returning to study selection after review completion');
+
+    // Hide study area and show study selection
+    if (studyArea) {
+      studyArea.style.display = 'none';
+      studyArea.className = 'study-area';
+    }
+
+    const studyModeSection = document.querySelector('.study-mode-section');
+    if (studyModeSection) {
+      studyModeSection.style.display = 'block';
+    }
+
+    // Show appropriate options based on current mode
+    if (currentStudyMode === 'decks') {
+      if (deckStudyOptions) deckStudyOptions.classList.remove('hidden');
+      if (randomStudyOptions) randomStudyOptions.classList.add('hidden');
+      if (reviewStudyOptions) reviewStudyOptions.classList.add('hidden');
+    } else if (currentStudyMode === 'review') {
+      if (deckStudyOptions) deckStudyOptions.classList.add('hidden');
+      if (randomStudyOptions) randomStudyOptions.classList.add('hidden');
+      if (reviewStudyOptions) reviewStudyOptions.classList.remove('hidden');
+    } else {
+      if (deckStudyOptions) deckStudyOptions.classList.add('hidden');
+      if (randomStudyOptions) randomStudyOptions.classList.remove('hidden');
+      if (reviewStudyOptions) reviewStudyOptions.classList.add('hidden');
+    }
+
+    // Reset stats
+    correctCnt = 0;
+    incorrectCnt = 0;
+    updateStats();
+    if (studyHeader) studyHeader.style.display = '';
+
+    // Refresh incorrect words count to update the interface
+    console.log('Refreshing incorrect words count after completion');
+    loadIncorrectWordsCount();
+  }
+
+  // Make functions globally available
+  window.showReviewCompletionModal = showReviewCompletionModal;
+  window.hideReviewCompletionModal = hideReviewCompletionModal;
+  window.returnToStudySelection = returnToStudySelection;
 
 })();
