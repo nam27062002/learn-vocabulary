@@ -1065,3 +1065,14 @@
     gap: 1px;
   }
 }
+
+.flashcard-correct {
+  border-color: #10b981 !important; /* green-500 */
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.flashcard-incorrect {
+  border-color: #ef4444 !important; /* red-500 */
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18);
+  transition: border-color 0.3s, box-shadow 0.3s;
+}

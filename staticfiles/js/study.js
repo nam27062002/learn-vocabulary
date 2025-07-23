@@ -14,6 +14,7 @@
   const optionsArea = document.getElementById('optionsArea') || answerArea;
   const backBtn = document.getElementById('backBtn');
   const statsInfo = document.getElementById('statsInfo');
+  const studyHeader = document.querySelector('.study-header');
 
   const audioButton = document.getElementById('audioButton');
   
@@ -353,10 +354,20 @@
     }
     updateStats();
 
-    // Show feedback
+    // Remove feedbackMsg text
     if (feedbackMsg) {
-      feedbackMsg.textContent = correct ? `✅ ${STUDY_CFG.labels.correct_answer}` : `❌ ${STUDY_CFG.labels.incorrect_answer}`;
-      feedbackMsg.className = correct ? 'feedback-message success show' : 'feedback-message error show';
+      feedbackMsg.textContent = '';
+      feedbackMsg.className = 'feedback-message';
+    }
+    // Border color feedback
+    const flashcardContainer = document.getElementById('cardBox');
+    if (flashcardContainer) {
+      flashcardContainer.classList.remove('flashcard-correct', 'flashcard-incorrect');
+      if (correct) {
+        flashcardContainer.classList.add('flashcard-correct');
+      } else {
+        flashcardContainer.classList.add('flashcard-incorrect');
+      }
     }
 
     // NOW reveal the correct answer and make word clickable for Cambridge Dictionary
@@ -503,6 +514,7 @@
       if (deckStudyOptions) deckStudyOptions.classList.add('hidden');
       if (randomStudyOptions) randomStudyOptions.classList.add('hidden');
       if (studyArea) studyArea.className = 'study-area active';
+      if (studyHeader) studyHeader.style.display = 'none';
       
       // Start studying
       getNextQuestion();
@@ -523,6 +535,7 @@
       if (deckStudyOptions) deckStudyOptions.classList.add('hidden');
       if (randomStudyOptions) randomStudyOptions.classList.add('hidden');
       if (studyArea) studyArea.className = 'study-area active';
+      if (studyHeader) studyHeader.style.display = 'none';
       
       // Start studying
       getNextQuestion();
@@ -567,6 +580,7 @@
       correctCnt = 0;
       incorrectCnt = 0;
       updateStats();
+      if (studyHeader) studyHeader.style.display = '';
     });
   }
 
