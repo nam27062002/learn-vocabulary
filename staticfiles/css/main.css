@@ -469,4 +469,452 @@ a.button:hover {
 
 .pagination-dot.active {
     background-color: var(--primary-color);
-} 
+}
+
+/* ==========================================================================
+   Edit Flashcard Styles
+   ========================================================================== */
+
+.edit-card-btn {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.word-item-tailwind:hover .edit-card-btn {
+    opacity: 1;
+}
+
+.card-edit-mode {
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.card-edit-mode::-webkit-scrollbar {
+    width: 6px;
+}
+
+.card-edit-mode::-webkit-scrollbar-track {
+    background: #374151;
+    border-radius: 3px;
+}
+
+.card-edit-mode::-webkit-scrollbar-thumb {
+    background: #6b7280;
+    border-radius: 3px;
+}
+
+.card-edit-mode::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+
+.definition-pair {
+    border-left: 3px solid #6366f1;
+}
+
+.edit-mode-header {
+    position: sticky;
+    top: 0;
+    background: #111827;
+    z-index: 10;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #374151;
+}
+
+/* Success/Error message animations */
+.message-toast {
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Loading state for save button */
+.save-card-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Edit Mode Navigation Hiding */
+body[data-edit-mode="true"] .carousel-nav-btn,
+body[data-edit-mode="true"] .carousel-pagination {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+body[data-edit-mode="true"] .carousel-slides {
+    scroll-snap-type: none;
+    pointer-events: none;
+}
+
+body[data-edit-mode="true"] .carousel-slides .card-edit-mode {
+    pointer-events: all;
+}
+
+/* Edit mode visual feedback */
+.edit-mode-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.05);
+    z-index: 5;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    border-radius: 12px;
+}
+
+body[data-edit-mode="true"] .edit-mode-overlay {
+    opacity: 1;
+}
+
+/* Position overlay relative to carousel container */
+.carousel-container {
+    position: relative;
+}
+
+/* ESC hint */
+.esc-hint {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-size: 0.875rem;
+    z-index: 60;
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+body[data-edit-mode="true"] .esc-hint {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.esc-hint kbd {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    margin: 0 4px;
+}
+
+/* Disable text selection during edit mode for better UX */
+body[data-edit-mode="true"] .carousel-container {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+body[data-edit-mode="true"] .card-edit-mode {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+}
+
+/* Responsive adjustments for edit mode */
+@media (max-width: 640px) {
+    .card-edit-mode {
+        max-height: 90vh;
+    }
+
+    .edit-mode-header {
+        position: relative;
+    }
+
+    .edit-mode-header .flex {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .edit-mode-header .flex > div {
+        width: 100%;
+    }
+
+    .edit-mode-header button {
+        width: 100%;
+    }
+
+    .esc-hint {
+        top: 10px;
+        font-size: 0.75rem;
+        padding: 8px 16px;
+        border-radius: 20px;
+    }
+
+    .esc-hint kbd {
+        padding: 1px 4px;
+        font-size: 0.7rem;
+    }
+}
+
+/* ==========================================================================
+   Simplified Audio Button Styling
+   ========================================================================== */
+
+/* Enhanced audio button styling */
+.audio-icon-tailwind {
+    transition: all 0.3s ease;
+    border-radius: 50%;
+    padding: 4px;
+}
+
+.audio-icon-tailwind:hover {
+    background: rgba(99, 102, 241, 0.1);
+    transform: scale(1.1);
+}
+
+/* ==========================================================================
+   Deck Name Editing
+   ========================================================================== */
+
+#edit-deck-name-btn {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#deck-name-view:hover #edit-deck-name-btn {
+    opacity: 1;
+}
+
+#deck-name-input {
+    min-width: 300px;
+    max-width: 500px;
+}
+
+#deck-name-input:focus {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Deck name edit buttons */
+#save-deck-name-btn:disabled,
+#cancel-deck-edit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Responsive deck name editing */
+@media (max-width: 768px) {
+    #deck-name-edit {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        width: 100%;
+    }
+
+    #deck-name-input {
+        min-width: auto;
+        max-width: none;
+        width: 100%;
+        font-size: 1.5rem;
+    }
+
+    #deck-name-edit .flex {
+        flex-direction: row;
+        gap: 8px;
+    }
+
+    #save-deck-name-btn,
+    #cancel-deck-edit-btn {
+        flex: 1;
+    }
+}
+
+/* Filter controls */
+.audio-filter-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: rgba(55, 65, 81, 0.5);
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+}
+
+.audio-filter-controls label {
+    color: #d1d5db;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.audio-filter-controls select {
+    background: #374151;
+    border: 1px solid #4b5563;
+    border-radius: 8px;
+    color: white;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    min-width: 180px;
+}
+
+.audio-filter-controls select:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.audio-stats {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 0.875rem;
+    color: #9ca3af;
+}
+
+.audio-stats .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.audio-stats .stat-item i {
+    font-size: 1rem;
+}
+
+.audio-stats .stat-item.has-audio {
+    color: #22c55e;
+}
+
+.audio-stats .stat-item.no-audio {
+    color: #ef4444;
+}
+
+/* Audio fetching button */
+#fetch-missing-audio-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+#fetch-missing-audio-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#fetch-missing-audio-btn.loading {
+    color: transparent;
+}
+
+#fetch-missing-audio-btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Audio fetch progress */
+.audio-fetch-progress {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 16px 20px;
+    border-radius: 8px;
+    z-index: 1000;
+    min-width: 300px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.audio-fetch-progress .progress-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.audio-fetch-progress .progress-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.audio-fetch-progress .progress-fill {
+    height: 100%;
+    background: #3b82f6;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.audio-fetch-progress .progress-text {
+    font-size: 0.875rem;
+    color: #d1d5db;
+}
+
+.audio-fetch-progress .close-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.2s ease;
+}
+
+.audio-fetch-progress .close-btn:hover {
+    color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+    .audio-filter-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .audio-filter-controls select {
+        min-width: auto;
+    }
+
+    .audio-stats {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+}

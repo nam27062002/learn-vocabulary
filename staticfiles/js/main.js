@@ -4,14 +4,29 @@
 
    document.addEventListener('DOMContentLoaded', function() {
     
-    // Generic dropdown toggle function
+    // Track all dropdown menus for mutual exclusion
+    const dropdownMenus = [];
+    
+    // Generic dropdown toggle function with mutual exclusion
     const setupDropdown = (toggleId, menuId) => {
         const toggle = document.getElementById(toggleId);
         const menu = document.getElementById(menuId);
 
         if (toggle && menu) {
+            // Add menu to tracking array
+            dropdownMenus.push(menu);
+            
             toggle.addEventListener('click', (e) => {
                 e.stopPropagation();
+                
+                // Close all other dropdowns first
+                dropdownMenus.forEach(otherMenu => {
+                    if (otherMenu !== menu) {
+                        otherMenu.classList.add('hidden');
+                    }
+                });
+                
+                // Toggle current dropdown
                 menu.classList.toggle('hidden');
             });
 
@@ -35,6 +50,11 @@
     
     if (mobileMenuToggle && mobileMenu) {
         mobileMenuToggle.addEventListener('click', () => {
+            // Close all dropdown menus when mobile menu is toggled
+            dropdownMenus.forEach(menu => {
+                menu.classList.add('hidden');
+            });
+            
             mobileMenu.classList.toggle('hidden');
             // Toggle icons inside the button
             const icons = mobileMenuToggle.querySelectorAll('svg');
@@ -91,16 +111,20 @@
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             // Close all open dropdowns
-            document.querySelectorAll('#user-menu, #lang-menu, #mobile-menu').forEach(menu => {
+            dropdownMenus.forEach(menu => {
                 if(menu) menu.classList.add('hidden');
             });
-
-            // Reset mobile menu icon state
-            if (mobileMenuToggle) {
-                const icons = mobileMenuToggle.querySelectorAll('svg');
-                if (icons.length > 1) {
-                    icons[0].classList.remove('hidden'); // Show hamburger
-                    icons[1].classList.add('hidden');    // Hide close icon
+            
+            // Close mobile menu if open
+            if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+                mobileMenu.classList.add('hidden');
+                // Reset mobile menu icon state
+                if (mobileMenuToggle) {
+                    const icons = mobileMenuToggle.querySelectorAll('svg');
+                    if (icons.length > 1) {
+                        icons[0].classList.remove('hidden'); // Show hamburger
+                        icons[1].classList.add('hidden');    // Hide close icon
+                    }
                 }
             }
         }

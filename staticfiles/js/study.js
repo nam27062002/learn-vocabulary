@@ -60,7 +60,7 @@
     if (selectedOptions.length > 0) {
       selectedDecksText.textContent = selectedOptions.join(', ');
     } else {
-      selectedDecksText.textContent = STUDY_CFG.labels.no_decks_selected || 'Chưa chọn bộ thẻ nào';
+      selectedDecksText.textContent = STUDY_CFG.labels.no_decks_selected || STUDY_CFG.labels.no_decks_selected;
     }
   }
 
@@ -240,7 +240,7 @@
       feedbackMsg.style.color = '#38c172';
     } else {
       incorrectCnt++;
-      const label = STUDY_CFG.labels.answerLabel || 'Đáp án';
+      const label = STUDY_CFG.labels.answerLabel;
       feedbackMsg.textContent = `${STUDY_CFG.labels.incorrect} – ${label}: ${currentQuestion.word}`;
       feedbackMsg.style.color = '#e3342f';
     }
@@ -254,7 +254,7 @@
         // Làm đẹp: tạo div nổi bật, có icon, dùng label dịch
         cardDefsEl.innerHTML = `<div style="background:#f3f4f6;border-radius:10px;padding:10px 18px;margin:12px auto 0 auto;display:flex;align-items:center;justify-content:center;max-width:90%;font-size:1.08em;box-shadow:0 2px 8px #0001;">
           <span style='font-size:1.2em;margin-right:8px;'>🇻🇳</span>
-          <span style='font-weight:600;color:#4b5563;'>${STUDY_CFG.labels.vietnamese_meaning || 'VI'}:</span>
+          <span style='font-weight:600;color:#4b5563;'>${STUDY_CFG.labels.vietnamese_meaning}:</span>
           <span style='margin-left:8px;color:#111827;'>${viDefs.join(' | ')}</span>
         </div>`;
       }

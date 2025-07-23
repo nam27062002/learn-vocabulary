@@ -44,9 +44,28 @@
     
     <!-- Language Switcher Script -->
     <script>
+        // Track all dropdown menus for mutual exclusion
+        const accountDropdownMenus = [];
+        
         function toggleLanguage() {
             const menu = document.getElementById('language-menu');
-            menu.classList.toggle('hidden');
+            const dropdown = document.getElementById('language-dropdown');
+            
+            if (menu && dropdown) {
+                // Add to tracking if not already tracked
+                if (!accountDropdownMenus.includes(menu)) {
+                    accountDropdownMenus.push(menu);
+                }
+                
+                // Close all other dropdowns first
+                accountDropdownMenus.forEach(otherMenu => {
+                    if (otherMenu !== menu) {
+                        otherMenu.classList.add('hidden');
+                    }
+                });
+                
+                menu.classList.toggle('hidden');
+            }
         }
         
         // Close dropdown when clicking outside
@@ -54,8 +73,17 @@
             const dropdown = document.getElementById('language-dropdown');
             const menu = document.getElementById('language-menu');
             
-            if (!dropdown.contains(event.target)) {
+            if (dropdown && menu && !dropdown.contains(event.target)) {
                 menu.classList.add('hidden');
+            }
+        });
+        
+        // Close dropdowns on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                accountDropdownMenus.forEach(menu => {
+                    if (menu) menu.classList.add('hidden');
+                });
             }
         });
     </script>
