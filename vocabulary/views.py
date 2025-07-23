@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
-from .models import Flashcard, Definition, Deck # Import Deck model
+from .models import Flashcard, Definition, Deck, StudySession, StudySessionAnswer # Import Deck model
 from django.conf import settings # Import settings
 from .api_services import get_word_suggestions_from_datamuse, check_word_spelling_with_languagetool # Import new service functions
 from .word_details_service import get_word_details # Import the new service function
@@ -10,8 +10,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
-from django.db.models import Count
+from django.db.models import Count, Q
 from datetime import datetime, timedelta
+from django.utils import timezone
 import os
 import json
 from django.contrib.auth.decorators import login_required
@@ -27,6 +28,7 @@ SPACED_REPETITION_CONFIG = {
     'MIN_DISTRACTORS': 10,          # Minimum distractors to collect for filtering
 }
 import random
+from .statistics_utils import create_study_session, record_answer, end_study_session
 
 # Helper function to filter semantically similar distractors
 def _filter_semantic_distractors(correct_word, candidates):
@@ -204,6 +206,24 @@ def api_next_question(request):
     # Convert seen_card_ids to integers
     seen_card_ids = [int(cid) for cid in seen_card_ids if cid.isdigit()]
 
+    # Get or create current study session
+    current_session = request.session.get('current_study_session_id')
+    if not current_session:
+        # Create new study session
+        session_mode = 'random' if study_mode == 'random' else 'deck'
+        session = create_study_session(request.user, session_mode, deck_ids if session_mode == 'deck' else None)
+        request.session['current_study_session_id'] = session.id
+        request.session['session_start_time'] = timezone.now().timestamp()
+    else:
+        try:
+            session = StudySession.objects.get(id=current_session, user=request.user)
+        except StudySession.DoesNotExist:
+            # Session doesn't exist, create new one
+            session_mode = 'random' if study_mode == 'random' else 'deck'
+            session = create_study_session(request.user, session_mode, deck_ids if session_mode == 'deck' else None)
+            request.session['current_study_session_id'] = session.id
+            request.session['session_start_time'] = timezone.now().timestamp()
+
     if study_mode == 'random':
         # Random study mode: select random words from entire vocabulary
         available_cards = Flashcard.objects.filter(user=request.user).exclude(id__in=seen_card_ids)
@@ -290,13 +310,187 @@ def api_submit_answer(request):
     data = json.loads(request.body)
     card_id = data.get('card_id')
     correct = data.get('correct')  # bool
+    response_time = data.get('response_time', 0)  # Time in seconds
+    question_type = data.get('question_type', 'multiple_choice')
+
     try:
         card = Flashcard.objects.get(id=card_id, user=request.user)
     except Flashcard.DoesNotExist:
         return JsonResponse({'success': False}, status=404)
 
+    # Get current study session
+    current_session_id = request.session.get('current_study_session_id')
+    if current_session_id:
+        try:
+            session = StudySession.objects.get(id=current_session_id, user=request.user)
+            # Record the answer in the session
+            record_answer(session, card, correct, response_time, question_type)
+        except StudySession.DoesNotExist:
+            pass  # Session doesn't exist, continue without recording
+
+    # Update SM-2 algorithm
     _update_sm2(card, correct)
     return JsonResponse({'success': True})
+
+
+@login_required
+@require_POST
+def api_end_study_session(request):
+    """End the current study session."""
+    current_session_id = request.session.get('current_study_session_id')
+    if current_session_id:
+        try:
+            session = StudySession.objects.get(id=current_session_id, user=request.user)
+            end_study_session(session)
+
+            # Clear session data
+            del request.session['current_study_session_id']
+            if 'session_start_time' in request.session:
+                del request.session['session_start_time']
+
+            return JsonResponse({
+                'success': True,
+                'session_summary': {
+                    'total_questions': session.total_questions,
+                    'correct_answers': session.correct_answers,
+                    'incorrect_answers': session.incorrect_answers,
+                    'accuracy_percentage': session.accuracy_percentage,
+                    'duration_formatted': session.duration_formatted,
+                    'words_studied': session.words_studied,
+                }
+            })
+        except StudySession.DoesNotExist:
+            pass
+
+    return JsonResponse({'success': False, 'error': 'No active session found'})
+
+
+@login_required
+@require_GET
+def api_statistics_data(request):
+    """API endpoint to get statistics data for charts."""
+    from .statistics_utils import get_user_statistics_summary
+    from .models import DailyStatistics
+    import json as _json
+
+    period = request.GET.get('period', '30')
+    try:
+        period_days = int(period)
+    except ValueError:
+        period_days = 30
+
+    # Get comprehensive statistics summary
+    stats_summary = get_user_statistics_summary(request.user, period_days)
+
+    # Get daily statistics for charts
+    end_date = timezone.now().date()
+    start_date = end_date - timedelta(days=period_days-1)
+
+    daily_stats = DailyStatistics.objects.filter(
+        user=request.user,
+        date__range=[start_date, end_date]
+    ).order_by('date')
+
+    # Prepare chart data
+    chart_data = {
+        'dates': [],
+        'study_times': [],
+        'questions_answered': [],
+        'accuracy_rates': [],
+    }
+
+    # Fill in missing dates with zeros
+    current_date = start_date
+    daily_stats_dict = {stat.date: stat for stat in daily_stats}
+
+    while current_date <= end_date:
+        chart_data['dates'].append(current_date.strftime('%m/%d'))
+
+        if current_date in daily_stats_dict:
+            stat = daily_stats_dict[current_date]
+            chart_data['study_times'].append(round(stat.total_study_time_seconds / 60, 1))
+            chart_data['questions_answered'].append(stat.total_questions_answered)
+            chart_data['accuracy_rates'].append(stat.accuracy_percentage)
+        else:
+            chart_data['study_times'].append(0)
+            chart_data['questions_answered'].append(0)
+            chart_data['accuracy_rates'].append(0)
+
+        current_date += timedelta(days=1)
+
+    return JsonResponse({
+        'success': True,
+        'stats_summary': stats_summary,
+        'chart_data': chart_data,
+    })
+
+
+@login_required
+@require_GET
+def api_word_performance(request):
+    """API endpoint to get individual word performance data."""
+    # Get words with their performance metrics
+    words = Flashcard.objects.filter(user=request.user).values(
+        'word', 'total_reviews', 'correct_reviews', 'difficulty_score',
+        'accuracy_percentage', 'last_reviewed'
+    ).order_by('-total_reviews')[:50]  # Top 50 most reviewed words
+
+    word_data = []
+    for word in words:
+        word_data.append({
+            'word': word['word'],
+            'total_reviews': word['total_reviews'],
+            'correct_reviews': word['correct_reviews'],
+            'accuracy_percentage': word['accuracy_percentage'],
+            'difficulty_level': 'Easy' if word['difficulty_score'] <= 0.3 else
+                              'Medium' if word['difficulty_score'] <= 0.6 else 'Hard',
+            'last_reviewed': word['last_reviewed'].strftime('%Y-%m-%d') if word['last_reviewed'] else None,
+        })
+
+    return JsonResponse({
+        'success': True,
+        'words': word_data,
+    })
+
+
+@login_required
+def test_statistics_view(request):
+    """Test view to verify statistics template renders correctly."""
+    from .statistics_utils import get_user_statistics_summary
+    from .models import DailyStatistics, WeeklyStatistics, StudySession
+    import json as _json
+
+    # Get basic statistics
+    stats_summary = get_user_statistics_summary(request.user, 30)
+
+    # Create minimal context for testing
+    context = {
+        'period_days': 30,
+        'stats_summary': stats_summary,
+        'recent_sessions': [],
+
+        # Empty chart data for testing
+        'chart_dates': _json.dumps([]),
+        'study_times': _json.dumps([]),
+        'questions_answered': _json.dumps([]),
+        'accuracy_rates': _json.dumps([]),
+        'weekly_labels': _json.dumps([]),
+        'weekly_consistency': _json.dumps([]),
+
+        # Empty deck data
+        'deck_labels': _json.dumps([]),
+        'deck_counts': _json.dumps([]),
+
+        # Period options
+        'period_options': [
+            {'value': '7', 'label': 'Last 7 days'},
+            {'value': '30', 'label': 'Last 30 days'},
+            {'value': '90', 'label': 'Last 3 months'},
+            {'value': '365', 'label': 'Last year'},
+        ],
+        'current_period': '30',
+    }
+    return render(request, 'vocabulary/enhanced_statistics.html', context)
 
 # Create your views here.
 
@@ -738,33 +932,119 @@ def language_test(request):
 
 @login_required
 def statistics_view(request):
-    user_decks = Deck.objects.filter(user=request.user)
-    total_decks = user_decks.count()
-    total_cards = Flashcard.objects.filter(user=request.user).count()
-    avg_cards = round(total_cards / total_decks, 2) if total_decks > 0 else 0
+    from .statistics_utils import get_user_statistics_summary
+    from .models import DailyStatistics, WeeklyStatistics
+    import json as _json
+    from django.db.models import Sum, Avg
 
-    # Prepare data for chart (cards per deck)
+    # Get time period from request (default to 30 days)
+    period = request.GET.get('period', '30')
+    try:
+        period_days = int(period)
+    except ValueError:
+        period_days = 30
+
+    # Get comprehensive statistics summary
+    stats_summary = get_user_statistics_summary(request.user, period_days)
+
+    # Get daily statistics for charts
+    end_date = timezone.now().date()
+    start_date = end_date - timedelta(days=period_days-1)
+
+    daily_stats = DailyStatistics.objects.filter(
+        user=request.user,
+        date__range=[start_date, end_date]
+    ).order_by('date')
+
+    # Prepare chart data
+    chart_dates = []
+    study_times = []
+    questions_answered = []
+    accuracy_rates = []
+
+    # Fill in missing dates with zeros
+    current_date = start_date
+    daily_stats_dict = {stat.date: stat for stat in daily_stats}
+
+    while current_date <= end_date:
+        chart_dates.append(current_date.strftime('%m/%d'))
+
+        if current_date in daily_stats_dict:
+            stat = daily_stats_dict[current_date]
+            study_times.append(round(stat.total_study_time_seconds / 60, 1))  # Convert to minutes
+            questions_answered.append(stat.total_questions_answered)
+            accuracy_rates.append(stat.accuracy_percentage)
+        else:
+            study_times.append(0)
+            questions_answered.append(0)
+            accuracy_rates.append(0)
+
+        current_date += timedelta(days=1)
+
+    # Get deck statistics
+    user_decks = Deck.objects.filter(user=request.user)
     deck_data = user_decks.annotate(card_count=Count('flashcards')).order_by('-card_count')
     deck_labels = [deck.name for deck in deck_data]
     deck_counts = [deck.card_count for deck in deck_data]
 
-    import json as _json
-    deck_labels_json = _json.dumps(deck_labels)
-    deck_counts_json = _json.dumps(deck_counts)
+    # Get recent study sessions
+    recent_sessions = StudySession.objects.filter(
+        user=request.user,
+        session_end__isnull=False
+    ).order_by('-session_start')[:10]
+
+    # Get weekly statistics for consistency tracking
+    weekly_stats = WeeklyStatistics.objects.filter(
+        user=request.user
+    ).order_by('-year', '-week_number')[:12]  # Last 12 weeks
+
+    weekly_consistency = []
+    weekly_labels = []
+    for week_stat in reversed(weekly_stats):
+        weekly_labels.append(f"W{week_stat.week_number}")
+        weekly_consistency.append(week_stat.consistency_percentage)
 
     context = {
-        'total_decks': total_decks,
-        'total_cards': total_cards,
-        'avg_cards': avg_cards,
-        'deck_labels': deck_labels_json,
-        'deck_counts': deck_counts_json,
+        'period_days': period_days,
+        'stats_summary': stats_summary,
+        'recent_sessions': recent_sessions,
+
+        # Chart data (JSON)
+        'chart_dates': _json.dumps(chart_dates),
+        'study_times': _json.dumps(study_times),
+        'questions_answered': _json.dumps(questions_answered),
+        'accuracy_rates': _json.dumps(accuracy_rates),
+        'weekly_labels': _json.dumps(weekly_labels),
+        'weekly_consistency': _json.dumps(weekly_consistency),
+
+        # Deck data
+        'deck_labels': _json.dumps(deck_labels),
+        'deck_counts': _json.dumps(deck_counts),
+
+        # Period options
+        'period_options': [
+            {'value': '7', 'label': 'Last 7 days'},
+            {'value': '30', 'label': 'Last 30 days'},
+            {'value': '90', 'label': 'Last 3 months'},
+            {'value': '365', 'label': 'Last year'},
+        ],
+        'current_period': period,
     }
-    return render(request, 'vocabulary/statistics.html', context)
+    return render(request, 'vocabulary/enhanced_statistics.html', context)
 
 @login_required
 def study_page(request):
     decks = Deck.objects.filter(user=request.user)
     total_words_available = Flashcard.objects.filter(user=request.user).count()
+
+    # End any incomplete sessions for this user
+    incomplete_sessions = StudySession.objects.filter(
+        user=request.user,
+        session_end__isnull=True
+    )
+    for session in incomplete_sessions:
+        end_study_session(session)
+
     return render(request, 'vocabulary/study.html', {
         'decks': decks,
         'total_words_available': total_words_available

@@ -98,3 +98,220 @@ class Definition(models.Model):
 
     def __str__(self):
         return f"{self.flashcard.word} - {self.english_definition[:50]}..."
+
+
+class StudySession(models.Model):
+    """Track individual study sessions with comprehensive metrics."""
+    STUDY_MODE_CHOICES = [
+        ('deck', 'Deck Study'),
+        ('random', 'Random Study'),
+        ('spaced_repetition', 'Spaced Repetition'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='study_sessions')
+    session_start = models.DateTimeField(auto_now_add=True)
+    session_end = models.DateTimeField(null=True, blank=True)
+    study_mode = models.CharField(max_length=20, choices=STUDY_MODE_CHOICES, default='deck')
+    decks_studied = models.ManyToManyField(Deck, blank=True, help_text="Decks included in this session")
+
+    # Session metrics
+    total_questions = models.PositiveIntegerField(default=0)
+    correct_answers = models.PositiveIntegerField(default=0)
+    incorrect_answers = models.PositiveIntegerField(default=0)
+    session_duration_seconds = models.PositiveIntegerField(default=0, help_text="Total session duration in seconds")
+
+    # Additional tracking
+    words_studied = models.PositiveIntegerField(default=0, help_text="Unique words encountered in this session")
+    average_response_time = models.FloatField(default=0.0, help_text="Average time per question in seconds")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-session_start']
+        indexes = [
+            models.Index(fields=['user', 'session_start']),
+            models.Index(fields=['user', 'study_mode']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_study_mode_display()} - {self.session_start.strftime('%Y-%m-%d %H:%M')}"
+
+    @property
+    def accuracy_percentage(self):
+        """Calculate accuracy percentage for this session."""
+        if self.total_questions == 0:
+            return 0
+        return round((self.correct_answers / self.total_questions) * 100, 1)
+
+    @property
+    def duration_formatted(self):
+        """Return formatted duration string."""
+        if self.session_duration_seconds == 0:
+            return "0m 0s"
+
+        minutes = self.session_duration_seconds // 60
+        seconds = self.session_duration_seconds % 60
+
+        if minutes > 0:
+            return f"{minutes}m {seconds}s"
+        else:
+            return f"{seconds}s"
+
+    def end_session(self):
+        """Mark session as ended and calculate duration."""
+        if not self.session_end:
+            self.session_end = timezone.now()
+            self.session_duration_seconds = int((self.session_end - self.session_start).total_seconds())
+            self.save(update_fields=['session_end', 'session_duration_seconds'])
+
+
+class StudySessionAnswer(models.Model):
+    """Track individual answers within study sessions."""
+    session = models.ForeignKey(StudySession, on_delete=models.CASCADE, related_name='answers')
+    flashcard = models.ForeignKey(Flashcard, on_delete=models.CASCADE)
+
+    # Answer details
+    is_correct = models.BooleanField()
+    response_time_seconds = models.FloatField(help_text="Time taken to answer in seconds")
+    question_type = models.CharField(max_length=20, default='multiple_choice', help_text="Type of question (mc, input, etc.)")
+
+    # Spaced repetition context
+    difficulty_before = models.FloatField(help_text="Card difficulty before this answer")
+    difficulty_after = models.FloatField(help_text="Card difficulty after this answer")
+
+    answered_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['answered_at']
+        indexes = [
+            models.Index(fields=['session', 'answered_at']),
+            models.Index(fields=['flashcard', 'is_correct']),
+        ]
+
+    def __str__(self):
+        status = "✓" if self.is_correct else "✗"
+        return f"{status} {self.flashcard.word} - {self.response_time_seconds:.1f}s"
+
+
+class DailyStatistics(models.Model):
+    """Aggregate daily statistics for users."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='daily_stats')
+    date = models.DateField()
+
+    # Study metrics
+    total_study_time_seconds = models.PositiveIntegerField(default=0)
+    total_questions_answered = models.PositiveIntegerField(default=0)
+    correct_answers = models.PositiveIntegerField(default=0)
+    incorrect_answers = models.PositiveIntegerField(default=0)
+    unique_words_studied = models.PositiveIntegerField(default=0)
+
+    # Session metrics
+    study_sessions_count = models.PositiveIntegerField(default=0)
+    average_session_duration = models.FloatField(default=0.0, help_text="Average session duration in seconds")
+
+    # Card creation
+    new_cards_created = models.PositiveIntegerField(default=0)
+
+    # Streak tracking
+    is_study_day = models.BooleanField(default=False, help_text="True if user studied on this day")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['user', 'date']
+        ordering = ['-date']
+        indexes = [
+            models.Index(fields=['user', 'date']),
+            models.Index(fields=['user', 'is_study_day']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.date} - {self.total_questions_answered} questions"
+
+    @property
+    def accuracy_percentage(self):
+        """Calculate accuracy percentage for this day."""
+        if self.total_questions_answered == 0:
+            return 0
+        return round((self.correct_answers / self.total_questions_answered) * 100, 1)
+
+    @property
+    def study_time_formatted(self):
+        """Return formatted study time string."""
+        if self.total_study_time_seconds == 0:
+            return "0m"
+
+        hours = self.total_study_time_seconds // 3600
+        minutes = (self.total_study_time_seconds % 3600) // 60
+
+        if hours > 0:
+            return f"{hours}h {minutes}m"
+        else:
+            return f"{minutes}m"
+
+
+class WeeklyStatistics(models.Model):
+    """Aggregate weekly statistics for users."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='weekly_stats')
+    year = models.PositiveIntegerField()
+    week_number = models.PositiveIntegerField(help_text="ISO week number (1-53)")
+    week_start_date = models.DateField()
+
+    # Study metrics
+    total_study_time_seconds = models.PositiveIntegerField(default=0)
+    total_questions_answered = models.PositiveIntegerField(default=0)
+    correct_answers = models.PositiveIntegerField(default=0)
+    incorrect_answers = models.PositiveIntegerField(default=0)
+    unique_words_studied = models.PositiveIntegerField(default=0)
+
+    # Session metrics
+    study_sessions_count = models.PositiveIntegerField(default=0)
+    study_days_count = models.PositiveIntegerField(default=0, help_text="Number of days studied this week")
+
+    # Card creation
+    new_cards_created = models.PositiveIntegerField(default=0)
+
+    # Goals and streaks
+    weekly_goal_met = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['user', 'year', 'week_number']
+        ordering = ['-year', '-week_number']
+        indexes = [
+            models.Index(fields=['user', 'year', 'week_number']),
+            models.Index(fields=['user', 'week_start_date']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - Week {self.week_number}/{self.year} - {self.total_questions_answered} questions"
+
+    @property
+    def accuracy_percentage(self):
+        """Calculate accuracy percentage for this week."""
+        if self.total_questions_answered == 0:
+            return 0
+        return round((self.correct_answers / self.total_questions_answered) * 100, 1)
+
+    @property
+    def study_time_formatted(self):
+        """Return formatted study time string."""
+        if self.total_study_time_seconds == 0:
+            return "0h"
+
+        hours = self.total_study_time_seconds // 3600
+        minutes = (self.total_study_time_seconds % 3600) // 60
+
+        if hours > 0:
+            return f"{hours}h {minutes}m"
+        else:
+            return f"{minutes}m"
+
+    @property
+    def consistency_percentage(self):
+        """Calculate study consistency (days studied / 7 days)."""
+        return round((self.study_days_count / 7) * 100, 1)

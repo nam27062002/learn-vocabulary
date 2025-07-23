@@ -58,6 +58,7 @@
   }
 
   let currentQuestion = null;
+  let questionStartTime = null;
 
   function getNextQuestion() {
     const params = new URLSearchParams();
@@ -96,6 +97,7 @@
 
   function renderQuestion(q) {
     currentQuestion = q;
+    questionStartTime = Date.now(); // Track when question was shown
 
     // Clear any existing timeout
     if (nextTimeout) {
@@ -296,6 +298,9 @@
   }
 
   function submitGrade(grade) {
+    // Calculate response time
+    const responseTime = questionStartTime ? (Date.now() - questionStartTime) / 1000 : 0;
+
     fetch(STUDY_CFG.submitUrl, {
       method: 'POST',
       headers: {
@@ -304,7 +309,9 @@
       },
       body: JSON.stringify({
         card_id: currentQuestion.id,
-        correct: grade >= 2 // Grade 2+ is considered correct
+        correct: grade >= 2, // Grade 2+ is considered correct
+        response_time: responseTime,
+        question_type: currentQuestion.type || 'multiple_choice'
       })
     })
     .then(r => r.json())
@@ -473,4 +480,30 @@
 
   updateSelectedDecksText(); // Initial update
 
-})(); 
+  // Function to end study session
+  function endStudySession() {
+    fetch('/api/study/end-session/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': STUDY_CFG.csrfToken
+      }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success && data.session_summary) {
+        // Show session summary
+        const summary = data.session_summary;
+        console.log('Study session ended:', summary);
+      }
+    })
+    .catch(err => console.error('Error ending session:', err));
+  }
+
+  // End session when user leaves the page
+  window.addEventListener('beforeunload', endStudySession);
+
+  // End session when user navigates away
+  window.addEventListener('pagehide', endStudySession);
+
+})();

@@ -51,7 +51,8 @@
 }
 
 .type-input {
-  padding: 10px;
+  padding: 0 10px;
+  height: 44px;
   width: 100%;
   max-width: 300px;
   margin-bottom: 10px;
@@ -59,7 +60,10 @@
   border: 1px solid var(--card-border-color);
   background: var(--card-background);
   color: var(--card-text-main);
+  font-size: 16px;
+  line-height: 1.2;
   transition: border-color .15s ease;
+  box-sizing: border-box;
 }
 .type-input:focus {
   outline: none;
@@ -70,10 +74,18 @@
   background: var(--primary-color);
   color: #fff;
   border: none;
-  padding: 8px 18px;
+  /* Đảm bảo chiều cao bằng input */
+  height: 44px;
+  padding: 0 18px;
   border-radius: 6px;
   font-weight: 600;
+  font-size: 16px;
+  line-height: 1.2;
   transition: background .15s ease, transform .15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
 }
 .check-btn:hover {
   background: var(--primary-color-dark);
