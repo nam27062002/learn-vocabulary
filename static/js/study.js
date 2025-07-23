@@ -17,7 +17,100 @@
   const studyHeader = document.querySelector('.study-header');
 
   const audioButton = document.getElementById('audioButton');
-  
+  const audioToggle = document.getElementById('audioToggle');
+
+  // Audio feedback system
+  const AudioFeedback = {
+    correctSound: null,
+    incorrectSound: null,
+    enabled: true,
+
+    init() {
+      try {
+        // Load audio files
+        this.correctSound = new Audio('/static/audio/correct.mp3');
+        this.incorrectSound = new Audio('/static/audio/incorrect.mp3');
+
+        // Set volume levels
+        this.correctSound.volume = 0.6;
+        this.incorrectSound.volume = 0.6;
+
+        // Add error event listeners
+        this.correctSound.addEventListener('error', (e) => {
+          console.warn('Failed to load correct sound:', e);
+          this.correctSound = null;
+        });
+
+        this.incorrectSound.addEventListener('error', (e) => {
+          console.warn('Failed to load incorrect sound:', e);
+          this.incorrectSound = null;
+        });
+
+        // Load saved preference from localStorage
+        const savedPreference = localStorage.getItem('audioFeedbackEnabled');
+        if (savedPreference !== null) {
+          this.enabled = savedPreference === 'true';
+        }
+
+        // Update toggle state
+        if (audioToggle) {
+          audioToggle.checked = this.enabled;
+          audioToggle.addEventListener('change', (e) => {
+            this.enabled = e.target.checked;
+            localStorage.setItem('audioFeedbackEnabled', this.enabled.toString());
+            console.log('Audio feedback', this.enabled ? 'enabled' : 'disabled');
+          });
+        }
+
+        // Preload audio files
+        this.preloadAudio();
+
+        console.log('Audio feedback system initialized. Enabled:', this.enabled);
+      } catch (error) {
+        console.error('Failed to initialize audio feedback system:', error);
+        this.enabled = false;
+      }
+    },
+
+    preloadAudio() {
+      // Preload audio files to avoid delays
+      if (this.correctSound) {
+        this.correctSound.load();
+      }
+      if (this.incorrectSound) {
+        this.incorrectSound.load();
+      }
+    },
+
+    playCorrect() {
+      if (this.enabled && this.correctSound) {
+        try {
+          this.correctSound.currentTime = 0; // Reset to beginning
+          this.correctSound.play().catch(err => {
+            console.log('Correct sound play failed:', err);
+          });
+          console.log('Playing correct answer sound');
+        } catch (error) {
+          console.error('Error playing correct sound:', error);
+        }
+      }
+    },
+
+    playIncorrect() {
+      if (this.enabled && this.incorrectSound) {
+        try {
+          this.incorrectSound.currentTime = 0; // Reset to beginning
+          this.incorrectSound.play().catch(err => {
+            console.log('Incorrect sound play failed:', err);
+          });
+          console.log('Playing incorrect answer sound');
+        } catch (error) {
+          console.error('Error playing incorrect sound:', error);
+        }
+      }
+    }
+  };
+
   // New elements for study mode selection
   const studyModeRadios = document.querySelectorAll('input[name="study_mode"]');
   const randomStudyOptions = document.getElementById('randomStudyOptions');
@@ -350,25 +443,61 @@
       nextTimeout = null;
     }
 
+    // Play audio feedback immediately
+    if (correct) {
+      AudioFeedback.playCorrect();
+    } else {
+      AudioFeedback.playIncorrect();
+    }
+
     // Hide answer elements based on question type
     if (currentQuestion.type === 'mc') {
       // Multiple choice: hide all option buttons
       const optionButtons = optionsArea.querySelectorAll('.option-btn');
-      optionButtons.forEach(btn => btn.classList.add('hidden'));
+      optionButtons.forEach(btn => {
+        btn.classList.add('hidden');
+        btn.style.display = 'none';
+      });
     } else if (currentQuestion.type === 'dictation') {
       // Dictation mode: hide replay button, input field, and check button
       const replayBtn = optionsArea.querySelector('.replay-audio-btn');
       const inputField = optionsArea.querySelector('.type-input');
       const checkBtn = optionsArea.querySelector('.check-btn');
 
-      if (replayBtn) replayBtn.classList.add('hidden');
-      if (inputField) inputField.classList.add('hidden');
-      if (checkBtn) checkBtn.classList.add('hidden');
+      if (replayBtn) {
+        replayBtn.classList.add('hidden');
+        replayBtn.style.display = 'none';
+      }
+      if (inputField) {
+        inputField.classList.add('hidden');
+        inputField.style.display = 'none';
+      }
+      if (checkBtn) {
+        checkBtn.classList.add('hidden');
+        checkBtn.style.display = 'none';
+      }
     } else {
       // Input mode: hide the entire input row (input field and check button)
       const inputRow = optionsArea.querySelector('.input-row');
       if (inputRow) {
+        console.log('Hiding input row:', inputRow);
+        console.log('Input row classes before:', inputRow.className);
+        console.log('Input row computed display before:', window.getComputedStyle(inputRow).display);
+
         inputRow.classList.add('hidden');
+
+        // Fallback: Force hide with inline styles if CSS doesn't work
+        inputRow.style.display = 'none';
+        inputRow.style.visibility = 'hidden';
+        inputRow.style.opacity = '0';
+        inputRow.style.height = '0';
+        inputRow.style.overflow = 'hidden';
+
+        console.log('Input row classes after:', inputRow.className);
+        console.log('Input row computed display after:', window.getComputedStyle(inputRow).display);
+        console.log('Input row computed visibility after:', window.getComputedStyle(inputRow).visibility);
+      } else {
+        console.error('Input row not found for hiding!');
       }
     }
 
@@ -697,5 +826,8 @@
 
   // End session when user navigates away
   window.addEventListener('pagehide', endStudySession);
+
+  // Initialize audio feedback system
+  AudioFeedback.init();
 
 })();

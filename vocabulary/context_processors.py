@@ -213,6 +213,7 @@ def manual_translations(request):
             'words_unit': 'words',
             'deck_study_description': 'Study specific flashcard decks',
             'random_study_description': 'Study random words from all decks',
+            'sound_feedback': 'Sound Feedback',
         },
         'vi': {
             'learn_english': 'Học Tiếng Anh',
@@ -422,6 +423,7 @@ def manual_translations(request):
             'words_unit': 'từ',
             'deck_study_description': 'Học theo từng bộ thẻ cụ thể',
             'random_study_description': 'Học từ ngẫu nhiên từ tất cả bộ thẻ',
+            'sound_feedback': 'Âm thanh phản hồi',
         }
     }
     
