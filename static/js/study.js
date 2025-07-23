@@ -844,30 +844,33 @@
       return;
     }
 
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-    if (!csrfToken) {
-      console.error('CSRF token not found');
-      return;
-    }
-
     fetch('/en/api/incorrect-words/count/', {
       method: 'GET',
       headers: {
-        'X-CSRFToken': csrfToken.value,
         'Content-Type': 'application/json'
       }
     })
-    .then(r => r.json())
+    .then(r => {
+      console.log('API response status:', r.status);
+      if (!r.ok) {
+        throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+      }
+      return r.json();
+    })
     .then(data => {
+      console.log('API response data:', data);
       if (data.success) {
         const totalCount = data.counts.total;
+        console.log('Total incorrect words count:', totalCount);
         if (totalCount > 0) {
           reviewCountText.textContent = `${totalCount} ${STUDY_CFG.labels.incorrect_words_count || 'incorrect words to review'}`;
           reviewCount.style.display = 'block';
           reviewModeOption.classList.remove('disabled');
+          console.log('Review mode enabled with', totalCount, 'words');
         } else {
           reviewCount.style.display = 'none';
           reviewModeOption.classList.add('disabled');
+          console.log('Review mode disabled - no incorrect words found');
           // If review mode is selected but no words available, switch to decks mode
           if (currentStudyMode === 'review') {
             const decksRadio = document.querySelector('input[name="study_mode"][value="decks"]');
@@ -877,10 +880,15 @@
             }
           }
         }
+      } else {
+        console.error('API returned success: false', data);
       }
     })
     .catch(err => {
       console.error('Error loading incorrect words count:', err);
+      // Disable review mode on error
+      reviewCount.style.display = 'none';
+      reviewModeOption.classList.add('disabled');
     });
   }
 

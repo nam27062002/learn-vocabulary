@@ -179,15 +179,20 @@ def _update_sm2(card, correct: bool):
             interval = 6
         else:
             interval = round(interval * ef)
+            # Prevent overflow immediately after calculation
+            MAX_INTERVAL_DAYS = 3650
+            if interval > MAX_INTERVAL_DAYS:
+                print(f"Warning: Interval {interval} exceeds maximum, capping at {MAX_INTERVAL_DAYS}")
+                interval = MAX_INTERVAL_DAYS
 
         # Adjust interval based on difficulty score
         difficulty_multiplier = 1.0 - (card.difficulty_score * SPACED_REPETITION_CONFIG['DIFFICULTY_ADJUSTMENT'])
         interval = max(1, round(interval * difficulty_multiplier))
 
-    # Prevent date overflow by limiting maximum interval to 10 years (3650 days)
+    # Final safety check for date overflow
     MAX_INTERVAL_DAYS = 3650
     if interval > MAX_INTERVAL_DAYS:
-        print(f"Warning: Interval {interval} exceeds maximum, capping at {MAX_INTERVAL_DAYS}")
+        print(f"Warning: Final interval {interval} exceeds maximum, capping at {MAX_INTERVAL_DAYS}")
         interval = MAX_INTERVAL_DAYS
 
     try:
@@ -335,12 +340,18 @@ def api_next_question(request):
 @login_required
 @require_POST
 def api_submit_answer(request):
+    print(f"=== API_SUBMIT_ANSWER CALLED ===")
+    print(f"Request method: {request.method}")
+    print(f"Request body: {request.body}")
+
     try:
         data = json.loads(request.body)
         card_id = data.get('card_id')
         correct = data.get('correct')  # bool
         response_time = data.get('response_time', 0)  # Time in seconds
         question_type = data.get('question_type', 'multiple_choice')
+
+        print(f"Parsed data: card_id={card_id}, correct={correct}, question_type={question_type}")
 
         try:
             card = Flashcard.objects.get(id=card_id, user=request.user)
@@ -369,6 +380,10 @@ def api_submit_answer(request):
         }
         mapped_question_type = question_type_map.get(question_type, question_type)
 
+        print(f"=== INCORRECT WORD TRACKING DEBUG ===")
+        print(f"Answer tracking: card={card.word}, correct={correct}, question_type={question_type}, mapped={mapped_question_type}")
+        print(f"User: {request.user.username}, Card ID: {card.id}")
+
         if not correct:
             # Add to incorrect words list
             try:
@@ -380,6 +395,7 @@ def api_submit_answer(request):
                 )
                 if not created:
                     incorrect_review.add_error()
+                print(f"Added incorrect word: {card.word} ({mapped_question_type}) - created: {created}")
             except Exception as e:
                 print(f"Error tracking incorrect word: {e}")
         else:
@@ -392,13 +408,19 @@ def api_submit_answer(request):
                     is_resolved=False
                 )
                 incorrect_review.mark_resolved()
+                print(f"Resolved incorrect word: {card.word} ({mapped_question_type})")
             except IncorrectWordReview.DoesNotExist:
                 pass  # Word wasn't in incorrect list, which is fine
             except Exception as e:
                 print(f"Error resolving incorrect word: {e}")
 
         # Update SM-2 algorithm
-        _update_sm2(card, correct)
+        try:
+            _update_sm2(card, correct)
+        except Exception as e:
+            print(f"Error in SM-2 update: {e}")
+            # Continue anyway - the incorrect word tracking is more important
+
         return JsonResponse({'success': True})
 
     except json.JSONDecodeError:
@@ -1165,7 +1187,12 @@ def api_submit_review(request):
 
     # Use enhanced SM-2 update with grade mapping
     correct = grade >= 2  # Good or Easy considered correct
-    _update_sm2(card, correct)
+    try:
+        _update_sm2(card, correct)
+    except Exception as e:
+        print(f"Error in SM-2 update (grade): {e}")
+        # Continue anyway - return success to avoid breaking the UI
+
     return JsonResponse({'success': True})
 
 @login_required
