@@ -445,10 +445,8 @@
     .then(r => r.json())
     .then(data => {
       if (data.success) {
-        // Move to next question after a short delay
-        nextTimeout = setTimeout(() => {
-          getNextQuestion();
-        }, 1500);
+        // Chuyển sang câu hỏi tiếp theo NGAY LẬP TỨC, không delay
+        getNextQuestion();
       }
     });
   }
