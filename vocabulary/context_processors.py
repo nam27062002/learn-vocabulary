@@ -177,6 +177,9 @@ def manual_translations(request):
             'type_what_you_hear': 'Type what you hear...',
             'correct_answer': 'Correct!',
             'incorrect_answer': 'Incorrect',
+            'replay_audio': 'Replay',
+            'english_label': 'English:',
+            'vietnamese_label': 'Vietnamese:',
         },
         'vi': {
             'learn_english': 'Học Tiếng Anh',
@@ -350,6 +353,9 @@ def manual_translations(request):
             'type_what_you_hear': 'Viết những gì bạn nghe được...',
             'correct_answer': 'Đúng!',
             'incorrect_answer': 'Sai',
+            'replay_audio': 'Nghe lại',
+            'english_label': 'Tiếng Anh:',
+            'vietnamese_label': 'Tiếng Việt:',
         }
     }
     

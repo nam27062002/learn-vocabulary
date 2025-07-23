@@ -152,10 +152,10 @@
         let defsText = '';
         q.definitions.forEach(def => {
           if (def.english_definition) {
-            defsText += `<div class="definition-item"><strong>English:</strong> ${def.english_definition}</div>`;
+            defsText += `<div class="definition-item"><strong>${STUDY_CFG.labels.english_label}</strong> ${def.english_definition}</div>`;
           }
           if (def.vietnamese_definition) {
-            defsText += `<div class="definition-item"><strong>Tiếng Việt:</strong> ${def.vietnamese_definition}</div>`;
+            defsText += `<div class="definition-item"><strong>${STUDY_CFG.labels.vietnamese_label}</strong> ${def.vietnamese_definition}</div>`;
           }
         });
         cardWordEl.innerHTML = defsText;
@@ -213,6 +213,18 @@
       // Create dictation container with proper classes
       const dictationContainer = document.createElement('div');
       dictationContainer.className = 'dictation-container';
+
+      // Add replay audio button for dictation mode
+      if (q.audio_url) {
+        const replayButton = document.createElement('button');
+        replayButton.innerHTML = `<i class="fas fa-redo"></i> ${STUDY_CFG.labels.replay_audio}`;
+        replayButton.className = 'replay-audio-btn';
+        replayButton.addEventListener('click', () => {
+          const audio = new Audio(q.audio_url);
+          audio.play().catch(err => console.log('Audio replay failed:', err));
+        });
+        dictationContainer.appendChild(replayButton);
+      }
 
       const inputRow = document.createElement('div');
       inputRow.className = 'dictation-input-row';
