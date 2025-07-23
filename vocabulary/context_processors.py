@@ -171,6 +171,12 @@ def manual_translations(request):
             'view_in_cambridge': 'View in Cambridge Dictionary',
             'no_cards_due': 'No cards due',
             'back_to_selection': 'Back to Selection',
+            # Audio and study interface
+            'play_audio': 'Play Audio',
+            'listen_and_type': 'Listen and type what you hear',
+            'type_what_you_hear': 'Type what you hear...',
+            'correct_answer': 'Correct!',
+            'incorrect_answer': 'Incorrect',
         },
         'vi': {
             'learn_english': 'Học Tiếng Anh',
@@ -338,6 +344,12 @@ def manual_translations(request):
             'view_in_cambridge': 'Xem trong Cambridge Dictionary',
             'no_cards_due': 'Không có thẻ nào cần học',
             'back_to_selection': 'Quay lại lựa chọn',
+            # Audio and study interface
+            'play_audio': 'Phát âm',
+            'listen_and_type': 'Nghe và viết những gì bạn nghe được',
+            'type_what_you_hear': 'Viết những gì bạn nghe được...',
+            'correct_answer': 'Đúng!',
+            'incorrect_answer': 'Sai',
         }
     }
     

@@ -2,104 +2,160 @@
 {% load static %}
 {% block title %}{{ manual_texts.study }} - {{ manual_texts.learn_english }}{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/study.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="study-page" style="max-width:800px;margin:0 auto;padding:20px;">
-  <h1 style="font-size:2em;font-weight:700;margin-bottom:20px;background:linear-gradient(135deg,var(--primary-color),#8e44ad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">📖 {{ manual_texts.study }}</h1>
+<div class="study-page">
+  <div class="study-header">
+    <h1 class="study-title">📖 {{ manual_texts.study }}</h1>
+    <p class="study-subtitle">{{ manual_texts.platform_description }}</p>
+  </div>
 
   <!-- Study Mode Selection -->
-  <div class="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-    <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{{ manual_texts.study_mode }}:</h2>
-    
-    <div class="space-y-3">
-      <label class="flex items-center cursor-pointer">
-        <input type="radio" name="study_mode" value="decks" checked class="form-radio h-4 w-4 text-primary-color focus:ring-primary-color mr-3">
-        <span class="text-gray-700 dark:text-gray-300">{{ manual_texts.normal_study_by_decks }}</span>
+  <div class="study-mode-section">
+    <h2 class="section-title">{{ manual_texts.study_mode }}</h2>
+
+    <div class="mode-options">
+      <label class="mode-option">
+        <input type="radio" name="study_mode" value="decks" checked>
+        <div class="mode-card">
+          <div class="mode-icon">📚</div>
+          <div class="mode-content">
+            <h3>{{ manual_texts.normal_study_by_decks }}</h3>
+            <p>Học theo từng bộ thẻ cụ thể</p>
+          </div>
+        </div>
       </label>
-      
-      <label class="flex items-center cursor-pointer">
-        <input type="radio" name="study_mode" value="random" class="form-radio h-4 w-4 text-primary-color focus:ring-primary-color mr-3">
-        <span class="text-gray-700 dark:text-gray-300">{{ manual_texts.study_random_words }}</span>
+
+      <label class="mode-option">
+        <input type="radio" name="study_mode" value="random">
+        <div class="mode-card">
+          <div class="mode-icon">🎲</div>
+          <div class="mode-content">
+            <h3>{{ manual_texts.study_random_words }}</h3>
+            <p>Học từ ngẫu nhiên từ tất cả bộ thẻ</p>
+          </div>
+        </div>
       </label>
     </div>
   </div>
 
   <!-- Deck Study Options -->
-  <div id="deckStudyOptions" class="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-    <label for="deckSelect" class="block text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{{ manual_texts.select_decks }}:</label>
-    
-    <div class="relative">
-      <button id="deckDropdownToggle" class="w-full flex justify-between items-center px-4 py-2 text-left bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+  <div id="deckStudyOptions" class="study-options-section">
+    <h3 class="options-title">{{ manual_texts.select_decks }}</h3>
+
+    <div class="deck-selector">
+      <button id="deckDropdownToggle" class="dropdown-toggle">
         <span id="selectedDecksText">{{ manual_texts.no_decks_selected }}</span>
-        <i class="fas fa-chevron-down text-gray-500 dark:text-gray-400"></i>
+        <i class="fas fa-chevron-down dropdown-arrow"></i>
       </button>
-      
-      <div id="deckDropdown" class="hidden absolute z-10 w-full bg-white dark:bg-gray-700 shadow-lg rounded-md mt-1 border border-gray-300 dark:border-gray-600 max-h-60 overflow-y-auto">
+
+      <div id="deckDropdown" class="dropdown-menu">
         {% for d in decks %}
-          <label class="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer text-gray-700 dark:text-gray-300">
-            <input type="checkbox" name="deck_ids" value="{{ d.id }}" class="form-checkbox h-5 w-5 text-primary-color rounded focus:ring-primary-color mr-2">
-            <span>{{ d.name }}</span>
+          <label class="deck-option">
+            <input type="checkbox" name="deck_ids" value="{{ d.id }}">
+            <span class="deck-name">{{ d.name }}</span>
+            <span class="deck-count">{{ d.flashcards.count }} từ</span>
           </label>
         {% empty %}
-          <p class="px-4 py-2 text-gray-500 dark:text-gray-400">{{ manual_texts.no_decks_available }}</p>
+          <p class="no-decks-message">{{ manual_texts.no_decks_available }}</p>
         {% endfor %}
       </div>
     </div>
-    
-    <button id="startBtn" class="primary-btn mt-6 w-full py-3 text-lg font-semibold">{{ manual_texts.start_study }}</button>
+
+    <button id="startBtn" class="start-button">
+      <span class="button-icon">🚀</span>
+      {{ manual_texts.start_study }}
+    </button>
   </div>
 
   <!-- Random Study Options -->
-  <div id="randomStudyOptions" class="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md hidden">
-    <label class="block text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{{ manual_texts.study_random_words }}:</label>
-    
-    <div class="space-y-4">
-      <div>
-        <label for="randomWordCount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          {{ manual_texts.number_of_words }}:
-        </label>
-        <input type="number" id="randomWordCount" min="1" max="100" value="10" 
-               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-primary-color dark:bg-gray-700 dark:text-gray-300">
+  <div id="randomStudyOptions" class="study-options-section hidden">
+    <h3 class="options-title">{{ manual_texts.study_random_words }}</h3>
+
+    <div class="random-options">
+      <div class="word-count-input">
+        <label for="randomWordCount">{{ manual_texts.number_of_words }}</label>
+        <input type="number" id="randomWordCount" min="1" max="100" value="10">
       </div>
-      
-      <div class="text-sm text-gray-600 dark:text-gray-400">
-        <span>{{ manual_texts.available_words }}: </span>
-        <span id="totalWordsAvailable" class="font-semibold">{{ total_words_available }}</span>
+
+      <div class="available-words-info">
+        <span class="info-label">{{ manual_texts.available_words }}:</span>
+        <span id="totalWordsAvailable" class="info-value">{{ total_words_available }}</span>
       </div>
-      
-      <button id="startRandomBtn" class="primary-btn w-full py-3 text-lg font-semibold">{{ manual_texts.start_study }}</button>
     </div>
+
+    <button id="startRandomBtn" class="start-button">
+      <span class="button-icon">🎲</span>
+      {{ manual_texts.start_study }}
+    </button>
   </div>
 
-  <div id="studyArea" style="display:none;">
-    <div id="studyHeader" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-        <button id="backBtn" style="background:transparent;color:var(--primary-color);border:none;font-weight:600;cursor:pointer;">← {{ manual_texts.back_to_selection }}</button>
-        <div id="statsInfo" style="color:var(--card-text-muted);font-weight:600;">{{ manual_texts.correct }}: 0 | {{ manual_texts.incorrect }}: 0</div>
+  <div id="studyArea" class="study-area">
+    <div class="study-header-bar">
+      <button id="backBtn" class="back-button">
+        <i class="fas fa-arrow-left"></i>
+        {{ manual_texts.back_to_selection }}
+      </button>
+      <div id="statsInfo" class="stats-display">
+        {{ manual_texts.correct }}: 0 | {{ manual_texts.incorrect }}: 0
+      </div>
     </div>
-    <div id="cardBox" class="card-box">
-        <h2 id="cardWord" class="card-word"></h2>
-        <p id="cardPhonetic" class="card-phonetic"></p>
-        <img id="cardImage" src="" alt="image" class="mb-4 rounded-lg max-w-xs hidden" />
-        <div id="answerSection" style="display:none;">
-            <p id="cardDefs" style="color:var(--card-text-main);white-space:pre-line;margin-bottom:10px;"></p>
-            <div id="optionsArea" style="margin-top:10px;"></div>
-            <p id="feedbackMsg" style="display:none;font-weight:600;margin-top:10px;"></p>
-            <div id="cambridgeLink" class="mt-4" style="display:none;">
-                <a id="cambridgeAnchor" href="" target="_blank" style="color:var(--primary-color);text-decoration:none;font-weight:600;">🔍 {{ manual_texts.view_in_cambridge }}</a>
-            </div>
+
+    <div id="cardBox" class="flashcard-container">
+      <div class="card-header">
+        <div class="word-section">
+          <h2 id="cardWord" class="card-word"></h2>
+          <button id="audioButton" class="audio-button" style="display:none;">
+            <i class="fas fa-volume-up"></i>
+          </button>
         </div>
-        <div id="gradeButtons" style="display:none;margin-top:15px;">
-        <button class="gradeBtn" data-grade="0" style="background:#e3342f;color:#fff;padding:10px 16px;border:none;border-radius:6px;margin:5px;">{{ manual_texts.grade_again }}</button>
-        <button class="gradeBtn" data-grade="1" style="background:#f6993f;color:#fff;padding:10px 16px;border:none;border-radius:6px;margin:5px;">{{ manual_texts.grade_hard }}</button>
-        <button class="gradeBtn" data-grade="2" style="background:#38c172;color:#fff;padding:10px 16px;border:none;border-radius:6px;margin:5px;">{{ manual_texts.grade_good }}</button>
-        <button class="gradeBtn" data-grade="3" style="background:#4dc0b5;color:#fff;padding:10px 16px;border:none;border-radius:6px;margin:5px;">{{ manual_texts.grade_easy }}</button>
+        <p id="cardPhonetic" class="card-phonetic"></p>
+      </div>
+
+      <img id="cardImage" src="" alt="image" class="card-image" />
+
+      <div id="answerSection" class="answer-section">
+        <div id="cardDefs" class="card-definitions"></div>
+        <div id="optionsArea" class="options-area"></div>
+        <div id="feedbackMsg" class="feedback-message"></div>
+
+        <div id="cambridgeLink" class="cambridge-link">
+          <a id="cambridgeAnchor" href="" target="_blank">
+            <i class="fas fa-external-link-alt"></i>
+            {{ manual_texts.view_in_cambridge }}
+          </a>
+        </div>
+      </div>
+
+      <div id="gradeButtons" class="grade-buttons">
+        <button class="grade-btn grade-again" data-grade="0">
+          <span class="grade-icon">😰</span>
+          {{ manual_texts.grade_again }}
+        </button>
+        <button class="grade-btn grade-hard" data-grade="1">
+          <span class="grade-icon">😅</span>
+          {{ manual_texts.grade_hard }}
+        </button>
+        <button class="grade-btn grade-good" data-grade="2">
+          <span class="grade-icon">😊</span>
+          {{ manual_texts.grade_good }}
+        </button>
+        <button class="grade-btn grade-easy" data-grade="3">
+          <span class="grade-icon">😎</span>
+          {{ manual_texts.grade_easy }}
+        </button>
+      </div>
+
+      <p id="noCardMsg" class="no-cards-message">{{ manual_texts.no_cards_due }}</p>
     </div>
-    <p id="noCardMsg" style="display:none;color:var(--card-text-muted);margin-top:20px;font-size:1.1em;">{{ manual_texts.no_cards_due }}</p>
   </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<link rel="stylesheet" href="{% static 'css/study.css' %}">
 <script>
   const STUDY_CFG = {
     nextUrl: "{% url 'api_next_question' %}",
@@ -115,9 +171,14 @@
       grade_good: "{{ manual_texts.grade_good }}",
       grade_easy: "{{ manual_texts.grade_easy }}",
       view_in_cambridge: "{{ manual_texts.view_in_cambridge }}",
-      no_cards_due: "{{ manual_texts.no_cards_due }}"
+      no_cards_due: "{{ manual_texts.no_cards_due }}",
+      play_audio: "{{ manual_texts.play_audio }}",
+      listen_and_type: "{{ manual_texts.listen_and_type }}",
+      type_what_you_hear: "{{ manual_texts.type_what_you_hear }}",
+      correct_answer: "{{ manual_texts.correct_answer }}",
+      incorrect_answer: "{{ manual_texts.incorrect_answer }}"
     }
   };
 </script>
 <script src="{% static 'js/study.js' %}"></script>
-{% endblock %} 
+{% endblock %}
