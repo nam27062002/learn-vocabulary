@@ -388,22 +388,35 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* Flashcard Container */
+/* Flashcard Container - Optimized for no scrolling */
 .flashcard-container {
   background: var(--card-background);
   border: 1px solid var(--card-border-color);
-  border-radius: 20px;
-  padding: 40px;
-  min-height: 400px;
+  border-radius: 16px;
+  padding: 25px;
+  min-height: 350px;
+  max-height: 80vh;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   text-align: center;
   box-shadow: var(--shadow-xl);
+  overflow: hidden;
   transition: all 0.3s ease;
   position: relative;
-  overflow: hidden;
+}
+
+/* Special layout for dictation mode to prevent grade button overflow */
+.flashcard-container:has(.dictation-mode) {
+  justify-content: flex-start;
+  gap: 15px;
+}
+
+/* Fallback for browsers that don't support :has() */
+.flashcard-container.dictation-layout {
+  justify-content: flex-start;
+  gap: 15px;
 }
 
 .flashcard-container::before {
@@ -430,11 +443,33 @@
 }
 
 .card-word {
-  font-size: 2.5rem;
+  font-size: 2.2rem;
   font-weight: 800;
   color: var(--primary-color);
-  margin: 0;
-  line-height: 1.2;
+  margin: 0 0 10px 0;
+  line-height: 1.1;
+}
+
+/* Clickable word link styling */
+.word-link {
+  color: #4f46e5;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  padding: 4px 8px;
+  display: inline-block;
+  font-weight: inherit;
+}
+
+.word-link:hover {
+  color: #3730a3;
+  background: rgba(79, 70, 229, 0.1);
+  text-decoration: underline;
+  transform: translateY(-1px);
+}
+
+.word-link:active {
+  transform: translateY(0);
 }
 
 .definition-item {
@@ -479,8 +514,8 @@
 .card-phonetic {
   color: var(--card-text-muted);
   font-style: italic;
-  font-size: 1.1rem;
-  margin: 0;
+  font-size: 1rem;
+  margin: 0 0 10px 0;
 }
 
 /* Card Image */
@@ -510,14 +545,14 @@
 .card-definitions {
   color: #ffffff;
   white-space: pre-line;
-  margin-bottom: 20px;
-  font-size: 1.2rem;
-  line-height: 1.6;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+  line-height: 1.5;
   display: none;
   text-align: center;
-  padding: 20px 25px;
+  padding: 15px 20px;
   background: rgba(79, 70, 229, 0.1);
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid rgba(79, 70, 229, 0.2);
   font-weight: 500;
 }
@@ -527,25 +562,26 @@
 }
 
 .options-area {
-  margin: 20px 0;
+  margin: 15px 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
   justify-items: center;
-  max-width: 500px;
+  max-width: 450px;
   margin-left: auto;
   margin-right: auto;
 }
 
-/* Dictation mode specific layout */
+/* Dictation mode specific layout - optimized for grade button visibility */
 .options-area.dictation-mode {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  min-height: 200px;
+  gap: 15px;
+  min-height: 160px;
+  max-height: 180px;
 }
 
 .dictation-container {
@@ -553,7 +589,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 20px;
+  gap: 15px;
   width: 100%;
   max-width: 400px;
 }
@@ -694,44 +730,24 @@
   display: block;
 }
 
-/* Cambridge Link */
-.cambridge-link {
-  margin: 20px 0;
-  display: none;
-}
 
-.cambridge-link.show {
-  display: block;
-}
 
-.cambridge-link a {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--primary-color);
-  text-decoration: none;
-  font-weight: 600;
-  padding: 10px 16px;
-  border: 2px solid var(--primary-color);
-  border-radius: 8px;
-  transition: all 0.3s ease;
-}
-
-.cambridge-link a:hover {
-  background: var(--primary-color);
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-/* Grade Buttons */
+/* Grade Buttons - Compact layout */
 .grade-buttons {
   display: none;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-top: 30px;
+  gap: 8px;
+  margin-top: 15px;
   width: 100%;
-  max-width: 400px;
+  max-width: 350px;
+}
+
+/* Grade buttons in dictation mode - extra compact */
+.dictation-layout .grade-buttons,
+.flashcard-container:has(.dictation-mode) .grade-buttons {
+  margin-top: 10px;
+  gap: 6px;
+  max-width: 320px;
 }
 
 .grade-buttons.show {
@@ -742,15 +758,16 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  padding: 12px 8px;
+  gap: 4px;
+  padding: 10px 6px;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   color: white;
   box-shadow: var(--shadow-sm);
+  font-size: 0.85rem;
 }
 
 .grade-btn:hover {
@@ -837,8 +854,9 @@
   }
 
   .options-area.dictation-mode {
-    gap: 15px;
-    min-height: 150px;
+    gap: 12px;
+    min-height: 120px;
+    max-height: 140px;
   }
 
   .dictation-input-row {
@@ -858,8 +876,55 @@
 
   .option-btn {
     min-width: 150px;
-    padding: 10px 16px;
+    padding: 8px 14px;
     max-width: none;
+    font-size: 0.9rem;
+  }
+
+  /* Mobile optimizations for no scrolling */
+  .flashcard-container {
+    padding: 15px;
+    min-height: 300px;
+    max-height: 85vh;
+  }
+
+  .card-word {
+    font-size: 1.8rem;
+    margin-bottom: 8px;
+  }
+
+  .card-definitions {
+    font-size: 1rem;
+    padding: 12px 15px;
+    margin-bottom: 12px;
+  }
+
+  .grade-buttons {
+    gap: 6px;
+    margin-top: 12px;
+    max-width: 320px;
+  }
+
+  /* Extra compact grade buttons for dictation mode on mobile */
+  .dictation-layout .grade-buttons,
+  .flashcard-container:has(.dictation-mode) .grade-buttons {
+    margin-top: 8px;
+    gap: 4px;
+    max-width: 300px;
+  }
+
+  .grade-btn {
+    padding: 8px 4px;
+    font-size: 0.8rem;
+    gap: 3px;
+  }
+
+  /* Smaller grade buttons in dictation mode on mobile */
+  .dictation-layout .grade-btn,
+  .flashcard-container:has(.dictation-mode) .grade-btn {
+    padding: 6px 3px;
+    font-size: 0.75rem;
+    gap: 2px;
   }
 }
 
@@ -962,4 +1027,41 @@
 .option-btn:disabled:hover, .check-btn:disabled:hover {
   transform: none !important;
   box-shadow: none !important;
-} 
+}
+
+/* Extra small screens optimization for dictation mode */
+@media (max-height: 600px) {
+  .flashcard-container {
+    max-height: 90vh;
+    padding: 12px;
+  }
+
+  .options-area.dictation-mode {
+    min-height: 100px;
+    max-height: 120px;
+    gap: 10px;
+  }
+
+  .dictation-container {
+    gap: 10px;
+  }
+
+  .replay-audio-btn {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+
+  .dictation-layout .grade-buttons,
+  .flashcard-container:has(.dictation-mode) .grade-buttons {
+    margin-top: 5px;
+    gap: 3px;
+    max-width: 280px;
+  }
+
+  .dictation-layout .grade-btn,
+  .flashcard-container:has(.dictation-mode) .grade-btn {
+    padding: 5px 2px;
+    font-size: 0.7rem;
+    gap: 1px;
+  }
+}

@@ -14,8 +14,7 @@
   const optionsArea = document.getElementById('optionsArea') || answerArea;
   const backBtn = document.getElementById('backBtn');
   const statsInfo = document.getElementById('statsInfo');
-  const cambridgeLinkEl = document.getElementById('cambridgeLink');
-  const cambridgeAnchorEl = document.getElementById('cambridgeAnchor');
+
   const audioButton = document.getElementById('audioButton');
   
   // New elements for study mode selection
@@ -108,10 +107,16 @@
 
     // Reset UI elements
     feedbackMsg.className = 'feedback-message';
-    if (cambridgeLinkEl) { cambridgeLinkEl.className = 'cambridge-link'; }
+
     if (cardWordEl) { cardWordEl.innerHTML = ''; }
     if (cardPhoneticEl) { cardPhoneticEl.style.display = 'none'; }
     if (cardDefsEl) { cardDefsEl.className = 'card-definitions'; }
+
+    // Remove dictation layout class from previous questions
+    const flashcardContainer = document.getElementById('cardBox');
+    if (flashcardContainer) {
+      flashcardContainer.classList.remove('dictation-layout');
+    }
 
     // Hide grade buttons initially
     const gradeButtons = document.getElementById('gradeButtons');
@@ -197,9 +202,15 @@
         cardPhoneticEl.style.display = 'none';
       }
 
-      // Set dictation mode class for proper centering
+      // Set dictation mode class for proper centering and layout
       if (optionsArea) {
         optionsArea.className = 'options-area dictation-mode';
+      }
+
+      // Add dictation layout class to flashcard container for proper spacing
+      const flashcardContainer = document.getElementById('cardBox');
+      if (flashcardContainer) {
+        flashcardContainer.classList.add('dictation-layout');
       }
 
       // Auto-play audio once when dictation question loads
@@ -348,9 +359,13 @@
       feedbackMsg.className = correct ? 'feedback-message success show' : 'feedback-message error show';
     }
 
-    // NOW reveal the correct answer and word details
-    if (cardWordEl) {
-      cardWordEl.innerHTML = `<strong>${currentQuestion.word}</strong>`;
+    // NOW reveal the correct answer and make word clickable for Cambridge Dictionary
+    if (cardWordEl && currentQuestion.word) {
+      const cambridgeUrl = `https://dictionary.cambridge.org/dictionary/english/${encodeURIComponent(currentQuestion.word)}`;
+      cardWordEl.innerHTML = `<a href="${cambridgeUrl}" target="_blank" class="word-link"><strong>${currentQuestion.word}</strong></a>`;
+      console.log('Clickable word created:', currentQuestion.word, 'URL:', cambridgeUrl);
+    } else {
+      console.log('Cannot create clickable word - cardWordEl:', !!cardWordEl, 'word:', currentQuestion.word);
     }
 
     // Show phonetic if available
@@ -375,12 +390,7 @@
       cardDefsEl.className = 'card-definitions show';
     }
 
-    // Show Cambridge link
-    if (cambridgeLinkEl && cambridgeAnchorEl) {
-      const cambridgeUrl = `https://dictionary.cambridge.org/dictionary/english/${encodeURIComponent(currentQuestion.word)}`;
-      cambridgeAnchorEl.href = cambridgeUrl;
-      cambridgeLinkEl.className = 'cambridge-link show';
-    }
+
 
     // NOW show audio button after answer submission
     if (audioButton && currentQuestion.audio_url) {
@@ -534,7 +544,7 @@
       if (cardDefsEl) cardDefsEl.innerHTML = '';
       if (optionsArea) optionsArea.innerHTML = '';
       if (feedbackMsg) feedbackMsg.style.display = 'none';
-      if (cambridgeLinkEl) cambridgeLinkEl.style.display = 'none';
+
       
       const gradeButtons = document.getElementById('gradeButtons');
       if (gradeButtons) gradeButtons.style.display = 'none';
