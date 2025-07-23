@@ -128,6 +128,13 @@
   const typeCount = document.getElementById('typeCount');
   const dictationCount = document.getElementById('dictationCount');
 
+  // Slider elements
+  const modeSlider = document.getElementById('modeSlider');
+  const sliderPrev = document.getElementById('sliderPrev');
+  const sliderNext = document.getElementById('sliderNext');
+  const indicators = document.querySelectorAll('.indicator');
+  const modeSlides = document.querySelectorAll('.mode-slide');
+
   let correctCnt = 0, incorrectCnt = 0;
   let nextTimeout = null;
   let currentStudyMode = 'decks'; // Default mode
@@ -646,6 +653,145 @@
       // Still proceed to next question to avoid getting stuck
       getNextQuestion();
     });
+  }
+
+  // Mode Slider Class
+  class ModeSlider {
+    constructor() {
+      this.currentSlide = 0;
+      this.totalSlides = modeSlides.length;
+      this.isTransitioning = false;
+      this.touchStartX = 0;
+      this.touchEndX = 0;
+
+      this.init();
+    }
+
+    init() {
+      // Set initial state
+      this.updateSlider();
+      this.updateIndicators();
+      this.updateNavButtons();
+
+      // Add event listeners
+      if (sliderPrev) {
+        sliderPrev.addEventListener('click', () => this.prevSlide());
+      }
+
+      if (sliderNext) {
+        sliderNext.addEventListener('click', () => this.nextSlide());
+      }
+
+      // Indicator clicks
+      indicators.forEach((indicator, index) => {
+        indicator.addEventListener('click', () => this.goToSlide(index));
+      });
+
+      // Touch/swipe support
+      if (modeSlider) {
+        modeSlider.addEventListener('touchstart', (e) => this.handleTouchStart(e));
+        modeSlider.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+        modeSlider.addEventListener('touchmove', (e) => e.preventDefault());
+      }
+
+      // Keyboard navigation
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') this.prevSlide();
+        if (e.key === 'ArrowRight') this.nextSlide();
+      });
+    }
+
+    updateSlider() {
+      if (!modeSlider) return;
+
+      const translateX = -this.currentSlide * 100;
+      modeSlider.style.transform = `translateX(${translateX}%)`;
+
+      // Update active slide
+      modeSlides.forEach((slide, index) => {
+        slide.classList.toggle('active', index === this.currentSlide);
+      });
+
+      // Trigger radio button change
+      const activeSlide = modeSlides[this.currentSlide];
+      if (activeSlide) {
+        const radio = activeSlide.querySelector('input[type="radio"]');
+        if (radio) {
+          radio.checked = true;
+          handleStudyModeChange();
+        }
+      }
+    }
+
+    updateIndicators() {
+      indicators.forEach((indicator, index) => {
+        indicator.classList.toggle('active', index === this.currentSlide);
+      });
+    }
+
+    updateNavButtons() {
+      if (sliderPrev) {
+        sliderPrev.disabled = this.currentSlide === 0;
+      }
+      if (sliderNext) {
+        sliderNext.disabled = this.currentSlide === this.totalSlides - 1;
+      }
+    }
+
+    goToSlide(index) {
+      if (this.isTransitioning || index === this.currentSlide) return;
+
+      this.isTransitioning = true;
+      this.currentSlide = Math.max(0, Math.min(index, this.totalSlides - 1));
+
+      this.updateSlider();
+      this.updateIndicators();
+      this.updateNavButtons();
+
+      setTimeout(() => {
+        this.isTransitioning = false;
+      }, 400);
+    }
+
+    nextSlide() {
+      if (this.currentSlide < this.totalSlides - 1) {
+        this.goToSlide(this.currentSlide + 1);
+      }
+    }
+
+    prevSlide() {
+      if (this.currentSlide > 0) {
+        this.goToSlide(this.currentSlide - 1);
+      }
+    }
+
+    handleTouchStart(e) {
+      this.touchStartX = e.touches[0].clientX;
+    }
+
+    handleTouchEnd(e) {
+      this.touchEndX = e.changedTouches[0].clientX;
+      this.handleSwipe();
+    }
+
+    handleSwipe() {
+      const swipeThreshold = 50;
+      const diff = this.touchStartX - this.touchEndX;
+
+      if (Math.abs(diff) > swipeThreshold) {
+        if (diff > 0) {
+          this.nextSlide();
+        } else {
+          this.prevSlide();
+        }
+      }
+    }
+  }
+
+  // Initialize slider
+  let modeSliderInstance;
+  if (modeSlider) {
+    modeSliderInstance = new ModeSlider();
   }
 
   // Study mode selection handling

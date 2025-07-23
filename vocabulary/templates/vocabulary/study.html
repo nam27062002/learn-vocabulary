@@ -17,42 +17,74 @@
   <div class="study-mode-section">
     <h2 class="section-title">{{ manual_texts.study_mode }}</h2>
 
-    <div class="mode-options">
-      <label class="mode-option">
-        <input type="radio" name="study_mode" value="decks" checked>
-        <div class="mode-card">
-          <div class="mode-icon">📚</div>
-          <div class="mode-content">
-            <h3>{{ manual_texts.normal_study_by_decks }}</h3>
-            <p>{{ manual_texts.deck_study_description }}</p>
-          </div>
-        </div>
-      </label>
+    <!-- Mode Slider Container -->
+    <div class="mode-slider-container">
+      <!-- Navigation Arrows -->
+      <button class="slider-nav slider-nav-prev" id="sliderPrev" aria-label="Previous mode">
+        <span class="nav-arrow">‹</span>
+      </button>
 
-      <label class="mode-option">
-        <input type="radio" name="study_mode" value="random">
-        <div class="mode-card">
-          <div class="mode-icon">🎲</div>
-          <div class="mode-content">
-            <h3>{{ manual_texts.study_random_words }}</h3>
-            <p>{{ manual_texts.random_study_description }}</p>
+      <!-- Slider Wrapper -->
+      <div class="mode-slider-wrapper" role="region" aria-label="Study mode selection">
+        <div class="mode-slider" id="modeSlider" role="tablist">
+          <!-- Deck Study Mode -->
+          <div class="mode-slide active" data-mode="decks" role="tabpanel" aria-label="Deck study mode">
+            <label class="mode-option">
+              <input type="radio" name="study_mode" value="decks" checked aria-describedby="deck-description">
+              <div class="mode-card">
+                <div class="mode-icon" aria-hidden="true">📚</div>
+                <div class="mode-content">
+                  <h3>{{ manual_texts.normal_study_by_decks }}</h3>
+                  <p id="deck-description">{{ manual_texts.deck_study_description }}</p>
+                </div>
+              </div>
+            </label>
           </div>
-        </div>
-      </label>
 
-      <label class="mode-option" id="reviewModeOption">
-        <input type="radio" name="study_mode" value="review">
-        <div class="mode-card">
-          <div class="mode-icon">🔄</div>
-          <div class="mode-content">
-            <h3>{{ manual_texts.review_incorrect_words }}</h3>
-            <p>{{ manual_texts.review_study_description }}</p>
-            <div class="review-count" id="reviewCount" style="display: none;">
-              <span id="reviewCountText">0 {{ manual_texts.incorrect_words_count }}</span>
-            </div>
+          <!-- Random Study Mode -->
+          <div class="mode-slide" data-mode="random" role="tabpanel" aria-label="Random study mode">
+            <label class="mode-option">
+              <input type="radio" name="study_mode" value="random" aria-describedby="random-description">
+              <div class="mode-card">
+                <div class="mode-icon" aria-hidden="true">🎲</div>
+                <div class="mode-content">
+                  <h3>{{ manual_texts.study_random_words }}</h3>
+                  <p id="random-description">{{ manual_texts.random_study_description }}</p>
+                </div>
+              </div>
+            </label>
+          </div>
+
+          <!-- Review Mode -->
+          <div class="mode-slide" data-mode="review" role="tabpanel" aria-label="Review incorrect words mode">
+            <label class="mode-option" id="reviewModeOption">
+              <input type="radio" name="study_mode" value="review" aria-describedby="review-description">
+              <div class="mode-card">
+                <div class="mode-icon" aria-hidden="true">🔄</div>
+                <div class="mode-content">
+                  <h3>{{ manual_texts.review_incorrect_words }}</h3>
+                  <p id="review-description">{{ manual_texts.review_study_description }}</p>
+                  <div class="review-count" id="reviewCount" style="display: none;">
+                    <span id="reviewCountText">0 {{ manual_texts.incorrect_words_count }}</span>
+                  </div>
+                </div>
+              </div>
+            </label>
           </div>
         </div>
-      </label>
+      </div>
+
+      <!-- Navigation Arrows -->
+      <button class="slider-nav slider-nav-next" id="sliderNext" aria-label="Next mode">
+        <span class="nav-arrow">›</span>
+      </button>
+    </div>
+
+    <!-- Slider Indicators -->
+    <div class="slider-indicators">
+      <button class="indicator active" data-slide="0" aria-label="Deck study mode"></button>
+      <button class="indicator" data-slide="1" aria-label="Random study mode"></button>
+      <button class="indicator" data-slide="2" aria-label="Review mode"></button>
     </div>
   </div>
 
