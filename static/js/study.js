@@ -122,7 +122,10 @@
     // Hide grade buttons initially
     const gradeButtons = document.getElementById('gradeButtons');
     if (gradeButtons) {
+      console.log('Hiding grade buttons for new question');
       gradeButtons.className = 'grade-buttons';
+      gradeButtons.classList.remove('hidden'); // Ensure no hidden class
+      console.log('Grade buttons classes after reset:', gradeButtons.className);
     }
 
     // Hide audio button during question phase - it will be shown after answer submission
@@ -446,7 +449,20 @@
     // Show grade buttons
     const gradeButtons = document.getElementById('gradeButtons');
     if (gradeButtons) {
+      console.log('Grade buttons element found:', gradeButtons);
+      console.log('Grade buttons classes before:', gradeButtons.className);
+      console.log('Grade buttons inline style before:', gradeButtons.style.display);
+
+      // Clear any inline styles and hidden classes
+      gradeButtons.style.display = '';
+      gradeButtons.classList.remove('hidden');
       gradeButtons.className = 'grade-buttons show';
+
+      console.log('Grade buttons classes after:', gradeButtons.className);
+      console.log('Grade buttons inline style after:', gradeButtons.style.display);
+      console.log('Grade buttons computed display:', window.getComputedStyle(gradeButtons).display);
+    } else {
+      console.error('Grade buttons element NOT found!');
     }
 
     // Handle grade button clicks
@@ -587,7 +603,10 @@
 
       
       const gradeButtons = document.getElementById('gradeButtons');
-      if (gradeButtons) gradeButtons.style.display = 'none';
+      if (gradeButtons) {
+        gradeButtons.className = 'grade-buttons'; // Use class instead of inline style
+        gradeButtons.style.display = ''; // Clear any inline styles
+      }
       
       const noCardMsg = document.getElementById('noCardMsg');
       if (noCardMsg) noCardMsg.className = 'no-cards-message';

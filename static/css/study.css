@@ -804,7 +804,13 @@
 }
 
 .grade-buttons.show {
-  display: grid;
+  display: grid !important;
+}
+
+/* Ensure grade buttons are never accidentally hidden */
+#gradeButtons.grade-buttons.show {
+  display: grid !important;
+  visibility: visible !important;
 }
 
 .grade-btn {
