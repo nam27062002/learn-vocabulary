@@ -261,11 +261,21 @@ def api_next_question(request):
         ).exclude(flashcard_id__in=seen_card_ids).select_related('flashcard')
 
         if not incorrect_words.exists():
-            return JsonResponse({'done': True})
+            # If no more incorrect words, loop back to all incorrect words
+            incorrect_words = IncorrectWordReview.objects.filter(
+                user=request.user,
+                is_resolved=False
+            ).select_related('flashcard')
+
+            if not incorrect_words.exists():
+                return JsonResponse({'done': True})
 
         # Get a random incorrect word
         incorrect_word = incorrect_words.order_by('?').first()
         card = incorrect_word.flashcard
+
+        # Store the original question type for this review session
+        original_question_type = incorrect_word.question_type
 
         # Update tracking fields when card is shown
         _update_card_shown_tracking(card)
@@ -278,17 +288,26 @@ def api_next_question(request):
     # Check if card has audio for dictation mode
     has_audio = card.audio_url and card.audio_url.strip()
 
-    # Determine available modes based on audio availability
-    available_modes = ['mc', 'type']
-    if has_audio:
-        available_modes.append('dictation')
+    # Determine question type based on study mode
+    if study_mode == 'review':
+        # For review mode, use the original question type where the error occurred
+        mode = original_question_type
 
-    # Select random mode from available options
-    mode = _rnd.choice(available_modes)
+        # Fallback if dictation mode but no audio available
+        if mode == 'dictation' and not has_audio:
+            mode = 'type'  # Fallback to input mode
+    else:
+        # For other modes, determine available modes based on audio availability
+        available_modes = ['mc', 'type']
+        if has_audio:
+            available_modes.append('dictation')
 
-    # For dictation mode, ensure we have audio
-    if mode == 'dictation' and not has_audio:
-        mode = _rnd.choice(['mc', 'type'])
+        # Select random mode from available options
+        mode = _rnd.choice(available_modes)
+
+        # For dictation mode, ensure we have audio
+        if mode == 'dictation' and not has_audio:
+            mode = _rnd.choice(['mc', 'type'])
 
     defs = list(card.definitions.values('english_definition', 'vietnamese_definition'))
 
@@ -340,9 +359,12 @@ def api_next_question(request):
 @login_required
 @require_POST
 def api_submit_answer(request):
-    print(f"=== API_SUBMIT_ANSWER CALLED ===")
-    print(f"Request method: {request.method}")
-    print(f"Request body: {request.body}")
+    import sys
+    print("=" * 80, file=sys.stderr)
+    print("=== API_SUBMIT_ANSWER CALLED ===", file=sys.stderr)
+    print(f"Request method: {request.method}", file=sys.stderr)
+    print(f"Request body: {request.body}", file=sys.stderr)
+    print("=" * 80, file=sys.stderr)
 
     try:
         data = json.loads(request.body)
@@ -351,7 +373,7 @@ def api_submit_answer(request):
         response_time = data.get('response_time', 0)  # Time in seconds
         question_type = data.get('question_type', 'multiple_choice')
 
-        print(f"Parsed data: card_id={card_id}, correct={correct}, question_type={question_type}")
+        print(f"Parsed data: card_id={card_id}, correct={correct}, question_type={question_type}", file=sys.stderr)
 
         try:
             card = Flashcard.objects.get(id=card_id, user=request.user)
@@ -380,9 +402,11 @@ def api_submit_answer(request):
         }
         mapped_question_type = question_type_map.get(question_type, question_type)
 
-        print(f"=== INCORRECT WORD TRACKING DEBUG ===")
-        print(f"Answer tracking: card={card.word}, correct={correct}, question_type={question_type}, mapped={mapped_question_type}")
-        print(f"User: {request.user.username}, Card ID: {card.id}")
+        print("=" * 80, file=sys.stderr)
+        print("=== INCORRECT WORD TRACKING DEBUG ===", file=sys.stderr)
+        print(f"Answer tracking: card={card.word}, correct={correct}, question_type={question_type}, mapped={mapped_question_type}", file=sys.stderr)
+        print(f"User: {request.user.username}, Card ID: {card.id}", file=sys.stderr)
+        print("=" * 80, file=sys.stderr)
 
         if not correct:
             # Add to incorrect words list
@@ -395,9 +419,9 @@ def api_submit_answer(request):
                 )
                 if not created:
                     incorrect_review.add_error()
-                print(f"Added incorrect word: {card.word} ({mapped_question_type}) - created: {created}")
+                print(f"Added incorrect word: {card.word} ({mapped_question_type}) - created: {created}", file=sys.stderr)
             except Exception as e:
-                print(f"Error tracking incorrect word: {e}")
+                print(f"Error tracking incorrect word: {e}", file=sys.stderr)
         else:
             # Mark as resolved if it was in the incorrect list
             try:
@@ -408,11 +432,11 @@ def api_submit_answer(request):
                     is_resolved=False
                 )
                 incorrect_review.mark_resolved()
-                print(f"Resolved incorrect word: {card.word} ({mapped_question_type})")
+                print(f"Resolved incorrect word: {card.word} ({mapped_question_type})", file=sys.stderr)
             except IncorrectWordReview.DoesNotExist:
                 pass  # Word wasn't in incorrect list, which is fine
             except Exception as e:
-                print(f"Error resolving incorrect word: {e}")
+                print(f"Error resolving incorrect word: {e}", file=sys.stderr)
 
         # Update SM-2 algorithm
         try:

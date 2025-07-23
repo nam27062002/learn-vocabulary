@@ -118,9 +118,15 @@
   const totalWordsAvailableSpan = document.getElementById('totalWordsAvailable');
   const startBtnDecks = document.getElementById('startBtn');
   const startBtnRandom = document.getElementById('startRandomBtn');
+  const startBtnReview = document.getElementById('startReviewBtn');
   const reviewModeOption = document.getElementById('reviewModeOption');
+  const reviewStudyOptions = document.getElementById('reviewStudyOptions');
   const reviewCount = document.getElementById('reviewCount');
   const reviewCountText = document.getElementById('reviewCountText');
+  const reviewDetails = document.getElementById('reviewDetails');
+  const mcCount = document.getElementById('mcCount');
+  const typeCount = document.getElementById('typeCount');
+  const dictationCount = document.getElementById('dictationCount');
 
   let correctCnt = 0, incorrectCnt = 0;
   let nextTimeout = null;
@@ -181,16 +187,23 @@
     .then(r => r.json())
     .then(data => {
       if (data.done) {
-        noCardMsg.className = 'no-cards-message show';
-        studyArea.className = 'study-area';
-        return;
+        if (currentStudyMode === 'review') {
+          // For review mode, loop back to the beginning instead of ending
+          seenCardIds = []; // Reset seen cards to start over
+          getNextQuestion(); // Restart the loop
+          return;
+        } else {
+          noCardMsg.className = 'no-cards-message show';
+          studyArea.className = 'study-area';
+          return;
+        }
       }
-      
-      // Add card ID to seen list for random mode
-      if (currentStudyMode === 'random' && data.question.id) {
+
+      // Add card ID to seen list for random mode and review mode
+      if ((currentStudyMode === 'random' || currentStudyMode === 'review') && data.question.id) {
         seenCardIds.push(data.question.id);
       }
-      
+
       renderQuestion(data.question);
     });
   }
@@ -636,12 +649,15 @@
     if (selectedMode === 'decks') {
       deckStudyOptions.classList.remove('hidden');
       randomStudyOptions.classList.add('hidden');
+      if (reviewStudyOptions) reviewStudyOptions.classList.add('hidden');
     } else if (selectedMode === 'review') {
       deckStudyOptions.classList.add('hidden');
       randomStudyOptions.classList.add('hidden');
+      if (reviewStudyOptions) reviewStudyOptions.classList.remove('hidden');
     } else {
       deckStudyOptions.classList.add('hidden');
       randomStudyOptions.classList.remove('hidden');
+      if (reviewStudyOptions) reviewStudyOptions.classList.add('hidden');
     }
   }
 
@@ -688,6 +704,7 @@
       if (studyModeSection) studyModeSection.style.display = 'none';
       if (deckStudyOptions) deckStudyOptions.classList.add('hidden');
       if (randomStudyOptions) randomStudyOptions.classList.add('hidden');
+      if (reviewStudyOptions) reviewStudyOptions.classList.add('hidden');
       if (studyArea) {
         studyArea.style.display = 'block';
         studyArea.className = 'study-area active';
@@ -706,18 +723,50 @@
       incorrectCnt = 0;
       seenCardIds = [];
       updateStats();
-      
+
       // Hide all selection areas and show study area
       const studyModeSection = document.querySelector('.study-mode-section');
       if (studyModeSection) studyModeSection.style.display = 'none';
       if (deckStudyOptions) deckStudyOptions.classList.add('hidden');
       if (randomStudyOptions) randomStudyOptions.classList.add('hidden');
+      if (reviewStudyOptions) reviewStudyOptions.classList.add('hidden');
       if (studyArea) {
         studyArea.style.display = 'block';
         studyArea.className = 'study-area active';
       }
       if (studyHeader) studyHeader.style.display = 'none';
-      
+
+      // Start studying
+      getNextQuestion();
+    });
+  }
+
+  if (startBtnReview) {
+    startBtnReview.addEventListener('click', () => {
+      // Check if there are incorrect words to review
+      if (startBtnReview.disabled) {
+        alert('No incorrect words to review. Answer some questions incorrectly first!');
+        return;
+      }
+
+      // Reset session data
+      correctCnt = 0;
+      incorrectCnt = 0;
+      seenCardIds = [];
+      updateStats();
+
+      // Hide all selection areas and show study area
+      const studyModeSection = document.querySelector('.study-mode-section');
+      if (studyModeSection) studyModeSection.style.display = 'none';
+      if (deckStudyOptions) deckStudyOptions.classList.add('hidden');
+      if (randomStudyOptions) randomStudyOptions.classList.add('hidden');
+      if (reviewStudyOptions) reviewStudyOptions.classList.add('hidden');
+      if (studyArea) {
+        studyArea.style.display = 'block';
+        studyArea.className = 'study-area active';
+      }
+      if (studyHeader) studyHeader.style.display = 'none';
+
       // Start studying
       getNextQuestion();
     });
@@ -754,12 +803,15 @@
       if (currentStudyMode === 'decks') {
         if (deckStudyOptions) deckStudyOptions.classList.remove('hidden');
         if (randomStudyOptions) randomStudyOptions.classList.add('hidden');
+        if (reviewStudyOptions) reviewStudyOptions.classList.add('hidden');
       } else if (currentStudyMode === 'review') {
         if (deckStudyOptions) deckStudyOptions.classList.add('hidden');
         if (randomStudyOptions) randomStudyOptions.classList.add('hidden');
+        if (reviewStudyOptions) reviewStudyOptions.classList.remove('hidden');
       } else {
         if (deckStudyOptions) deckStudyOptions.classList.add('hidden');
         if (randomStudyOptions) randomStudyOptions.classList.remove('hidden');
+        if (reviewStudyOptions) reviewStudyOptions.classList.add('hidden');
       }
       
       // Reset stats
@@ -767,6 +819,9 @@
       incorrectCnt = 0;
       updateStats();
       if (studyHeader) studyHeader.style.display = '';
+
+      // Refresh incorrect words count when returning to study selection
+      loadIncorrectWordsCount();
     });
   }
 
@@ -861,15 +916,41 @@
       console.log('API response data:', data);
       if (data.success) {
         const totalCount = data.counts.total;
+        const counts = data.counts;
         console.log('Total incorrect words count:', totalCount);
+
         if (totalCount > 0) {
+          // Update main count display
           reviewCountText.textContent = `${totalCount} ${STUDY_CFG.labels.incorrect_words_count || 'incorrect words to review'}`;
           reviewCount.style.display = 'block';
           reviewModeOption.classList.remove('disabled');
+
+          // Update detailed breakdown
+          if (mcCount) mcCount.textContent = counts.mc || 0;
+          if (typeCount) typeCount.textContent = counts.type || 0;
+          if (dictationCount) dictationCount.textContent = counts.dictation || 0;
+
+          // Show review details if any counts exist
+          if (reviewDetails) reviewDetails.style.display = 'block';
+
+          // Enable start review button
+          if (startBtnReview) {
+            startBtnReview.disabled = false;
+            startBtnReview.classList.remove('disabled');
+          }
+
           console.log('Review mode enabled with', totalCount, 'words');
         } else {
           reviewCount.style.display = 'none';
           reviewModeOption.classList.add('disabled');
+          if (reviewDetails) reviewDetails.style.display = 'none';
+
+          // Disable start review button
+          if (startBtnReview) {
+            startBtnReview.disabled = true;
+            startBtnReview.classList.add('disabled');
+          }
+
           console.log('Review mode disabled - no incorrect words found');
           // If review mode is selected but no words available, switch to decks mode
           if (currentStudyMode === 'review') {

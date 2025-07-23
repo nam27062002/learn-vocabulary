@@ -217,6 +217,11 @@ def manual_translations(request):
             'review_incorrect_words': 'Review Incorrect Words',
             'review_study_description': 'Study words you previously answered incorrectly',
             'incorrect_words_count': 'incorrect words to review',
+            'review_mode_description': 'Practice words you answered incorrectly in their original question format until you master them.',
+            'start_review': 'Start Review',
+            'multiple_choice': 'Multiple Choice',
+            'input_mode': 'Input Mode',
+            'dictation_mode': 'Dictation Mode',
         },
         'vi': {
             'learn_english': 'Học Tiếng Anh',
@@ -430,6 +435,11 @@ def manual_translations(request):
             'review_incorrect_words': 'Ôn lại từ đã sai',
             'review_study_description': 'Học lại những từ bạn đã trả lời sai trước đây',
             'incorrect_words_count': 'từ sai cần ôn lại',
+            'review_mode_description': 'Luyện tập những từ bạn đã trả lời sai theo định dạng câu hỏi gốc cho đến khi thành thạo.',
+            'start_review': 'Bắt đầu ôn tập',
+            'multiple_choice': 'Trắc nghiệm',
+            'input_mode': 'Nhập từ',
+            'dictation_mode': 'Chính tả',
         }
     }
     

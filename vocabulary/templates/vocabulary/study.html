@@ -107,6 +107,40 @@
     </button>
   </div>
 
+  <!-- Review Study Options -->
+  <div id="reviewStudyOptions" class="study-options-section hidden">
+    <h3 class="options-title">{{ manual_texts.review_incorrect_words }}</h3>
+
+    <div class="review-options">
+      <div class="review-info">
+        <div class="review-description">
+          <p>{{ manual_texts.review_mode_description }}</p>
+          <div class="review-details" id="reviewDetails" style="display: none;">
+            <div class="review-breakdown">
+              <div class="breakdown-item">
+                <span class="breakdown-label">{{ manual_texts.multiple_choice }}:</span>
+                <span class="breakdown-count" id="mcCount">0</span>
+              </div>
+              <div class="breakdown-item">
+                <span class="breakdown-label">{{ manual_texts.input_mode }}:</span>
+                <span class="breakdown-count" id="typeCount">0</span>
+              </div>
+              <div class="breakdown-item">
+                <span class="breakdown-label">{{ manual_texts.dictation_mode }}:</span>
+                <span class="breakdown-count" id="dictationCount">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button id="startReviewBtn" class="start-button" disabled>
+      <span class="button-icon">🔄</span>
+      {{ manual_texts.start_review }}
+    </button>
+  </div>
+
   <div id="studyArea" class="study-area">
     <div class="study-header-bar">
       <button id="backBtn" class="back-button">
