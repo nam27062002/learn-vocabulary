@@ -573,6 +573,16 @@
   margin-right: auto;
 }
 
+/* Input mode specific layout - override grid for proper centering */
+.options-area:has(.input-row), .options-area.input-mode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  min-height: 120px;
+}
+
 /* Dictation mode specific layout - optimized for grade button visibility */
 .options-area.dictation-mode {
   display: flex;
@@ -594,12 +604,26 @@
   max-width: 400px;
 }
 
-.dictation-input-row {
+/* Input row for both dictation and regular input modes */
+.dictation-input-row, .input-row {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 15px;
   width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* Specific input row styling for regular input mode */
+.input-row {
+  padding: 10px 0;
+  align-items: stretch; /* Ensure both elements have same height */
+}
+
+.dictation-input-row {
+  /* Specific styles for dictation mode if needed */
 }
 
 .dictation-mode .type-input {
@@ -610,6 +634,24 @@
 
 .dictation-mode .check-btn {
   min-width: 100px;
+}
+
+/* Input mode specific styling for consistent sizing and alignment */
+.input-row .type-input {
+  min-width: 250px;
+  max-width: 350px;
+  flex: 1;
+  text-align: center;
+  margin: 0;
+  align-self: center;
+}
+
+.input-row .check-btn {
+  min-width: 100px;
+  flex-shrink: 0;
+  margin: 0;
+  align-self: center;
+  height: fit-content;
 }
 
 /* Replay Audio Button for Dictation Mode */
@@ -682,6 +724,12 @@
   transition: all 0.3s ease;
 }
 
+/* Override width for input elements inside input rows */
+.input-row .type-input, .dictation-input-row .type-input {
+  width: auto;
+  flex: 1;
+}
+
 .type-input:focus {
   outline: none;
   border-color: var(--primary-color);
@@ -698,6 +746,11 @@
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 10px;
+}
+
+/* Remove margin-top for check buttons inside input rows */
+.input-row .check-btn, .dictation-input-row .check-btn {
+  margin-top: 0;
 }
 
 .check-btn:hover {
@@ -859,9 +912,26 @@
     max-height: 140px;
   }
 
-  .dictation-input-row {
+  .dictation-input-row, .input-row {
     flex-direction: column;
     gap: 12px;
+    max-width: 100%;
+    padding: 15px 10px;
+  }
+
+  .input-row .type-input {
+    min-width: 200px;
+    max-width: 280px;
+    width: auto;
+    flex: 1;
+    margin: 0;
+  }
+
+  .input-row .check-btn {
+    min-width: 120px;
+    width: auto;
+    margin: 0;
+    flex-shrink: 0;
   }
 
   .dictation-mode .type-input {
@@ -1018,7 +1088,64 @@
   box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
 }
 
-/* Disabled button styles */
+/* Hidden elements after answer submission */
+.hidden {
+  display: none !important;
+}
+
+/* Smooth transition for hiding elements */
+.option-btn, .input-row, .dictation-input-row, .replay-audio-btn {
+  transition: opacity 0.3s ease;
+}
+
+/* Ensure proper spacing when elements are hidden */
+.options-area:has(.hidden), .options-area.input-mode:has(.hidden) {
+  min-height: auto;
+}
+
+/* Additional centering support for input mode */
+.options-area.input-mode {
+  text-align: center;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.options-area.input-mode .input-row {
+  margin: 0 auto;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Ensure input elements are properly aligned */
+.input-row > * {
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+
+/* Final override to ensure perfect alignment */
+.options-area.input-mode .input-row .type-input,
+.options-area.input-mode .input-row .check-btn {
+  margin: 0 !important;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+  height: auto !important;
+  line-height: normal !important;
+  vertical-align: middle !important;
+}
+
+/* Ensure both elements have the same height */
+.input-row .type-input,
+.input-row .check-btn {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Disabled button styles (kept for backward compatibility) */
 .option-btn:disabled, .check-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;

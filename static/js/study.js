@@ -286,15 +286,19 @@
         cardDefsEl.className = 'card-definitions show';
       }
 
-      // Reset options area to normal mode for input type
+      // Set options area to input mode for proper centering
       if (optionsArea) {
-        optionsArea.className = 'options-area';
+        optionsArea.className = 'options-area input-mode';
       }
 
       // Hide phonetic initially
       if (cardPhoneticEl) {
         cardPhoneticEl.style.display = 'none';
       }
+
+      // Create horizontal input row container
+      const inputRow = document.createElement('div');
+      inputRow.className = 'input-row';
 
       const inp = document.createElement('input');
       inp.type = 'text';
@@ -319,8 +323,9 @@
         }
       });
 
-      optionsArea.appendChild(inp);
-      optionsArea.appendChild(btn);
+      inputRow.appendChild(inp);
+      inputRow.appendChild(btn);
+      optionsArea.appendChild(inputRow);
       setTimeout(() => inp.focus(), 100);
     }
 
@@ -342,9 +347,27 @@
       nextTimeout = null;
     }
 
-    // Disable all buttons
-    const buttons = optionsArea.querySelectorAll('button, input');
-    buttons.forEach(btn => btn.disabled = true);
+    // Hide answer elements based on question type
+    if (currentQuestion.type === 'mc') {
+      // Multiple choice: hide all option buttons
+      const optionButtons = optionsArea.querySelectorAll('.option-btn');
+      optionButtons.forEach(btn => btn.classList.add('hidden'));
+    } else if (currentQuestion.type === 'dictation') {
+      // Dictation mode: hide replay button, input field, and check button
+      const replayBtn = optionsArea.querySelector('.replay-audio-btn');
+      const inputField = optionsArea.querySelector('.type-input');
+      const checkBtn = optionsArea.querySelector('.check-btn');
+
+      if (replayBtn) replayBtn.classList.add('hidden');
+      if (inputField) inputField.classList.add('hidden');
+      if (checkBtn) checkBtn.classList.add('hidden');
+    } else {
+      // Input mode: hide the entire input row (input field and check button)
+      const inputRow = optionsArea.querySelector('.input-row');
+      if (inputRow) {
+        inputRow.classList.add('hidden');
+      }
+    }
 
     // Update stats
     if (correct) {
