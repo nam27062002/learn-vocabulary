@@ -1,9 +1,8 @@
 // study.js - handles study session with multiple modes
 
 (function () {
-  const deckSelect = document.getElementById('deckSelect');
-  const startBtn = document.getElementById('startBtn');
-  const deckSelectWrapper = document.getElementById('deckSelectWrapper');
+  // Existing elements
+  const deckStudyOptions = document.getElementById('deckStudyOptions');
   const studyArea = document.getElementById('studyArea');
   const cardWordEl = document.getElementById('cardWord');
   const cardPhoneticEl = document.getElementById('cardPhonetic');
@@ -17,8 +16,20 @@
   const statsInfo = document.getElementById('statsInfo');
   const cambridgeLinkEl = document.getElementById('cambridgeLink');
   const cambridgeAnchorEl = document.getElementById('cambridgeAnchor');
+  
+  // New elements for study mode selection
+  const studyModeRadios = document.querySelectorAll('input[name="study_mode"]');
+  const randomStudyOptions = document.getElementById('randomStudyOptions');
+  const randomWordCountInput = document.getElementById('randomWordCount');
+  const totalWordsAvailableSpan = document.getElementById('totalWordsAvailable');
+  const startBtnDecks = document.getElementById('startBtn');
+  const startBtnRandom = document.getElementById('startRandomBtn');
+
   let correctCnt = 0, incorrectCnt = 0;
   let nextTimeout = null;
+  let currentStudyMode = 'decks'; // Default mode
+  let seenCardIds = []; // To track cards seen in the current session for random mode
+  let wordCount = 10; // Default word count for random mode
 
   // Hàm chuyển đổi từ loại sang viết tắt
   function getAbbreviatedPartOfSpeech(fullPartOfSpeech) {
@@ -46,41 +57,41 @@
     }
   }
 
-  const modeSelect = null; // removed
   let currentQuestion = null;
 
-  // New elements for custom deck select
-  const deckDropdownToggle = document.getElementById('deckDropdownToggle');
-  const deckDropdown = document.getElementById('deckDropdown');
-  const selectedDecksText = document.getElementById('selectedDecksText');
-  const deckCheckboxes = deckDropdown ? deckDropdown.querySelectorAll('input[type="checkbox"][name="deck_ids"]') : [];
-
-  function updateSelectedDecksText() {
-    const selectedOptions = Array.from(deckCheckboxes).filter(cb => cb.checked).map(cb => cb.nextElementSibling.textContent);
-    if (selectedOptions.length > 0) {
-      selectedDecksText.textContent = selectedOptions.join(', ');
-    } else {
-      selectedDecksText.textContent = STUDY_CFG.labels.no_decks_selected || STUDY_CFG.labels.no_decks_selected;
-    }
-  }
-
-  function qsToParams() {
+  function getNextQuestion() {
     const params = new URLSearchParams();
-    Array.from(deckCheckboxes).filter(cb => cb.checked).forEach(cb => params.append('deck_ids[]', cb.value));
-    return params.toString();
-  }
+    
+    if (currentStudyMode === 'random') {
+      params.append('study_mode', 'random');
+      params.append('word_count', wordCount);
+      seenCardIds.forEach(id => params.append('seen_card_ids[]', id));
+    } else {
+      // Normal deck study mode
+      const selectedDeckIds = Array.from(document.querySelectorAll('input[name="deck_ids"]:checked')).map(cb => cb.value);
+      selectedDeckIds.forEach(id => params.append('deck_ids[]', id));
+    }
 
-  function fetchNext() {
-    fetch(`${STUDY_CFG.nextUrl}?${qsToParams()}`)
-      .then(r => r.json())
-      .then(data => {
-        if (data.done) {
-          noCardMsg.style.display = 'block';
-          studyArea.style.display = 'none';
-          return;
-        }
-        renderQuestion(data.question);
-      });
+    fetch(`${STUDY_CFG.nextUrl}?${params.toString()}`, {
+      headers: {
+        'X-CSRFToken': STUDY_CFG.csrfToken
+      }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.done) {
+        noCardMsg.style.display = 'block';
+        studyArea.style.display = 'none';
+        return;
+      }
+      
+      // Add card ID to seen list for random mode
+      if (currentStudyMode === 'random' && data.question.id) {
+        seenCardIds.push(data.question.id);
+      }
+      
+      renderQuestion(data.question);
+    });
   }
 
   function renderQuestion(q) {
@@ -108,91 +119,81 @@
       }
     }
 
-    // Show definitions
-    if (cardDefsEl) {
-      cardDefsEl.textContent = q.definitions.map(d => `EN: ${d.english_definition}\nVI: ${d.vietnamese_definition}`).join('\n\n');
+    // Display word and phonetic
+    if (cardWordEl) {
+      cardWordEl.textContent = q.word;
+    }
+    
+    if (cardPhoneticEl && q.phonetic) {
+      cardPhoneticEl.textContent = `/${q.phonetic}/`;
+      cardPhoneticEl.style.display = 'block';
     }
 
-    // Clear and rebuild options area
-    optionsArea.innerHTML = '';
+    // Clear previous options
+    if (optionsArea) {
+      optionsArea.innerHTML = '';
+    }
 
+    // Handle different question types
     if (q.type === 'mc') {
       // Multiple choice mode
-      q.options.forEach(opt => {
+      q.options.forEach(option => {
         const btn = document.createElement('button');
-        btn.textContent = opt;
+        btn.textContent = option;
         btn.className = 'option-btn';
-        btn.style.cssText = 'background:#f8f9fa;border:2px solid #dee2e6;color:#495057;padding:12px 20px;margin:5px;border-radius:8px;cursor:pointer;font-weight:500;transition:all 0.2s;';
         btn.addEventListener('click', () => {
-          if (!btn.disabled) submitAnswer(opt === q.word);
-        });
-        btn.addEventListener('mouseenter', () => {
-          if (!btn.disabled) btn.style.background = '#e9ecef';
-        });
-        btn.addEventListener('mouseleave', () => {
-          if (!btn.disabled) btn.style.background = '#f8f9fa';
+          const correct = option === q.word;
+          submitAnswer(correct);
         });
         optionsArea.appendChild(btn);
       });
     } else if (q.type === 'dictation') {
-      // Dictation mode: chỉ hiện nút nghe và ô nhập đáp án
-      // Ẩn từ, nghĩa, phiên âm
-      if (cardWordEl) cardWordEl.innerHTML = '';
-      if (cardPhoneticEl) cardPhoneticEl.style.display = 'none';
-      if (cardDefsEl) cardDefsEl.textContent = '';
-      // Tạo container căn giữa cho loa và input
+      // Dictation mode
       const dictationBox = document.createElement('div');
-      dictationBox.style.display = 'flex';
-      dictationBox.style.flexDirection = 'column';
-      dictationBox.style.alignItems = 'center';
-      dictationBox.style.gap = '14px';
-      dictationBox.style.margin = '18px 0 10px 0';
-      // Nút nghe
-      if (q.audio_url) {
-        const replayAudioBtn = document.createElement('button');
-        replayAudioBtn.className = 'replay-audio-btn fas fa-volume-up';
-        replayAudioBtn.style.cssText = 'background:none;border:none;color:#007bff;font-size:2em;cursor:pointer;outline:none;';
-        replayAudioBtn.addEventListener('click', () => {
-          try {
-            const audio = new Audio(q.audio_url);
-            audio.play().catch(() => { });
-          } catch (e) {
-            console.log('Audio playback failed:', e);
-          }
-        });
-        dictationBox.appendChild(replayAudioBtn);
-      }
-      // Ô nhập đáp án
+      dictationBox.style.cssText = 'text-align:center;margin-top:15px;';
+      
+      const audioBtn = document.createElement('button');
+      audioBtn.textContent = '🔊 Play Audio';
+      audioBtn.style.cssText = 'background:#007bff;color:#fff;padding:10px 20px;border:none;border-radius:6px;margin-bottom:15px;cursor:pointer;font-weight:600;';
+      audioBtn.addEventListener('click', () => {
+        if (q.audio_url) {
+          const audio = new Audio(q.audio_url);
+          audio.play();
+        }
+      });
+      dictationBox.appendChild(audioBtn);
+
+      const inputRow = document.createElement('div');
+      inputRow.style.cssText = 'display:flex;justify-content:center;align-items:center;gap:10px;';
+      
       const inp = document.createElement('input');
       inp.type = 'text';
-      inp.placeholder = STUDY_CFG.labels.answer_placeholder;
+      inp.placeholder = 'Type what you hear...';
       inp.className = 'type-input';
-      inp.style.cssText = 'padding:12px 16px;border:2px solid #dee2e6;border-radius:8px;font-size:18px;width:260px;max-width:100%;margin:0 auto;';
+      inp.style.cssText = 'padding:12px;border:2px solid #dee2e6;border-radius:8px;font-size:16px;width:200px;';
+      
       const btn = document.createElement('button');
       btn.textContent = STUDY_CFG.labels.check;
       btn.className = 'check-btn';
-      btn.style.cssText = 'background:#007bff;color:#fff;padding:12px 24px;border:none;border-radius:8px;cursor:pointer;font-weight:600;margin-left:10px;font-size:1em;';
-      // Đặt input và button trên cùng một dòng
-      const inputRow = document.createElement('div');
-      inputRow.style.display = 'flex';
-      inputRow.style.justifyContent = 'center';
-      inputRow.style.alignItems = 'center';
-      inputRow.style.gap = '10px';
-      inputRow.appendChild(inp);
-      inputRow.appendChild(btn);
-      dictationBox.appendChild(inputRow);
+      btn.style.cssText = 'background:#007bff;color:#fff;padding:12px 20px;border:none;border-radius:8px;cursor:pointer;font-weight:600;';
+      
       btn.addEventListener('click', () => {
         if (!btn.disabled) {
           const correct = inp.value.trim().toLowerCase() === q.answer.toLowerCase();
           submitAnswer(correct);
         }
       });
+      
       inp.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
           if (!btn.disabled) btn.click();
         }
       });
+      
+      inputRow.appendChild(inp);
+      inputRow.appendChild(btn);
+      dictationBox.appendChild(inputRow);
       optionsArea.appendChild(dictationBox);
       setTimeout(() => inp.focus(), 100);
     } else {
@@ -202,22 +203,26 @@
       inp.placeholder = STUDY_CFG.labels.placeholder;
       inp.className = 'type-input';
       inp.style.cssText = 'padding:12px;border:2px solid #dee2e6;border-radius:8px;font-size:16px;width:200px;margin-right:10px;';
+      
       const btn = document.createElement('button');
       btn.textContent = STUDY_CFG.labels.check;
       btn.className = 'check-btn';
       btn.style.cssText = 'background:#007bff;color:#fff;padding:12px 20px;border:none;border-radius:8px;cursor:pointer;font-weight:600;';
+      
       btn.addEventListener('click', () => {
         if (!btn.disabled) {
           const correct = inp.value.trim().toLowerCase() === q.answer.toLowerCase();
           submitAnswer(correct);
         }
       });
+      
       inp.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
           if (!btn.disabled) btn.click();
         }
       });
+      
       optionsArea.appendChild(inp);
       optionsArea.appendChild(btn);
       setTimeout(() => inp.focus(), 100);
@@ -233,154 +238,239 @@
       nextTimeout = null;
     }
 
-    feedbackMsg.style.display = 'block';
+    // Disable all buttons
+    const buttons = optionsArea.querySelectorAll('button, input');
+    buttons.forEach(btn => btn.disabled = true);
+
+    // Update stats
     if (correct) {
       correctCnt++;
-      feedbackMsg.textContent = STUDY_CFG.labels.correct;
-      feedbackMsg.style.color = '#38c172';
     } else {
       incorrectCnt++;
-      const label = STUDY_CFG.labels.answerLabel;
-      feedbackMsg.textContent = `${STUDY_CFG.labels.incorrect} – ${label}: ${currentQuestion.word}`;
-      feedbackMsg.style.color = '#e3342f';
     }
     updateStats();
 
-    // Nếu là dictation, show nghĩa tiếng Việt sau khi trả lời
-    if (currentQuestion && currentQuestion.type === 'dictation' && cardDefsEl && currentQuestion.definitions && currentQuestion.definitions.length > 0) {
-      // Lấy nghĩa tiếng Việt đầu tiên (hoặc tất cả)
-      const viDefs = currentQuestion.definitions.map(d => d.vietnamese_definition).filter(Boolean);
-      if (viDefs.length > 0) {
-        // Làm đẹp: tạo div nổi bật, có icon, dùng label dịch
-        cardDefsEl.innerHTML = `<div style="background:#f3f4f6;border-radius:10px;padding:10px 18px;margin:12px auto 0 auto;display:flex;align-items:center;justify-content:center;max-width:90%;font-size:1.08em;box-shadow:0 2px 8px #0001;">
-          <span style='font-size:1.2em;margin-right:8px;'>🇻🇳</span>
-          <span style='font-weight:600;color:#4b5563;'>${STUDY_CFG.labels.vietnamese_meaning}:</span>
-          <span style='margin-left:8px;color:#111827;'>${viDefs.join(' | ')}</span>
-        </div>`;
-      }
+    // Show feedback
+    if (feedbackMsg) {
+      feedbackMsg.textContent = correct ? '✅ Correct!' : '❌ Incorrect';
+      feedbackMsg.style.color = correct ? '#28a745' : '#dc3545';
+      feedbackMsg.style.display = 'block';
     }
 
-    // Show word and phonetic after answer
-    if (cardWordEl) {
-      // Xóa nội dung hiện có để tránh trùng lặp
-      cardWordEl.innerHTML = '';
-
-      // Tạo thẻ <a> để bọc từ vựng và làm cho nó có thể nhấp
-      const wordLink = document.createElement('a');
-      wordLink.href = `https://dictionary.cambridge.org/dictionary/english/${currentQuestion.word}`;
-      wordLink.target = "_blank"; // Mở trong tab mới
-      wordLink.textContent = currentQuestion.word;
-      wordLink.style.cssText = 'text-decoration: none; color: inherit; cursor: pointer;'; // Đảm bảo không có gạch chân và màu sắc phù hợp
-
-      cardWordEl.appendChild(wordLink); // Thêm thẻ <a> vào cardWordEl
-
-      // Thêm từ loại nếu có
-      if (currentQuestion.part_of_speech) {
-        const partOfSpeechSpan = document.createElement('span');
-        partOfSpeechSpan.textContent = ` (${getAbbreviatedPartOfSpeech(currentQuestion.part_of_speech)})`;
-        partOfSpeechSpan.style.cssText = 'font-style: italic; font-size: 0.7em; color: gray; margin-left: 5px;'; // Đổi font-size nhỏ hơn
-        cardWordEl.appendChild(partOfSpeechSpan);
-      }
-
-      // Append Replay Audio button if audio is available
-      if (currentQuestion.audio_url) {
-        const replayAudioBtn = document.createElement('button');
-        replayAudioBtn.className = 'replay-audio-btn fas fa-volume-up'; // Font Awesome speaker icon
-        replayAudioBtn.style.cssText = 'background:none;border:none;color:#007bff;font-size:0.6em;margin-left:10px;cursor:pointer;';
-        replayAudioBtn.addEventListener('click', (e) => {
-          e.stopPropagation(); // Ngăn chặn sự kiện click lan truyền lên thẻ <a>
-          try {
-            const audio = new Audio(currentQuestion.audio_url);
-            audio.play().catch(() => { });
-          } catch (e) {
-            console.log('Audio playback failed:', e);
-          }
-        });
-        cardWordEl.appendChild(replayAudioBtn); // Append to cardWordEl directly
-      }
-    }
-    if (cardPhoneticEl && currentQuestion.phonetic) {
-      cardPhoneticEl.textContent = currentQuestion.phonetic;
-      cardPhoneticEl.style.display = 'block';
+    // Show definitions and Cambridge link
+    if (cardDefsEl && currentQuestion.definitions) {
+      let defsText = '';
+      currentQuestion.definitions.forEach(def => {
+        if (def.english_definition) {
+          defsText += `${def.english_definition}\n`;
+        }
+        if (def.vietnamese_definition) {
+          defsText += `${def.vietnamese_definition}\n`;
+        }
+        defsText += '\n';
+      });
+      cardDefsEl.textContent = defsText.trim();
     }
 
-    // Show Cambridge Dictionary link
-    if (cambridgeLinkEl && cambridgeAnchorEl && currentQuestion.word) {
-      cambridgeAnchorEl.href = `https://dictionary.cambridge.org/dictionary/english/${currentQuestion.word}`;
+    // Show Cambridge link
+    if (cambridgeLinkEl && cambridgeAnchorEl) {
+      const cambridgeUrl = `https://dictionary.cambridge.org/dictionary/english/${encodeURIComponent(currentQuestion.word)}`;
+      cambridgeAnchorEl.href = cambridgeUrl;
       cambridgeLinkEl.style.display = 'block';
     }
 
-    // Disable all option buttons to prevent multiple clicks
-    const optionBtns = optionsArea.querySelectorAll('.option-btn, .check-btn');
-    optionBtns.forEach(btn => btn.disabled = true);
-
-    // Add "Next Card" button for user control
-    const nextBtn = document.createElement('button');
-    nextBtn.textContent = STUDY_CFG.labels.nextCard;
-    nextBtn.className = 'next-card-btn';
-    nextBtn.style.cssText = 'background:#4dc0b5;color:#fff;padding:10px 20px;border:none;border-radius:6px;margin-top:15px;cursor:pointer;font-weight:600;';
-    nextBtn.addEventListener('click', () => {
-      fetchNext();
-    });
-    optionsArea.appendChild(nextBtn);
-
-    // Play audio if available (but don't auto-advance)
-    if (correct && currentQuestion.audio_url) {
-      try {
-        const audio = new Audio(currentQuestion.audio_url);
-        audio.play().catch(() => { });
-      } catch (e) {
-        console.log('Audio playback failed:', e);
-      }
+    // Show grade buttons
+    const gradeButtons = document.getElementById('gradeButtons');
+    if (gradeButtons) {
+      gradeButtons.style.display = 'block';
     }
 
-    // Submit the answer to backend
-    fetch(STUDY_CFG.submitUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': STUDY_CFG.csrfToken },
-      body: JSON.stringify({ card_id: currentQuestion.id, correct: correct })
-    }).catch(err => {
-      console.error('Failed to submit answer:', err);
+    // Handle grade button clicks
+    const gradeBtns = document.querySelectorAll('.gradeBtn');
+    gradeBtns.forEach(btn => {
+      btn.onclick = () => {
+        const grade = parseInt(btn.dataset.grade);
+        submitGrade(grade);
+      };
     });
   }
 
-  startBtn.addEventListener('click', () => {
-    const selectedDecks = Array.from(deckCheckboxes).filter(cb => cb.checked);
-    if (selectedDecks.length === 0) { alert(STUDY_CFG.labels.select_at_least_one_deck); return; }
-    deckSelectWrapper.style.display = 'none';
-    correctCnt = 0; incorrectCnt = 0; updateStats();
-    studyArea.style.display = 'block';
-    if (cardPhoneticEl) { cardPhoneticEl.style.display = 'none'; }
-    fetchNext();
-  });
-
-  backBtn.addEventListener('click', () => {
-    deckSelectWrapper.style.display = 'block';
-    studyArea.style.display = 'none';
-  });
-
-    // Event listeners for custom deck select
-    if (deckDropdownToggle) {
-      deckDropdownToggle.addEventListener('click', () => {
-        deckDropdown.classList.toggle('hidden');
-        deckDropdownToggle.querySelector('i').classList.toggle('fa-chevron-down');
-        deckDropdownToggle.querySelector('i').classList.toggle('fa-chevron-up');
-      });
-    }
-
-    deckCheckboxes.forEach(checkbox => {
-      checkbox.addEventListener('change', updateSelectedDecksText);
-    });
-
-    // Close dropdown if clicked outside
-    document.addEventListener('click', (event) => {
-      if (deckDropdown && !deckDropdown.contains(event.target) && !deckDropdownToggle.contains(event.target)) {
-        deckDropdown.classList.add('hidden');
-        deckDropdownToggle.querySelector('i').classList.remove('fa-chevron-up');
-        deckDropdownToggle.querySelector('i').classList.add('fa-chevron-down');
+  function submitGrade(grade) {
+    fetch(STUDY_CFG.submitUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': STUDY_CFG.csrfToken
+      },
+      body: JSON.stringify({
+        card_id: currentQuestion.id,
+        correct: grade >= 2 // Grade 2+ is considered correct
+      })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        // Move to next question after a short delay
+        nextTimeout = setTimeout(() => {
+          getNextQuestion();
+        }, 1500);
       }
     });
+  }
 
-    updateSelectedDecksText(); // Initial update
+  // Study mode selection handling
+  function handleStudyModeChange() {
+    const selectedMode = document.querySelector('input[name="study_mode"]:checked').value;
+    currentStudyMode = selectedMode;
+    
+    if (selectedMode === 'decks') {
+      deckStudyOptions.style.display = 'block';
+      randomStudyOptions.style.display = 'none';
+    } else {
+      deckStudyOptions.style.display = 'none';
+      randomStudyOptions.style.display = 'block';
+    }
+  }
+
+  // Initialize study mode selection
+  studyModeRadios.forEach(radio => {
+    radio.addEventListener('change', handleStudyModeChange);
+  });
+
+  // Handle random word count input
+  if (randomWordCountInput) {
+    randomWordCountInput.addEventListener('input', (e) => {
+      wordCount = parseInt(e.target.value) || 10;
+    });
+  }
+
+  // Handle start buttons
+  if (startBtnDecks) {
+    startBtnDecks.addEventListener('click', () => {
+      if (currentStudyMode === 'decks') {
+        const selectedDeckIds = Array.from(document.querySelectorAll('input[name="deck_ids"]:checked')).map(cb => cb.value);
+        if (selectedDeckIds.length === 0) {
+          alert('Please select at least one deck to study.');
+          return;
+        }
+      }
+      
+      // Reset session data
+      correctCnt = 0;
+      incorrectCnt = 0;
+      seenCardIds = [];
+      updateStats();
+      
+      // Hide all selection areas and show study area
+      document.querySelector('.mb-8.p-6.bg-white.dark\\:bg-gray-800.rounded-lg.shadow-md').style.display = 'none'; // Hide study mode selection
+      deckStudyOptions.style.display = 'none';
+      randomStudyOptions.style.display = 'none';
+      studyArea.style.display = 'block';
+      
+      // Start studying
+      getNextQuestion();
+    });
+  }
+
+  if (startBtnRandom) {
+    startBtnRandom.addEventListener('click', () => {
+      // Reset session data
+      correctCnt = 0;
+      incorrectCnt = 0;
+      seenCardIds = [];
+      updateStats();
+      
+      // Hide all selection areas and show study area
+      document.querySelector('.mb-8.p-6.bg-white.dark\\:bg-gray-800.rounded-lg.shadow-md').style.display = 'none'; // Hide study mode selection
+      deckStudyOptions.style.display = 'none';
+      randomStudyOptions.style.display = 'none';
+      studyArea.style.display = 'block';
+      
+      // Start studying
+      getNextQuestion();
+    });
+  }
+
+  // Back button handling
+  if (backBtn) {
+    backBtn.addEventListener('click', () => {
+      // Hide study area
+      studyArea.style.display = 'none';
+      
+      // Reset study area content
+      if (cardWordEl) cardWordEl.innerHTML = '';
+      if (cardPhoneticEl) cardPhoneticEl.style.display = 'none';
+      if (cardImageEl) cardImageEl.style.display = 'none';
+      if (cardDefsEl) cardDefsEl.innerHTML = '';
+      if (optionsArea) optionsArea.innerHTML = '';
+      if (feedbackMsg) feedbackMsg.style.display = 'none';
+      if (cambridgeLinkEl) cambridgeLinkEl.style.display = 'none';
+      
+      const gradeButtons = document.getElementById('gradeButtons');
+      if (gradeButtons) gradeButtons.style.display = 'none';
+      
+      const noCardMsg = document.getElementById('noCardMsg');
+      if (noCardMsg) noCardMsg.style.display = 'none';
+      
+      // Show study mode selection again
+      document.querySelector('.mb-8.p-6.bg-white.dark\\:bg-gray-800.rounded-lg.shadow-md').style.display = 'block';
+      
+      // Show appropriate options based on current mode
+      if (currentStudyMode === 'decks') {
+        deckStudyOptions.style.display = 'block';
+        randomStudyOptions.style.display = 'none';
+      } else {
+        deckStudyOptions.style.display = 'none';
+        randomStudyOptions.style.display = 'block';
+      }
+      
+      // Reset stats
+      correctCnt = 0;
+      incorrectCnt = 0;
+      updateStats();
+    });
+  }
+
+  // Initialize deck dropdown functionality
+  const deckDropdownToggle = document.getElementById('deckDropdownToggle');
+  const deckDropdown = document.getElementById('deckDropdown');
+  const deckCheckboxes = document.querySelectorAll('input[name="deck_ids"]');
+
+  function updateSelectedDecksText() {
+    const selectedDecks = Array.from(deckCheckboxes).filter(cb => cb.checked);
+    const selectedDecksText = document.getElementById('selectedDecksText');
+    
+    if (selectedDecks.length === 0) {
+      selectedDecksText.textContent = 'No decks selected';
+    } else if (selectedDecks.length === 1) {
+      selectedDecksText.textContent = selectedDecks[0].nextElementSibling.textContent;
+    } else {
+      selectedDecksText.textContent = `${selectedDecks.length} decks selected`;
+    }
+  }
+
+  if (deckDropdownToggle && deckDropdown) {
+    deckDropdownToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deckDropdown.classList.toggle('hidden');
+      deckDropdownToggle.querySelector('i').classList.toggle('fa-chevron-down');
+      deckDropdownToggle.querySelector('i').classList.toggle('fa-chevron-up');
+    });
+  }
+
+  deckCheckboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', updateSelectedDecksText);
+  });
+
+  // Close dropdown if clicked outside
+  document.addEventListener('click', (event) => {
+    if (deckDropdown && !deckDropdown.contains(event.target) && !deckDropdownToggle.contains(event.target)) {
+      deckDropdown.classList.add('hidden');
+      deckDropdownToggle.querySelector('i').classList.remove('fa-chevron-up');
+      deckDropdownToggle.querySelector('i').classList.add('fa-chevron-down');
+    }
+  });
+
+  updateSelectedDecksText(); // Initial update
 
 })(); 

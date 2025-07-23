@@ -254,5 +254,63 @@ msgstr "Đã xảy ra lỗi khi xóa flashcard:"
 msgid "Cannot play this audio"
 msgstr "Không thể phát audio này"
 
-msgid "Cannot play audio:"
+msgid "Cannot play audio:" 
 msgstr "Không thể phát audio:" 
+
+# Study Mode Selection
+msgid "study_mode"
+msgstr "Chế độ học tập"
+
+msgid "normal_study_by_decks"
+msgstr "Học bình thường (theo bộ thẻ)"
+
+msgid "study_random_words"
+msgstr "Học từ ngẫu nhiên"
+
+msgid "number_of_words"
+msgstr "Số lượng từ"
+
+msgid "available_words"
+msgstr "Từ có sẵn"
+
+msgid "select_decks"
+msgstr "Chọn bộ thẻ"
+
+msgid "no_decks_selected"
+msgstr "Chưa chọn bộ thẻ nào"
+
+msgid "no_decks_available"
+msgstr "Không có bộ thẻ nào"
+
+msgid "start_study"
+msgstr "Bắt đầu học"
+
+msgid "correct"
+msgstr "Đúng"
+
+msgid "incorrect"
+msgstr "Sai"
+
+msgid "check"
+msgstr "Kiểm tra"
+
+msgid "answer_placeholder"
+msgstr "Nhập đáp án của bạn..."
+
+msgid "grade_again"
+msgstr "Lại"
+
+msgid "grade_hard"
+msgstr "Khó"
+
+msgid "grade_good"
+msgstr "Tốt"
+
+msgid "grade_easy"
+msgstr "Dễ"
+
+msgid "view_in_cambridge"
+msgstr "Xem trong Cambridge Dictionary"
+
+msgid "no_cards_due"
+msgstr "Không có thẻ nào cần học" 

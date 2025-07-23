@@ -204,3 +204,61 @@ msgstr "Language Test"
 
 msgid "Back to Dashboard"
 msgstr "Back to Dashboard" 
+
+# Study Mode Selection
+msgid "study_mode"
+msgstr "Study Mode"
+
+msgid "normal_study_by_decks"
+msgstr "Normal Study (by Decks)"
+
+msgid "study_random_words"
+msgstr "Study Random Words"
+
+msgid "number_of_words"
+msgstr "Number of Words"
+
+msgid "available_words"
+msgstr "Available Words"
+
+msgid "select_decks"
+msgstr "Select Decks"
+
+msgid "no_decks_selected"
+msgstr "No decks selected"
+
+msgid "no_decks_available"
+msgstr "No decks available"
+
+msgid "start_study"
+msgstr "Start Study"
+
+msgid "correct"
+msgstr "Correct"
+
+msgid "incorrect"
+msgstr "Incorrect"
+
+msgid "check"
+msgstr "Check"
+
+msgid "answer_placeholder"
+msgstr "Enter your answer..."
+
+msgid "grade_again"
+msgstr "Again"
+
+msgid "grade_hard"
+msgstr "Hard"
+
+msgid "grade_good"
+msgstr "Good"
+
+msgid "grade_easy"
+msgstr "Easy"
+
+msgid "view_in_cambridge"
+msgstr "View in Cambridge Dictionary"
+
+msgid "no_cards_due"
+msgstr "No cards due"

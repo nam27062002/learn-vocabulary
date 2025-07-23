@@ -1,13 +1,30 @@
 {% extends "base.html" %}
 {% load static %}
-{% load i18n %}
 {% block title %}{{ manual_texts.study }} - {{ manual_texts.learn_english }}{% endblock %}
 
 {% block content %}
 <div class="study-page" style="max-width:800px;margin:0 auto;padding:20px;">
   <h1 style="font-size:2em;font-weight:700;margin-bottom:20px;background:linear-gradient(135deg,var(--primary-color),#8e44ad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">📖 {{ manual_texts.study }}</h1>
 
-  <div id="deckSelectWrapper" class="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+  <!-- Study Mode Selection -->
+  <div class="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+    <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{{ manual_texts.study_mode }}:</h2>
+    
+    <div class="space-y-3">
+      <label class="flex items-center cursor-pointer">
+        <input type="radio" name="study_mode" value="decks" checked class="form-radio h-4 w-4 text-primary-color focus:ring-primary-color mr-3">
+        <span class="text-gray-700 dark:text-gray-300">{{ manual_texts.normal_study_by_decks }}</span>
+      </label>
+      
+      <label class="flex items-center cursor-pointer">
+        <input type="radio" name="study_mode" value="random" class="form-radio h-4 w-4 text-primary-color focus:ring-primary-color mr-3">
+        <span class="text-gray-700 dark:text-gray-300">{{ manual_texts.study_random_words }}</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Deck Study Options -->
+  <div id="deckStudyOptions" class="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
     <label for="deckSelect" class="block text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{{ manual_texts.select_decks }}:</label>
     
     <div class="relative">
@@ -31,9 +48,31 @@
     <button id="startBtn" class="primary-btn mt-6 w-full py-3 text-lg font-semibold">{{ manual_texts.start_study }}</button>
   </div>
 
+  <!-- Random Study Options -->
+  <div id="randomStudyOptions" class="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md hidden">
+    <label class="block text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{{ manual_texts.study_random_words }}:</label>
+    
+    <div class="space-y-4">
+      <div>
+        <label for="randomWordCount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          {{ manual_texts.number_of_words }}:
+        </label>
+        <input type="number" id="randomWordCount" min="1" max="100" value="10" 
+               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-primary-color dark:bg-gray-700 dark:text-gray-300">
+      </div>
+      
+      <div class="text-sm text-gray-600 dark:text-gray-400">
+        <span>{{ manual_texts.available_words }}: </span>
+        <span id="totalWordsAvailable" class="font-semibold">{{ total_words_available }}</span>
+      </div>
+      
+      <button id="startRandomBtn" class="primary-btn w-full py-3 text-lg font-semibold">{{ manual_texts.start_study }}</button>
+    </div>
+  </div>
+
   <div id="studyArea" style="display:none;">
     <div id="studyHeader" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-        <button id="backBtn" style="background:transparent;color:var(--primary-color);border:none;font-weight:600;cursor:pointer;">← {{ manual_texts.select_decks }}</button>
+        <button id="backBtn" style="background:transparent;color:var(--primary-color);border:none;font-weight:600;cursor:pointer;">← {{ manual_texts.back_to_selection }}</button>
         <div id="statsInfo" style="color:var(--card-text-muted);font-weight:600;">{{ manual_texts.correct }}: 0 | {{ manual_texts.incorrect }}: 0</div>
     </div>
     <div id="cardBox" class="card-box">
@@ -45,15 +84,10 @@
             <div id="optionsArea" style="margin-top:10px;"></div>
             <p id="feedbackMsg" style="display:none;font-weight:600;margin-top:10px;"></p>
             <div id="cambridgeLink" class="mt-4" style="display:none;">
-                <a href="#" id="cambridgeAnchor" target="_blank" class="text-primary-color hover:underline text-sm">
-                    {{ manual_texts.search_cambridge }}
-                    <i class="fas fa-external-link-alt ml-1"></i>
-                </a>
+                <a id="cambridgeAnchor" href="" target="_blank" style="color:var(--primary-color);text-decoration:none;font-weight:600;">🔍 {{ manual_texts.view_in_cambridge }}</a>
             </div>
         </div>
-    </div>
-
-    <div id="gradeButtons" style="display:none;margin-top:20px;text-align:center;">
+        <div id="gradeButtons" style="display:none;margin-top:15px;">
         <button class="gradeBtn" data-grade="0" style="background:#e3342f;color:#fff;padding:10px 16px;border:none;border-radius:6px;margin:5px;">{{ manual_texts.grade_again }}</button>
         <button class="gradeBtn" data-grade="1" style="background:#f6993f;color:#fff;padding:10px 16px;border:none;border-radius:6px;margin:5px;">{{ manual_texts.grade_hard }}</button>
         <button class="gradeBtn" data-grade="2" style="background:#38c172;color:#fff;padding:10px 16px;border:none;border-radius:6px;margin:5px;">{{ manual_texts.grade_good }}</button>
@@ -76,12 +110,12 @@
       incorrect: "{{ manual_texts.incorrect }}",
       check: "{{ manual_texts.check }}",
       placeholder: "{{ manual_texts.answer_placeholder }}",
-      answerLabel: "{{ manual_texts.correct_answer }}",
-      nextCard: "{{ manual_texts.next_card }}",
-      vi: "{{ manual_texts.vi|default:'VI' }}",
-      vietnamese_meaning: "{{ manual_texts.vietnamese_meaning }}",
-      dictation_placeholder: "{{ manual_texts.dictation_placeholder }}",
-      select_at_least_one_deck: "{{ manual_texts.select_at_least_one_deck }}"
+      grade_again: "{{ manual_texts.grade_again }}",
+      grade_hard: "{{ manual_texts.grade_hard }}",
+      grade_good: "{{ manual_texts.grade_good }}",
+      grade_easy: "{{ manual_texts.grade_easy }}",
+      view_in_cambridge: "{{ manual_texts.view_in_cambridge }}",
+      no_cards_due: "{{ manual_texts.no_cards_due }}"
     }
   };
 </script>

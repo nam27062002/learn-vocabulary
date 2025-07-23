@@ -197,11 +197,30 @@ def api_next_question(request):
     import random as _rnd
     MODES = ['mc', 'type', 'dictation']
     deck_ids = request.GET.getlist('deck_ids[]')
+    study_mode = request.GET.get('study_mode', 'decks')
+    word_count = int(request.GET.get('word_count', 10))
+    seen_card_ids = request.GET.getlist('seen_card_ids[]')
 
-    # Use enhanced card selection algorithm
-    card = _get_next_card_enhanced(request.user, deck_ids)
-    if not card:
-        return JsonResponse({'done': True})
+    # Convert seen_card_ids to integers
+    seen_card_ids = [int(cid) for cid in seen_card_ids if cid.isdigit()]
+
+    if study_mode == 'random':
+        # Random study mode: select random words from entire vocabulary
+        available_cards = Flashcard.objects.filter(user=request.user).exclude(id__in=seen_card_ids)
+        
+        if not available_cards.exists():
+            return JsonResponse({'done': True})
+        
+        # Get random card
+        card = available_cards.order_by('?').first()
+        
+        # Update tracking fields when card is shown
+        _update_card_shown_tracking(card)
+    else:
+        # Normal study mode: use enhanced card selection algorithm
+        card = _get_next_card_enhanced(request.user, deck_ids)
+        if not card:
+            return JsonResponse({'done': True})
 
     # Check if card has audio for dictation mode
     has_audio = card.audio_url and card.audio_url.strip()
@@ -217,9 +236,6 @@ def api_next_question(request):
     # For dictation mode, ensure we have audio
     if mode == 'dictation' and not has_audio:
         mode = _rnd.choice(['mc', 'type'])
-
-    # Update tracking fields when card is shown
-    _update_card_shown_tracking(card)
 
     defs = list(card.definitions.values('english_definition', 'vietnamese_definition'))
 
@@ -748,7 +764,11 @@ def statistics_view(request):
 @login_required
 def study_page(request):
     decks = Deck.objects.filter(user=request.user)
-    return render(request, 'vocabulary/study.html', {'decks': decks})
+    total_words_available = Flashcard.objects.filter(user=request.user).count()
+    return render(request, 'vocabulary/study.html', {
+        'decks': decks,
+        'total_words_available': total_words_available
+    })
 
 @login_required
 @require_GET
