@@ -1,6 +1,14 @@
 from django.utils import translation
-from django.utils.translation import gettext as _
+from django.conf import settings
 import json
+
+# Only import gettext if i18n is enabled
+if getattr(settings, 'USE_I18N', False):
+    from django.utils.translation import gettext as _
+else:
+    # Fallback function when i18n is disabled
+    def _(message):
+        return str(message)
 
 def i18n_compatible_translations(request):
     """

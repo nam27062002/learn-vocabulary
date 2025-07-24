@@ -6,7 +6,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="csrf-token" content="{{ csrf_token }}" />
-    <title>{% block title %}{% trans "Learn English" %}{% endblock %}</title>
+    <title>{% block title %}{{ manual_texts.learn_english }}{% endblock %}</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -74,23 +74,23 @@
                             {% if user.is_authenticated %}
                                 <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}bg-gray-900 text-white{% else %}text-gray-500 dark:text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1" id="nav-home">
                                     <span class="nav-icon">🏠</span>
-                                    <span>{% trans "Home" %}</span>
+                                    <span>{{ manual_texts.home }}</span>
                                 </a>
                                 <a href="{% url 'deck_list' %}" class="{% if request.resolver_match.url_name == 'deck_list' or request.resolver_match.url_name == 'deck_detail' %}bg-gray-900 text-white{% else %}text-gray-500 dark:text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1" id="nav-flashcards">
                                     <span class="nav-icon">📚</span>
-                                    <span>{% trans "Flashcards" %}</span>
+                                    <span>{{ manual_texts.flashcards }}</span>
                                 </a>
                                 <a href="{% url 'add_flashcard' %}" class="{% if request.resolver_match.url_name == 'add_flashcard' %}bg-gray-900 text-white{% else %}text-gray-500 dark:text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1" id="nav-add-word">
                                     <span class="nav-icon">➕</span>
-                                    <span>{% trans "Add Word" %}</span>
+                                    <span>{{ manual_texts.add_word }}</span>
                                 </a>
                                 <a href="{% url 'study' %}" class="{% if request.resolver_match.url_name == 'study' %}bg-gray-900 text-white{% else %}text-gray-500 dark:text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1" id="nav-study">
                                     <span class="nav-icon">📖</span>
-                                    <span>{% trans "Study" %}</span>
+                                    <span>{{ manual_texts.study }}</span>
                                 </a>
                                 <a href="{% url 'statistics' %}" class="{% if request.resolver_match.url_name == 'statistics' %}bg-gray-900 text-white{% else %}text-gray-500 dark:text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1" id="nav-statistics">
                                     <span class="nav-icon">📊</span>
-                                    <span>{% trans "Statistics" %}</span>
+                                    <span>{{ manual_texts.statistics }}</span>
                                 </a>
                             {% endif %}
                         </div>
@@ -113,14 +113,14 @@
                                 </div>
                                 <div id="user-menu" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-700 ring-1 ring-black ring-opacity-5 focus:outline-none hidden" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1">
                                     <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-600">
-                                        <p class="text-sm text-gray-900 dark:text-white">{% trans "Signed in as" %}</p>
+                                        <p class="text-sm text-gray-900 dark:text-white">{{ manual_texts.signed_in_as }}</p>
                                         <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ user.email }}</p>
                                     </div>
                                     <a href="#" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" role="menuitem" tabindex="-1" id="nav-profile">
-                                        <span>👤</span> {% trans "Profile" %}
+                                        <span>👤</span> {{ manual_texts.profile }}
                                     </a>
                                     <a href="{% url 'account_logout' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" role="menuitem" tabindex="-1" id="nav-logout">
-                                       <span>🚪</span> {% trans "Logout" %}
+                                       <span>🚪</span> {{ manual_texts.logout }}
                                     </a>
                                 </div>
                             </div>
@@ -180,27 +180,27 @@
                  {% if user.is_authenticated %}
                     <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium flex items-center space-x-2">
                         <span class="nav-icon">🏠</span>
-                        <span>{% trans "Home" %}</span>
+                        <span>{{ manual_texts.home }}</span>
                     </a>
                     <a href="{% url 'deck_list' %}" class="{% if request.resolver_match.url_name == 'deck_list' or request.resolver_match.url_name == 'deck_detail' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium flex items-center space-x-2">
                         <span class="nav-icon">📚</span>
-                        <span>{% trans "Flashcards" %}</span>
+                        <span>{{ manual_texts.flashcards }}</span>
                     </a>
                     <a href="{% url 'add_flashcard' %}" class="{% if request.resolver_match.url_name == 'add_flashcard' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium flex items-center space-x-2">
                         <span class="nav-icon">➕</span>
-                        <span>{% trans "Add Word" %}</span>
+                        <span>{{ manual_texts.add_word }}</span>
                     </a>
                     <a href="{% url 'study' %}" class="{% if request.resolver_match.url_name == 'study' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium flex items-center space-x-2">
                         <span class="nav-icon">📖</span>
-                        <span>{% trans "Study" %}</span>
+                        <span>{{ manual_texts.study }}</span>
                     </a>
                     <a href="{% url 'statistics' %}" class="{% if request.resolver_match.url_name == 'statistics' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium flex items-center space-x-2">
                         <span class="nav-icon">📊</span>
-                        <span>{% trans "Statistics" %}</span>
+                        <span>{{ manual_texts.statistics }}</span>
                     </a>
                 {% else %}
                     <a href="{% url 'account_login' %}" class="text-gray-300 hover:bg-gray-700 hover:text-white block px-3 py-2 rounded-md text-base font-medium">
-                        {% trans "Sign in" %}
+                        {{ manual_texts.sign_in }}
                     </a>
                     <a href="{% url 'account_signup' %}" class="bg-indigo-600 hover:bg-indigo-700 text-white block px-3 py-2 rounded-md text-base font-medium">
                         {{ manual_texts.sign_up }}
@@ -222,10 +222,10 @@
                     </div>
                     <div class="mt-3 px-2 space-y-1">
                         <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-gray-400 hover:text-white hover:bg-gray-700">
-                            <span>👤</span> {% trans "Profile" %}
+                            <span>👤</span> {{ manual_texts.profile }}
                         </a>
                         <a href="{% url 'account_logout' %}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-400 hover:text-white hover:bg-gray-700">
-                           <span>🚪</span> {% trans "Logout" %}
+                           <span>🚪</span> {{ manual_texts.logout }}
                         </a>
                     </div>
                 </div>

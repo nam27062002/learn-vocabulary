@@ -126,7 +126,8 @@ LANGUAGE_CODE = 'en'  # Default language
 
 TIME_ZONE = 'Asia/Ho_Chi_Minh'  # Vietnam timezone
 
-USE_I18N = True
+# Temporarily disable Django's i18n system until .mo files are properly compiled
+USE_I18N = False
 USE_L10N = True
 USE_TZ = True
 
