@@ -19,12 +19,13 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.conf.urls.i18n import i18n_patterns
-from django.views.i18n import set_language
+from django.views.i18n import set_language, JavaScriptCatalog
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),  # Authentication URLs
     path('i18n/', include('django.conf.urls.i18n')),  # Include i18n URLs (not affected by language prefix)
+    path('jsi18n/', JavaScriptCatalog.as_view(), name='javascript-catalog'),  # JavaScript i18n catalog
 ]
 
 # Internationalized URLs

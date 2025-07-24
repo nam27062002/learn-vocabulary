@@ -1,49 +1,78 @@
-# Localization Rule
+# Localization Rules (Updated)
 
-## Quy tắc sử dụng Localization trong dự án
+## New Django i18n System (Preferred)
 
-### 1. Sử dụng Context Processors thay vì Django i18n
+### 1. Use Django's Standard i18n System
 
-**KHÔNG sử dụng:**
-- `{% load i18n %}`
-- `{% trans "text" %}`
-- `gettext()`
-- `django.mo` files
+**RECOMMENDED (New System):**
+- `{% load i18n %}` at the top of templates
+- `{% trans "text" %}` for simple translations
+- `{% blocktrans %}` for complex translations with variables/HTML
+- `gettext()` in Python code
+- `.po` and `.mo` files in `locale/` directory
 
-**SỬ DỤNG:**
-- `vocabulary/context_processors.py` - File chính chứa tất cả translations
-- `{{ manual_texts.key_name }}` trong templates
-- `manual_texts` dictionary trong JavaScript
+**LEGACY SUPPORT (Being Phased Out):**
+- `{{ manual_texts.key_name }}` in templates (still works)
+- `window.manual_texts` in JavaScript (still works)
+- `vocabulary/context_processors.py` (hybrid system)
 
-### 2. Cấu trúc Context Processors
+### 2. New System Usage
 
-File `vocabulary/context_processors.py` chứa:
-- Dictionary `translations` với keys là language codes ('en', 'vi')
-- Mỗi language có dictionary con với key-value pairs
-- Key names nên có prefix mô tả chức năng (ví dụ: `study_mode`, `deck_name`)
-
-### 3. Cách thêm text mới
-
-1. **Thêm vào context_processors.py:**
-```python
-'en': {
-    'new_text_key': 'English text',
-    # ...
-},
-'vi': {
-    'new_text_key': 'Tiếng Việt text',
-    # ...
-}
-```
-
-2. **Sử dụng trong template:**
+**In Templates:**
 ```html
-{{ manual_texts.new_text_key }}
+{% load i18n %}
+<h1>{% trans "Welcome to LearnEnglish" %}</h1>
+<p>{% trans "Your personal vocabulary learning platform" %}</p>
+
+<!-- For complex translations -->
+{% blocktrans count counter=cards %}
+{{ counter }} card
+{% plural %}
+{{ counter }} cards
+{% endblocktrans %}
 ```
 
-3. **Sử dụng trong JavaScript:**
+**In Python Code:**
+```python
+from django.utils.translation import gettext as _
+
+def my_view(request):
+    message = _("Welcome to LearnEnglish")
+    return render(request, 'template.html', {'message': message})
+```
+
+**In JavaScript (Current Hybrid System):**
 ```javascript
-STUDY_CFG.labels.new_text_key
+// Still works - uses hybrid system
+console.log(window.manual_texts.console_welcome);
+
+// Future approach (when fully migrated)
+console.log(gettext("Welcome to LearnEnglish"));
+```
+
+### 3. Adding New Translations
+
+1. **Add to .po files:**
+```bash
+# In locale/en/LC_MESSAGES/django.po
+msgid "New Feature"
+msgstr "New Feature"
+
+# In locale/vi/LC_MESSAGES/django.po
+msgid "New Feature"
+msgstr "Tính năng mới"
+```
+
+2. **Use in templates:**
+```html
+{% trans "New Feature" %}
+```
+
+3. **Compile translations:**
+```bash
+python compile_messages.py  # Custom script
+# or when gettext is available:
+python manage.py compilemessages
 ```
 
 ### 4. Naming Convention

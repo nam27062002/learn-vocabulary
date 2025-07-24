@@ -1,10 +1,17 @@
 from django.utils import translation
+from django.utils.translation import gettext as _
+import json
 
-def manual_translations(request):
-    """Manual translation context processor as fallback"""
+def i18n_compatible_translations(request):
+    """
+    Hybrid translation context processor that provides both Django i18n
+    and legacy manual_texts for backward compatibility during migration.
+    """
     current_lang = translation.get_language()
-    
-    translations = {
+
+    # Legacy translations for backward compatibility
+    # These will be gradually removed as templates are migrated to use {% trans %}
+    legacy_translations = {
         'en': {
             'learn_english': 'Learn English',
             'home': 'Home',
@@ -449,7 +456,64 @@ def manual_translations(request):
         }
     }
     
+    # Create a hybrid system that provides both legacy and Django i18n
+    legacy_texts = legacy_translations.get(current_lang, legacy_translations['en'])
+
+    # JavaScript translations using Django's gettext (fallback to English if translation fails)
+    js_translations = {}
+    try:
+        js_translations = {
+            'console_welcome': str(_("🎓 LearnEnglish App")),
+            'console_subtitle': str(_("Welcome to the developer console!")),
+            'console_built_with': str(_("Built with Django + Tailwind CSS + JavaScript ❤️")),
+            'home': str(_("Home")),
+            'flashcards': str(_("Flashcards")),
+            'add_word': str(_("Add Word")),
+            'study': str(_("Study")),
+            'statistics': str(_("Statistics")),
+            'profile': str(_("Profile")),
+            'logout': str(_("Logout")),
+            'correct': str(_("Correct")),
+            'incorrect': str(_("Incorrect")),
+            'check': str(_("Check")),
+            'saving': str(_("Saving...")),
+            'loading': str(_("Loading...")),
+            'error': str(_("Error")),
+            'success': str(_("Success")),
+        }
+    except Exception:
+        # Fallback to legacy translations if Django i18n fails
+        js_translations = {
+            'console_welcome': legacy_texts.get('console_welcome', '🎓 LearnEnglish App'),
+            'console_subtitle': legacy_texts.get('console_subtitle', 'Welcome to the developer console!'),
+            'console_built_with': legacy_texts.get('console_built_with', 'Built with Django + Tailwind CSS + JavaScript ❤️'),
+            'home': legacy_texts.get('home', 'Home'),
+            'flashcards': legacy_texts.get('flashcards', 'Flashcards'),
+            'add_word': legacy_texts.get('add_word', 'Add Word'),
+            'study': legacy_texts.get('study', 'Study'),
+            'statistics': legacy_texts.get('statistics', 'Statistics'),
+            'profile': legacy_texts.get('profile', 'Profile'),
+            'logout': legacy_texts.get('logout', 'Logout'),
+            'correct': legacy_texts.get('correct', 'Correct'),
+            'incorrect': legacy_texts.get('incorrect', 'Incorrect'),
+            'check': legacy_texts.get('check', 'Check'),
+            'saving': legacy_texts.get('saving', 'Saving...'),
+            'loading': legacy_texts.get('loading', 'Loading...'),
+            'error': legacy_texts.get('error', 'Error'),
+            'success': legacy_texts.get('success', 'Success'),
+        }
+
+    # For templates that haven't been migrated yet, provide manual_texts
+    # For new templates, they should use {% trans %} tags directly
     return {
-        'manual_texts': translations.get(current_lang, translations['en']),
-        'current_language_code': current_lang
-    } 
+        'manual_texts': legacy_texts,  # Legacy support
+        'current_language_code': current_lang,
+        'js_translations_json': json.dumps(js_translations),  # JSON string for JavaScript
+    }
+
+def manual_translations(request):
+    """
+    DEPRECATED: Use i18n_compatible_translations instead.
+    This function is kept for backward compatibility only.
+    """
+    return i18n_compatible_translations(request)

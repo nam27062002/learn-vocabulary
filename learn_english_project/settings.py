@@ -77,8 +77,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'django.template.context_processors.i18n',  # Add this for i18n
-                'vocabulary.context_processors.manual_translations',  # Manual translations fallback
+                'django.template.context_processors.i18n',  # Django i18n support
+                'vocabulary.context_processors.i18n_compatible_translations',  # Hybrid i18n system
                 # Required for allauth
                 'django.template.context_processors.request',
             ],
