@@ -26,9 +26,12 @@ urlpatterns = [
     path('accounts/', include('allauth.urls')),  # Authentication URLs
     path('i18n/', include('django.conf.urls.i18n')),  # Include i18n URLs (not affected by language prefix)
     path('jsi18n/', JavaScriptCatalog.as_view(), name='javascript-catalog'),  # JavaScript i18n catalog
+
+    # API endpoints - NO language prefix (return JSON, not localized HTML)
+    path('', include('vocabulary.api_urls')),
 ]
 
-# Internationalized URLs
+# Internationalized URLs - pages that need language prefixes
 urlpatterns += i18n_patterns(
     path('', include('vocabulary.urls')),
     prefix_default_language=True  # Always show language prefix to avoid confusion

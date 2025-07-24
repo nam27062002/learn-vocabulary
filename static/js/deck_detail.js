@@ -946,7 +946,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.appendChild(progressDiv);
 
         // Make API request
-        fetch(`/${languagePrefix}/api/fetch-missing-audio/`, {
+        fetch(`/api/fetch-missing-audio/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1043,7 +1043,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function fetchAudioForSingleCard(cardId) {
         const languagePrefix = window.location.pathname.split('/')[1];
 
-        return fetch(`/${languagePrefix}/api/fetch-audio-for-card/`, {
+        return fetch(`/api/fetch-audio-for-card/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -1052,7 +1052,7 @@
       return;
     }
 
-    fetch('/en/api/incorrect-words/count/', {
+    fetch('/api/incorrect-words/count/', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
