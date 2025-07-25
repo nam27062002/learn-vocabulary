@@ -468,6 +468,9 @@
   }
 
   function submitAnswer(correct) {
+    // Store the actual correctness for later use in submitGrade
+    window.currentAnswerCorrectness = correct;
+
     // Clear any existing timeout
     if (nextTimeout) {
       clearTimeout(nextTimeout);
@@ -619,6 +622,9 @@
     // Calculate response time
     const responseTime = questionStartTime ? (Date.now() - questionStartTime) / 1000 : 0;
 
+    // Use the actual answer correctness, not the grade
+    const actualCorrectness = window.currentAnswerCorrectness !== undefined ? window.currentAnswerCorrectness : (grade >= 2);
+
     fetch(STUDY_CFG.submitUrl, {
       method: 'POST',
       headers: {
@@ -627,9 +633,10 @@
       },
       body: JSON.stringify({
         card_id: currentQuestion.id,
-        correct: grade >= 2, // Grade 2+ is considered correct
+        correct: actualCorrectness, // Use actual answer correctness, not grade-based
         response_time: responseTime,
-        question_type: currentQuestion.type || 'multiple_choice'
+        question_type: currentQuestion.type || 'multiple_choice',
+        grade: grade // Also send the grade for spaced repetition algorithm
       })
     })
     .then(r => {

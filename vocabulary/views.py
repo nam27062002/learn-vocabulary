@@ -406,11 +406,12 @@ def api_submit_answer(request):
     try:
         data = json.loads(request.body)
         card_id = data.get('card_id')
-        correct = data.get('correct')  # bool
+        correct = data.get('correct')  # bool - actual answer correctness
         response_time = data.get('response_time', 0)  # Time in seconds
         question_type = data.get('question_type', 'multiple_choice')
+        grade = data.get('grade')  # int - spaced repetition grade (0-3)
 
-        print(f"Parsed data: card_id={card_id}, correct={correct}, question_type={question_type}", file=sys.stderr)
+        print(f"Parsed data: card_id={card_id}, correct={correct}, question_type={question_type}, grade={grade}", file=sys.stderr)
 
         try:
             card = Flashcard.objects.get(id=card_id, user=request.user)
@@ -435,18 +436,25 @@ def api_submit_answer(request):
         question_type_map = {
             'multiple_choice': 'mc',
             'input': 'type',
+            'type': 'type',  # Handle both 'input' and 'type'
             'dictation': 'dictation'
         }
         mapped_question_type = question_type_map.get(question_type, question_type)
+        print(f"QUESTION TYPE MAPPING: {question_type} -> {mapped_question_type}", file=sys.stderr)
 
         print("=" * 80, file=sys.stderr)
         print("=== INCORRECT WORD TRACKING DEBUG ===", file=sys.stderr)
         print(f"Answer tracking: card={card.word}, correct={correct}, question_type={question_type}, mapped={mapped_question_type}", file=sys.stderr)
-        print(f"User: {request.user.username}, Card ID: {card.id}", file=sys.stderr)
+        print(f"User authenticated: {request.user.is_authenticated}", file=sys.stderr)
+        print(f"User ID: {request.user.id if request.user.is_authenticated else 'None'}", file=sys.stderr)
+        print(f"User email: {getattr(request.user, 'email', 'No email')}", file=sys.stderr)
+        print(f"User email: {getattr(request.user, 'email', 'No email')}", file=sys.stderr)
+        print(f"Card ID: {card.id}, Card User ID: {card.user.id}", file=sys.stderr)
         print("=" * 80, file=sys.stderr)
 
         if not correct:
             # Add to incorrect words list
+            print(f"INCORRECT ANSWER DETECTED - Adding to tracking", file=sys.stderr)
             try:
                 incorrect_review, created = IncorrectWordReview.objects.get_or_create(
                     user=request.user,
@@ -456,10 +464,25 @@ def api_submit_answer(request):
                 )
                 if not created:
                     incorrect_review.add_error()
-                print(f"Added incorrect word: {card.word} ({mapped_question_type}) - created: {created}", file=sys.stderr)
+                print(f"SUCCESS: Added incorrect word: {card.word} ({mapped_question_type}) - created: {created}, error_count: {incorrect_review.error_count}", file=sys.stderr)
+
+                # Verify the record was saved
+                verify_record = IncorrectWordReview.objects.filter(
+                    user=request.user,
+                    flashcard=card,
+                    question_type=mapped_question_type,
+                    is_resolved=False
+                ).first()
+                print(f"VERIFICATION: Record exists in DB: {verify_record is not None}", file=sys.stderr)
+                if verify_record:
+                    print(f"VERIFICATION: Record details - ID: {verify_record.id}, error_count: {verify_record.error_count}, is_resolved: {verify_record.is_resolved}", file=sys.stderr)
+
             except Exception as e:
-                print(f"Error tracking incorrect word: {e}", file=sys.stderr)
+                print(f"ERROR tracking incorrect word: {e}", file=sys.stderr)
+                import traceback
+                print(f"TRACEBACK: {traceback.format_exc()}", file=sys.stderr)
         else:
+            print(f"CORRECT ANSWER - checking if word was previously incorrect", file=sys.stderr)
             # Mark as resolved if it was in the incorrect list
             try:
                 incorrect_review = IncorrectWordReview.objects.get(
@@ -477,7 +500,17 @@ def api_submit_answer(request):
 
         # Update SM-2 algorithm
         try:
-            _update_sm2(card, correct)
+            # Use grade for SM-2 if available, otherwise use correct parameter
+            if grade is not None:
+                # Convert grade to SM-2 correctness: Grade 2+ (Good/Easy) = correct
+                sm2_correct = grade >= 2
+                print(f"SM-2 update: Using grade {grade} -> sm2_correct={sm2_correct}", file=sys.stderr)
+            else:
+                # Fallback to correct parameter for backward compatibility
+                sm2_correct = correct
+                print(f"SM-2 update: Using correct parameter -> sm2_correct={sm2_correct}", file=sys.stderr)
+
+            _update_sm2(card, sm2_correct)
         except Exception as e:
             print(f"Error in SM-2 update: {e}")
             # Continue anyway - the incorrect word tracking is more important
@@ -1627,7 +1660,14 @@ def api_resolve_incorrect_word(request):
 @require_GET
 def api_get_incorrect_words_count(request):
     """Get count of incorrect words for the user."""
+    import sys
     try:
+        print("=" * 80, file=sys.stderr)
+        print("=== API_GET_INCORRECT_WORDS_COUNT CALLED ===", file=sys.stderr)
+        print(f"User authenticated: {request.user.is_authenticated}", file=sys.stderr)
+        print(f"User ID: {request.user.id if request.user.is_authenticated else 'None'}", file=sys.stderr)
+        print(f"User email: {getattr(request.user, 'email', 'No email')}", file=sys.stderr)
+
         # Count unresolved incorrect words grouped by question type
         counts = {
             'total': 0,
@@ -1636,10 +1676,18 @@ def api_get_incorrect_words_count(request):
             'dictation': 0
         }
 
+        # Debug: Check total IncorrectWordReview records for this user
+        total_records = IncorrectWordReview.objects.filter(user=request.user).count()
+        unresolved_records = IncorrectWordReview.objects.filter(user=request.user, is_resolved=False).count()
+        print(f"Total IncorrectWordReview records for user: {total_records}", file=sys.stderr)
+        print(f"Unresolved IncorrectWordReview records for user: {unresolved_records}", file=sys.stderr)
+
         incorrect_words = IncorrectWordReview.objects.filter(
             user=request.user,
             is_resolved=False
         ).values('question_type').annotate(count=Count('id'))
+
+        print(f"Query result: {list(incorrect_words)}", file=sys.stderr)
 
         for item in incorrect_words:
             question_type = item['question_type']
@@ -1647,10 +1695,14 @@ def api_get_incorrect_words_count(request):
             counts[question_type] = count
             counts['total'] += count
 
+        print(f"Final counts: {counts}", file=sys.stderr)
+        print("=" * 80, file=sys.stderr)
+
         return JsonResponse({
             'success': True,
             'counts': counts
         })
 
     except Exception as e:
+        print(f"Error in api_get_incorrect_words_count: {e}", file=sys.stderr)
         return JsonResponse({'success': False, 'error': str(e)}, status=500)

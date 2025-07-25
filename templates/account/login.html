@@ -32,7 +32,7 @@
                         <div class="w-full border-t border-gray-300"></div>
                     </div>
                     <div class="relative flex justify-center text-sm">
-                        <span class="px-2 bg-white text-gray-500">{% trans "or" %}</span>
+                        <span class="px-2 bg-white text-gray-500">{{ manual_texts.or }}</span>
                     </div>
                 </div>
 
@@ -50,7 +50,7 @@
 
                     <div>
                         <label for="{{ form.login.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            {% trans "Email address" %}
+                            {{ manual_texts.email_address }}
                         </label>
                         <div class="mt-1">
                             {{ form.login }}
@@ -62,7 +62,7 @@
 
                     <div>
                         <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            {% trans "Password" %}
+                            {{ manual_texts.password }}
                         </label>
                         <div class="mt-1">
                             {{ form.password }}
@@ -76,27 +76,27 @@
                         <div class="flex items-center">
                             {{ form.remember }}
                             <label for="{{ form.remember.id_for_label }}" class="ml-2 block text-sm text-gray-900">
-                                {% trans "Remember me" %}
+                                {{ manual_texts.remember_me }}
                             </label>
                         </div>
 
                         <div class="text-sm">
                             <a href="{% url 'account_reset_password' %}" class="font-medium text-indigo-600 hover:text-indigo-500">
-                                {% trans "Forgot password?" %}
+                                {{ manual_texts.forgot_password }}
                             </a>
                         </div>
                     </div>
 
                     <div>
                         <button type="submit" class="btn-primary group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-200">
-                            {% trans "Sign in" %}
+                            {{ manual_texts.sign_in }}
                         </button>
                     </div>
 
                     <div class="text-center">
-                        <span class="text-gray-600">{% trans "Don't have an account?" %}</span>
+                        <span class="text-gray-600">{{ manual_texts.dont_have_account }}</span>
                         <a href="{% url 'account_signup' %}" class="font-medium text-indigo-600 hover:text-indigo-500 ml-1">
-                            {% trans "Sign up" %}
+                            {{ manual_texts.sign_up }}
                         </a>
                     </div>
                 </form>
