@@ -461,10 +461,8 @@ document.addEventListener('DOMContentLoaded', function() {
         saveBtn.textContent = window.manual_texts?.saving || 'Saving...';
         saveBtn.disabled = true;
 
-        // Prepare request details with language prefix
-        const currentPath = window.location.pathname;
-        const languagePrefix = currentPath.split('/')[1]; // Get language code (en/vi)
-        const requestUrl = `/${languagePrefix}/api/update-flashcard/`;
+        // Prepare request details (API endpoints don't use language prefixes)
+        const requestUrl = `/api/update-flashcard/`;
         const csrfToken = document.querySelector('meta[name="csrf-token"]');
         const requestHeaders = {
             'Content-Type': 'application/json',
@@ -878,10 +876,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const pathParts = window.location.pathname.split('/');
             const deckId = pathParts[pathParts.length - 2]; // Assuming URL is /decks/{id}/
 
-            // Send update request (with language prefix)
-            const currentPath = window.location.pathname;
-            const languagePrefix = currentPath.split('/')[1]; // Get language code (en/vi)
-            fetch(`/${languagePrefix}/api/update-deck-name/`, {
+            // Send update request (API endpoints don't use language prefixes)
+            fetch(`/api/update-deck-name/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1041,8 +1037,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function fetchAudioForSingleCard(cardId) {
-        const languagePrefix = window.location.pathname.split('/')[1];
-
         return fetch(`/api/fetch-audio-for-card/`, {
             method: 'POST',
             headers: {
