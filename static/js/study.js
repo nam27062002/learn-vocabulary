@@ -777,6 +777,15 @@
       this.isTransitioning = false;
       this.touchStartX = 0;
       this.touchEndX = 0;
+      this.isEnabled = true;
+
+      // Store bound event handlers for removal
+      this.boundPrevSlide = () => this.prevSlide();
+      this.boundNextSlide = () => this.nextSlide();
+      this.boundKeydownHandler = (e) => this.handleKeydown(e);
+      this.boundTouchStart = (e) => this.handleTouchStart(e);
+      this.boundTouchEnd = (e) => this.handleTouchEnd(e);
+      this.boundTouchMove = (e) => e.preventDefault();
 
       this.init();
     }
@@ -787,34 +796,86 @@
       this.updateIndicators();
       this.updateNavButtons();
 
-      // Add event listeners
-      if (sliderPrev) {
-        sliderPrev.addEventListener("click", () => this.prevSlide());
+      this.enableEventListeners();
+    }
+
+    enableEventListeners() {
+      if (!this.isEnabled) {
+        this.isEnabled = true;
+
+        // Add arrow button event listeners
+        if (sliderPrev) {
+          sliderPrev.addEventListener("click", this.boundPrevSlide);
+        }
+
+        if (sliderNext) {
+          sliderNext.addEventListener("click", this.boundNextSlide);
+        }
+
+        // Store indicator handlers for removal
+        this.indicatorHandlers = [];
+
+        // Indicator clicks
+        indicators.forEach((indicator, index) => {
+          const handler = () => this.goToSlide(index);
+          this.indicatorHandlers.push({ indicator, handler });
+          indicator.addEventListener("click", handler);
+        });
+
+        // Touch/swipe support
+        if (modeSlider) {
+          modeSlider.addEventListener("touchstart", this.boundTouchStart);
+          modeSlider.addEventListener("touchend", this.boundTouchEnd);
+          modeSlider.addEventListener("touchmove", this.boundTouchMove);
+        }
+
+        // Keyboard navigation
+        document.addEventListener("keydown", this.boundKeydownHandler);
+
+        console.log("ModeSlider: Event listeners enabled");
       }
+    }
 
-      if (sliderNext) {
-        sliderNext.addEventListener("click", () => this.nextSlide());
+    disableEventListeners() {
+      if (this.isEnabled) {
+        this.isEnabled = false;
+
+        // Remove arrow button event listeners
+        if (sliderPrev) {
+          sliderPrev.removeEventListener("click", this.boundPrevSlide);
+        }
+
+        if (sliderNext) {
+          sliderNext.removeEventListener("click", this.boundNextSlide);
+        }
+
+        // Remove indicator clicks
+        if (this.indicatorHandlers) {
+          this.indicatorHandlers.forEach(({ indicator, handler }) => {
+            indicator.removeEventListener("click", handler);
+          });
+          this.indicatorHandlers = [];
+        }
+
+        // Remove touch/swipe support
+        if (modeSlider) {
+          modeSlider.removeEventListener("touchstart", this.boundTouchStart);
+          modeSlider.removeEventListener("touchend", this.boundTouchEnd);
+          modeSlider.removeEventListener("touchmove", this.boundTouchMove);
+        }
+
+        // Remove keyboard navigation
+        document.removeEventListener("keydown", this.boundKeydownHandler);
+
+        console.log("ModeSlider: Event listeners disabled");
       }
+    }
 
-      // Indicator clicks
-      indicators.forEach((indicator, index) => {
-        indicator.addEventListener("click", () => this.goToSlide(index));
-      });
+    handleKeydown(e) {
+      if (!this.isEnabled) return;
 
-      // Touch/swipe support
-      if (modeSlider) {
-        modeSlider.addEventListener("touchstart", (e) =>
-          this.handleTouchStart(e)
-        );
-        modeSlider.addEventListener("touchend", (e) => this.handleTouchEnd(e));
-        modeSlider.addEventListener("touchmove", (e) => e.preventDefault());
-      }
-
-      // Keyboard navigation
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "ArrowLeft") this.prevSlide();
-        if (e.key === "ArrowRight") this.nextSlide();
-      });
+      if (e.key === "ArrowLeft") this.prevSlide();
+      if (e.key === "ArrowRight") this.nextSlide();
     }
 
     updateSlider() {
@@ -855,7 +916,12 @@
     }
 
     goToSlide(index) {
-      if (this.isTransitioning || index === this.currentSlide) return;
+      if (
+        !this.isEnabled ||
+        this.isTransitioning ||
+        index === this.currentSlide
+      )
+        return;
 
       this.isTransitioning = true;
       this.currentSlide = Math.max(0, Math.min(index, this.totalSlides - 1));
@@ -870,12 +936,16 @@
     }
 
     nextSlide() {
+      if (!this.isEnabled) return;
+
       if (this.currentSlide < this.totalSlides - 1) {
         this.goToSlide(this.currentSlide + 1);
       }
     }
 
     prevSlide() {
+      if (!this.isEnabled) return;
+
       if (this.currentSlide > 0) {
         this.goToSlide(this.currentSlide - 1);
       }
@@ -992,6 +1062,11 @@
       }
       if (studyHeader) studyHeader.style.display = "none";
 
+      // Disable mode slider navigation during study session
+      if (modeSliderInstance) {
+        modeSliderInstance.disableEventListeners();
+      }
+
       // Start studying
       getNextQuestion();
     });
@@ -1016,6 +1091,11 @@
         studyArea.className = "study-area active";
       }
       if (studyHeader) studyHeader.style.display = "none";
+
+      // Disable mode slider navigation during study session
+      if (modeSliderInstance) {
+        modeSliderInstance.disableEventListeners();
+      }
 
       // Start studying
       getNextQuestion();
@@ -1050,6 +1130,11 @@
       }
       if (studyHeader) studyHeader.style.display = "none";
 
+      // Disable mode slider navigation during study session
+      if (modeSliderInstance) {
+        modeSliderInstance.disableEventListeners();
+      }
+
       // Start studying
       getNextQuestion();
     });
@@ -1081,6 +1166,11 @@
       // Show study mode selection again
       const studyModeSection = document.querySelector(".study-mode-section");
       if (studyModeSection) studyModeSection.style.display = "block";
+
+      // Re-enable mode slider navigation when returning to study selection
+      if (modeSliderInstance) {
+        modeSliderInstance.enableEventListeners();
+      }
 
       // Show appropriate options based on current mode
       if (currentStudyMode === "decks") {
@@ -1326,6 +1416,11 @@
     const studyModeSection = document.querySelector(".study-mode-section");
     if (studyModeSection) {
       studyModeSection.style.display = "block";
+    }
+
+    // Re-enable mode slider navigation when returning to study selection
+    if (modeSliderInstance) {
+      modeSliderInstance.enableEventListeners();
     }
 
     // Show appropriate options based on current mode
