@@ -108,6 +108,7 @@ class StudySession(models.Model):
     STUDY_MODE_CHOICES = [
         ('deck', 'Deck Study'),
         ('random', 'Random Study'),
+        ('favorites', 'Favorites Study'),
         ('spaced_repetition', 'Spaced Repetition'),
     ]
 
@@ -364,3 +365,49 @@ class IncorrectWordReview(models.Model):
             self.is_resolved = False
             self.resolved_date = None
         self.save()
+
+
+class FavoriteFlashcard(models.Model):
+    """Track user's favorite flashcards for focused study."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='favorite_flashcards')
+    flashcard = models.ForeignKey(Flashcard, on_delete=models.CASCADE, related_name='favorited_by')
+    favorited_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['user', 'flashcard']  # Prevent duplicate favorites
+        ordering = ['-favorited_at']
+        indexes = [
+            models.Index(fields=['user', 'favorited_at']),
+            models.Index(fields=['user', 'flashcard']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.flashcard.word} (favorited)"
+
+    @classmethod
+    def is_favorited(cls, user, flashcard):
+        """Check if a flashcard is favorited by a user."""
+        return cls.objects.filter(user=user, flashcard=flashcard).exists()
+
+    @classmethod
+    def get_user_favorites_count(cls, user):
+        """Get the count of user's favorite flashcards."""
+        return cls.objects.filter(user=user).count()
+
+    @classmethod
+    def get_user_favorites(cls, user):
+        """Get all favorite flashcards for a user."""
+        return cls.objects.filter(user=user).select_related('flashcard')
+
+    @classmethod
+    def toggle_favorite(cls, user, flashcard):
+        """Toggle favorite status for a flashcard. Returns (favorite_obj, created)."""
+        favorite, created = cls.objects.get_or_create(
+            user=user,
+            flashcard=flashcard
+        )
+        if not created:
+            # If it already exists, remove it (unfavorite)
+            favorite.delete()
+            return None, False
+        return favorite, True

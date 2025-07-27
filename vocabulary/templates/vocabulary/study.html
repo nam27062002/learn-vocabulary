@@ -125,6 +125,41 @@
               </div>
             </label>
           </div>
+
+          <!-- Favorites Mode -->
+          <div
+            class="mode-slide"
+            data-mode="favorites"
+            role="tabpanel"
+            aria-label="Study favorite words mode"
+          >
+            <label class="mode-option" id="favoritesModeOption">
+              <input
+                type="radio"
+                name="study_mode"
+                value="favorites"
+                aria-describedby="favorites-description"
+              />
+              <div class="mode-card">
+                <div class="mode-icon" aria-hidden="true">❤️</div>
+                <div class="mode-content">
+                  <h3>{{ manual_texts.study_favorites|default:"Study Favorites" }}</h3>
+                  <p id="favorites-description">
+                    {{ manual_texts.favorites_study_description|default:"Study your favorite vocabulary words" }}
+                  </p>
+                  <div
+                    class="favorites-count"
+                    id="favoritesCount"
+                    style="display: none"
+                  >
+                    <span id="favoritesCountText"
+                      >0 {{ manual_texts.favorite_words_count|default:"favorite words" }}</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -288,6 +323,9 @@
           <h2 id="cardWord" class="card-word"></h2>
           <button id="audioButton" class="audio-button" style="display: none">
             <i class="fas fa-volume-up"></i>
+          </button>
+          <button id="favoriteButton" class="favorite-button" style="display: none" title="{{ manual_texts.toggle_favorite|default:'Toggle favorite' }}">
+            <span class="favorite-icon">🤍</span>
           </button>
         </div>
         <p id="cardPhonetic" class="card-phonetic"></p>

@@ -124,7 +124,7 @@
             <i class="fas fa-edit text-lg"></i>
           </button>
 
-          <div class="text-3xl font-bold mb-2">
+          <div class="text-3xl font-bold mb-2 flex items-center gap-3">
             <a
               href="https://dictionary.cambridge.org/dictionary/english/{{ card.word }}"
               target="_blank"
@@ -132,6 +132,14 @@
               data-word="{{ card.word }}"
               >{{ card.word }}</a
             >
+            <button
+              class="favorite-btn text-2xl transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+              data-card-id="{{ card.id }}"
+              title="{{ manual_texts.toggle_favorite|default:'Toggle favorite' }}"
+              aria-label="{{ manual_texts.toggle_favorite|default:'Toggle favorite' }}"
+            >
+              <span class="favorite-icon">🤍</span>
+            </button>
           </div>
           {% if card.part_of_speech %}
           <div class="text-lg text-gray-400 mb-2 italic">

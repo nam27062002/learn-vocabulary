@@ -131,6 +131,58 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ==========================================================================
+    // Favorites Count in Navigation
+    // ==========================================================================
+
+    function initializeFavoritesCount() {
+        // Check if user is authenticated (favorites count elements exist)
+        const navFavoritesCount = document.getElementById('nav-favorites-count');
+        const mobileFavoritesCount = document.getElementById('mobile-favorites-count');
+
+        if (!navFavoritesCount && !mobileFavoritesCount) {
+            console.log('Favorites count elements not found, user may not be authenticated');
+            return;
+        }
+
+        // Load favorites count from API
+        fetch('/api/favorites/count/', {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const count = data.count;
+                console.log(`Favorites count loaded: ${count}`);
+
+                // Update both desktop and mobile navigation
+                if (navFavoritesCount) {
+                    navFavoritesCount.textContent = count;
+                    navFavoritesCount.style.display = count > 0 ? 'inline' : 'none';
+                }
+
+                if (mobileFavoritesCount) {
+                    mobileFavoritesCount.textContent = count;
+                    mobileFavoritesCount.style.display = count > 0 ? 'inline' : 'none';
+                }
+            } else {
+                console.error('Failed to load favorites count:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading favorites count:', error);
+        });
+    }
+
+    // Initialize favorites count
+    initializeFavoritesCount();
+
+    // Make favorites count function globally available for other scripts
+    window.updateFavoritesCount = initializeFavoritesCount;
+
+    // ==========================================================================
     // Console Welcome Message
     // ==========================================================================
 
@@ -139,4 +191,4 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log(`%c${consoleTexts.console_welcome || '🎓 LearnEnglish App'}`, 'color: #667eea; font-size: 20px; font-weight: bold;');
     console.log(`%c${consoleTexts.console_subtitle || 'Welcome to the developer console!'}`, 'color: #764ba2; font-size: 14px;');
     console.log(consoleTexts.console_built_with || 'Built with Django + Tailwind CSS + JavaScript ❤️');
-}); 
+});

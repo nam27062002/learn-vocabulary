@@ -906,6 +906,60 @@
   transform: scale(0.95);
 }
 
+/* Favorite button styling */
+.favorite-button {
+  background: transparent;
+  border: 2px solid var(--border-color);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.favorite-button:hover {
+  transform: scale(1.1);
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+}
+
+.favorite-button:active {
+  transform: scale(0.95);
+}
+
+.favorite-button.favorited {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.favorite-button.favorited:hover {
+  border-color: #dc2626;
+  background: rgba(239, 68, 68, 0.2);
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+.favorite-icon {
+  transition: all 0.3s ease;
+}
+
+.favorite-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.favorite-button:disabled:hover {
+  transform: none;
+  border-color: var(--border-color);
+  box-shadow: none;
+}
+
 .card-phonetic {
   color: var(--card-text-muted);
   font-style: italic;

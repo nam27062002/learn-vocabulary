@@ -1225,4 +1225,165 @@ document.addEventListener("DOMContentLoaded", function () {
 
     console.log(`Enhanced ${dictionaryLinks.length} dictionary links`);
   }
+
+  // Initialize favorites functionality
+  function initializeFavorites() {
+    console.log("🔍 Initializing favorites functionality...");
+
+    // Load favorite status for all cards
+    loadFavoriteStatus();
+
+    // Add event listeners to favorite buttons
+    const favoriteButtons = document.querySelectorAll('.favorite-btn');
+    favoriteButtons.forEach(button => {
+      button.addEventListener('click', handleFavoriteToggle);
+    });
+
+    console.log(`✅ Added favorite listeners to ${favoriteButtons.length} buttons`);
+  }
+
+  // Load favorite status for all visible cards
+  function loadFavoriteStatus() {
+    const favoriteButtons = document.querySelectorAll('.favorite-btn');
+    const cardIds = Array.from(favoriteButtons).map(btn => btn.getAttribute('data-card-id'));
+
+    if (cardIds.length === 0) {
+      console.log("No favorite buttons found");
+      return;
+    }
+
+    const params = new URLSearchParams();
+    cardIds.forEach(id => params.append('card_ids[]', id));
+
+    fetch(`/api/favorites/check/?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Update favorite button states
+        Object.entries(data.favorites).forEach(([cardId, isFavorited]) => {
+          const button = document.querySelector(`[data-card-id="${cardId}"]`);
+          if (button) {
+            updateFavoriteButton(button, isFavorited);
+          }
+        });
+        console.log("✅ Favorite status loaded for all cards");
+      } else {
+        console.error("Failed to load favorite status:", data.error);
+      }
+    })
+    .catch(error => {
+      console.error("Error loading favorite status:", error);
+    });
+  }
+
+  // Handle favorite button click
+  function handleFavoriteToggle(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const button = event.currentTarget;
+    const cardId = button.getAttribute('data-card-id');
+
+    if (!cardId) {
+      console.error("No card ID found for favorite button");
+      return;
+    }
+
+    // Show loading state
+    const originalIcon = button.querySelector('.favorite-icon').textContent;
+    button.querySelector('.favorite-icon').textContent = '⏳';
+    button.disabled = true;
+
+    fetch('/api/favorites/toggle/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+      },
+      body: JSON.stringify({
+        card_id: cardId
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        updateFavoriteButton(button, data.is_favorited);
+        console.log(`✅ Favorite toggled for card ${cardId}: ${data.is_favorited ? 'added' : 'removed'}`);
+
+        // Show feedback message
+        showFavoriteMessage(data.is_favorited);
+      } else {
+        console.error("Failed to toggle favorite:", data.error);
+        // Restore original state
+        button.querySelector('.favorite-icon').textContent = originalIcon;
+        alert('Error toggling favorite: ' + data.error);
+      }
+    })
+    .catch(error => {
+      console.error("Error toggling favorite:", error);
+      // Restore original state
+      button.querySelector('.favorite-icon').textContent = originalIcon;
+      alert('Error toggling favorite');
+    })
+    .finally(() => {
+      button.disabled = false;
+    });
+  }
+
+  // Update favorite button appearance
+  function updateFavoriteButton(button, isFavorited) {
+    const icon = button.querySelector('.favorite-icon');
+    if (isFavorited) {
+      icon.textContent = '❤️';
+      button.classList.add('favorited');
+      button.title = 'Remove from favorites';
+    } else {
+      icon.textContent = '🤍';
+      button.classList.remove('favorited');
+      button.title = 'Add to favorites';
+    }
+  }
+
+  // Show favorite feedback message
+  function showFavoriteMessage(isFavorited) {
+    const message = isFavorited ?
+      '❤️ Added to favorites!' :
+      '💔 Removed from favorites';
+
+    // Create temporary message element
+    const messageEl = document.createElement('div');
+    messageEl.textContent = message;
+    messageEl.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${isFavorited ? '#10b981' : '#ef4444'};
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    `;
+
+    document.body.appendChild(messageEl);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+      messageEl.style.animation = 'slideOut 0.3s ease';
+      setTimeout(() => {
+        if (messageEl.parentNode) {
+          messageEl.parentNode.removeChild(messageEl);
+        }
+      }, 300);
+    }, 3000);
+  }
+
+  // Initialize favorites when page loads
+  initializeFavorites();
 });

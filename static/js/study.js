@@ -8,6 +8,7 @@
   const cardPhoneticEl = document.getElementById("cardPhonetic");
   const cardImageEl = document.getElementById("cardImage");
   const cardDefsEl = document.getElementById("cardDefs");
+  const favoriteButton = document.getElementById("favoriteButton");
   const answerArea = document.getElementById("answerSection") || {
     innerHTML: "",
     appendChild: () => {},
@@ -577,6 +578,9 @@
     } else if (currentStudyMode === "review") {
       params.append("study_mode", "review");
       seenCardIds.forEach((id) => params.append("seen_card_ids[]", id));
+    } else if (currentStudyMode === "favorites") {
+      params.append("study_mode", "favorites");
+      seenCardIds.forEach((id) => params.append("seen_card_ids[]", id));
     } else {
       // Normal deck study mode
       const selectedDeckIds = Array.from(
@@ -670,6 +674,11 @@
     // Hide audio button during question phase - it will be shown after answer submission
     if (audioButton) {
       audioButton.style.display = "none";
+    }
+
+    // Hide favorite button during question phase - it will be shown after answer submission
+    if (favoriteButton) {
+      favoriteButton.style.display = "none";
     }
 
     // Remove any existing temporary audio containers
@@ -1033,6 +1042,22 @@
     if (cardPhoneticEl && currentQuestion.phonetic) {
       cardPhoneticEl.textContent = `/${currentQuestion.phonetic}/`;
       cardPhoneticEl.style.display = "block";
+    }
+
+    // Show and setup favorite button
+    if (favoriteButton && currentQuestion.id) {
+      favoriteButton.style.display = "block";
+      favoriteButton.setAttribute("data-card-id", currentQuestion.id);
+
+      // Load favorite status for this card
+      loadCardFavoriteStatus(currentQuestion.id);
+
+      // Remove any existing event listeners
+      const newFavoriteButton = favoriteButton.cloneNode(true);
+      favoriteButton.parentNode.replaceChild(newFavoriteButton, favoriteButton);
+
+      // Add new event listener
+      newFavoriteButton.addEventListener("click", handleStudyFavoriteToggle);
     }
 
     // Show definitions in the definitions area
@@ -1459,6 +1484,10 @@
       deckStudyOptions.classList.add("hidden");
       randomStudyOptions.classList.add("hidden");
       if (reviewStudyOptions) reviewStudyOptions.classList.remove("hidden");
+    } else if (selectedMode === "favorites") {
+      deckStudyOptions.classList.add("hidden");
+      randomStudyOptions.classList.add("hidden");
+      if (reviewStudyOptions) reviewStudyOptions.classList.add("hidden");
     } else {
       deckStudyOptions.classList.add("hidden");
       randomStudyOptions.classList.remove("hidden");
@@ -1824,8 +1853,63 @@
       });
   }
 
+  // Load favorites count
+  function loadFavoritesCount() {
+    // Check if required elements exist
+    const favoritesCountText = document.getElementById("favoritesCountText");
+    const favoritesCount = document.getElementById("favoritesCount");
+    const favoritesModeOption = document.getElementById("favoritesModeOption");
+
+    if (!favoritesCountText || !favoritesCount || !favoritesModeOption) {
+      console.log(
+        "Favorites mode elements not found, skipping favorites count loading"
+      );
+      return;
+    }
+
+    fetch("/api/favorites/count/", {
+      method: "GET",
+      headers: {
+        "X-CSRFToken": STUDY_CFG.csrfToken,
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          const count = data.count;
+          console.log(`Favorites count loaded: ${count}`);
+
+          // Update the count display
+          favoritesCountText.textContent = `${count} ${STUDY_CFG.labels.favorite_words_count || "favorite words"}`;
+
+          // Show/hide count and enable/disable mode based on count
+          if (count > 0) {
+            favoritesCount.style.display = "block";
+            favoritesModeOption.classList.remove("disabled");
+            console.log("Favorites mode enabled");
+          } else {
+            favoritesCount.style.display = "none";
+            favoritesModeOption.classList.add("disabled");
+            console.log("Favorites mode disabled (no favorites)");
+          }
+        } else {
+          console.error("Failed to load favorites count:", data.error);
+          favoritesCount.style.display = "none";
+          favoritesModeOption.classList.add("disabled");
+        }
+      })
+      .catch((error) => {
+        console.error("Error loading favorites count:", error);
+        favoritesCount.style.display = "none";
+        favoritesModeOption.classList.add("disabled");
+      });
+  }
+
   // Initialize incorrect words count
   loadIncorrectWordsCount();
+
+  // Initialize favorites count
+  loadFavoritesCount();
 
   // Initialize audio feedback system
   AudioFeedback.init();
@@ -1913,8 +1997,135 @@
     loadIncorrectWordsCount();
   }
 
+  // Favorite button functionality for study mode
+  function loadCardFavoriteStatus(cardId) {
+    const favoriteBtn = document.getElementById("favoriteButton");
+    if (!favoriteBtn) return;
+
+    fetch(`/api/favorites/check/?card_ids[]=${cardId}`, {
+      method: "GET",
+      headers: {
+        "X-CSRFToken": STUDY_CFG.csrfToken,
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success && data.favorites[cardId] !== undefined) {
+          updateStudyFavoriteButton(favoriteBtn, data.favorites[cardId]);
+        }
+      })
+      .catch((error) => {
+        console.error("Error loading favorite status:", error);
+      });
+  }
+
+  function handleStudyFavoriteToggle(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const button = event.currentTarget;
+    const cardId = button.getAttribute("data-card-id");
+
+    if (!cardId) {
+      console.error("No card ID found for favorite button");
+      return;
+    }
+
+    // Show loading state
+    const originalIcon = button.querySelector(".favorite-icon").textContent;
+    button.querySelector(".favorite-icon").textContent = "⏳";
+    button.disabled = true;
+
+    fetch("/api/favorites/toggle/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": STUDY_CFG.csrfToken,
+      },
+      body: JSON.stringify({
+        card_id: cardId,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          updateStudyFavoriteButton(button, data.is_favorited);
+          showStudyFavoriteMessage(data.is_favorited);
+          console.log(
+            `✅ Favorite toggled for card ${cardId}: ${
+              data.is_favorited ? "added" : "removed"
+            }`
+          );
+
+          // Refresh favorites count if we're in favorites mode
+          if (currentStudyMode === "favorites") {
+            loadFavoritesCount();
+          }
+        } else {
+          console.error("Failed to toggle favorite:", data.error);
+          // Restore original state
+          button.querySelector(".favorite-icon").textContent = originalIcon;
+        }
+      })
+      .catch((error) => {
+        console.error("Error toggling favorite:", error);
+        // Restore original state
+        button.querySelector(".favorite-icon").textContent = originalIcon;
+      })
+      .finally(() => {
+        button.disabled = false;
+      });
+  }
+
+  function updateStudyFavoriteButton(button, isFavorited) {
+    const icon = button.querySelector(".favorite-icon");
+    if (isFavorited) {
+      icon.textContent = "❤️";
+      button.classList.add("favorited");
+      button.title = "Remove from favorites";
+    } else {
+      icon.textContent = "🤍";
+      button.classList.remove("favorited");
+      button.title = "Add to favorites";
+    }
+  }
+
+  function showStudyFavoriteMessage(isFavorited) {
+    const message = isFavorited ? "❤️ Added to favorites!" : "💔 Removed from favorites";
+
+    // Create temporary message element
+    const messageEl = document.createElement("div");
+    messageEl.textContent = message;
+    messageEl.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${isFavorited ? "#10b981" : "#ef4444"};
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    `;
+
+    document.body.appendChild(messageEl);
+
+    // Remove after 2 seconds
+    setTimeout(() => {
+      messageEl.style.animation = "slideOut 0.3s ease";
+      setTimeout(() => {
+        if (messageEl.parentNode) {
+          messageEl.parentNode.removeChild(messageEl);
+        }
+      }, 300);
+    }, 2000);
+  }
+
   // Make functions globally available
   window.showReviewCompletionModal = showReviewCompletionModal;
   window.hideReviewCompletionModal = hideReviewCompletionModal;
   window.returnToStudySelection = returnToStudySelection;
+  window.loadCardFavoriteStatus = loadCardFavoriteStatus;
+  window.handleStudyFavoriteToggle = handleStudyFavoriteToggle;
 })();

@@ -37,4 +37,9 @@ urlpatterns = [
     path('api/incorrect-words/add/', views.api_add_incorrect_word, name='api_add_incorrect_word'),
     path('api/incorrect-words/resolve/', views.api_resolve_incorrect_word, name='api_resolve_incorrect_word'),
     path('api/incorrect-words/count/', views.api_get_incorrect_words_count, name='api_get_incorrect_words_count'),
+
+    # Favorites APIs
+    path('api/favorites/toggle/', views.api_toggle_favorite, name='api_toggle_favorite'),
+    path('api/favorites/count/', views.api_get_favorites_count, name='api_get_favorites_count'),
+    path('api/favorites/check/', views.api_check_favorite_status, name='api_check_favorite_status'),
 ]

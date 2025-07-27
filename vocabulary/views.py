@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
-from .models import Flashcard, Definition, Deck, StudySession, StudySessionAnswer, IncorrectWordReview # Import Deck model
+from .models import Flashcard, Definition, Deck, StudySession, StudySessionAnswer, IncorrectWordReview, FavoriteFlashcard # Import Deck model
 from django.conf import settings # Import settings
 from .api_services import get_word_suggestions_from_datamuse, check_word_spelling_with_languagetool # Import new service functions
 from .word_details_service import get_word_details # Import the new service function
@@ -241,7 +241,12 @@ def api_next_question(request):
     current_session = request.session.get('current_study_session_id')
     if not current_session:
         # Create new study session
-        session_mode = 'random' if study_mode == 'random' else 'deck'
+        if study_mode == 'random':
+            session_mode = 'random'
+        elif study_mode == 'favorites':
+            session_mode = 'favorites'
+        else:
+            session_mode = 'deck'
         session = create_study_session(request.user, session_mode, deck_ids if session_mode == 'deck' else None)
         request.session['current_study_session_id'] = session.id
         request.session['session_start_time'] = timezone.now().timestamp()
@@ -250,7 +255,12 @@ def api_next_question(request):
             session = StudySession.objects.get(id=current_session, user=request.user)
         except StudySession.DoesNotExist:
             # Session doesn't exist, create new one
-            session_mode = 'random' if study_mode == 'random' else 'deck'
+            if study_mode == 'random':
+                session_mode = 'random'
+            elif study_mode == 'favorites':
+                session_mode = 'favorites'
+            else:
+                session_mode = 'deck'
             session = create_study_session(request.user, session_mode, deck_ids if session_mode == 'deck' else None)
             request.session['current_study_session_id'] = session.id
             request.session['session_start_time'] = timezone.now().timestamp()
@@ -264,6 +274,21 @@ def api_next_question(request):
 
         # Get random card
         card = available_cards.order_by('?').first()
+
+        # Update tracking fields when card is shown
+        _update_card_shown_tracking(card)
+    elif study_mode == 'favorites':
+        # Favorites study mode: select from user's favorite flashcards
+        favorite_cards = FavoriteFlashcard.objects.filter(
+            user=request.user
+        ).select_related('flashcard').exclude(flashcard_id__in=seen_card_ids)
+
+        if not favorite_cards.exists():
+            return JsonResponse({'done': True, 'message': 'No favorite cards available'})
+
+        # Get random favorite card
+        favorite_card = favorite_cards.order_by('?').first()
+        card = favorite_card.flashcard
 
         # Update tracking fields when card is shown
         _update_card_shown_tracking(card)
@@ -1725,3 +1750,98 @@ def api_get_incorrect_words_count(request):
     except Exception as e:
         print(f"Error in api_get_incorrect_words_count: {e}", file=sys.stderr)
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+# Favorites API Endpoints
+
+@login_required
+@require_POST
+def api_toggle_favorite(request):
+    """Toggle favorite status for a flashcard."""
+    try:
+        data = json.loads(request.body)
+        card_id = data.get('card_id')
+
+        if not card_id:
+            return JsonResponse({'success': False, 'error': 'Missing card_id'}, status=400)
+
+        try:
+            card = Flashcard.objects.get(id=card_id, user=request.user)
+        except Flashcard.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Card not found'}, status=404)
+
+        # Toggle favorite status
+        favorite, created = FavoriteFlashcard.toggle_favorite(request.user, card)
+
+        return JsonResponse({
+            'success': True,
+            'is_favorited': created,  # True if favorited, False if unfavorited
+            'favorites_count': FavoriteFlashcard.get_user_favorites_count(request.user)
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_GET
+def api_get_favorites_count(request):
+    """Get count of user's favorite flashcards."""
+    try:
+        count = FavoriteFlashcard.get_user_favorites_count(request.user)
+        return JsonResponse({
+            'success': True,
+            'count': count
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_GET
+def api_check_favorite_status(request):
+    """Check if specific flashcards are favorited."""
+    try:
+        card_ids = request.GET.getlist('card_ids[]')
+        if not card_ids:
+            return JsonResponse({'success': False, 'error': 'No card IDs provided'}, status=400)
+
+        # Convert to integers
+        card_ids = [int(cid) for cid in card_ids if cid.isdigit()]
+
+        # Get favorite status for each card
+        favorites = FavoriteFlashcard.objects.filter(
+            user=request.user,
+            flashcard_id__in=card_ids
+        ).values_list('flashcard_id', flat=True)
+
+        favorite_status = {card_id: card_id in favorites for card_id in card_ids}
+
+        return JsonResponse({
+            'success': True,
+            'favorites': favorite_status
+        })
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+def favorites_page(request):
+    """Display user's favorite flashcards."""
+    favorites = FavoriteFlashcard.get_user_favorites(request.user)
+
+    # Paginate favorites (20 per page)
+    from django.core.paginator import Paginator
+    paginator = Paginator(favorites, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'favorites': page_obj,
+        'total_favorites': favorites.count(),
+    }
+
+    return render(request, 'vocabulary/favorites.html', context)

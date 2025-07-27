@@ -16,11 +16,11 @@ def create_study_session(user, study_mode='deck', deck_ids=None):
         user=user,
         study_mode=study_mode
     )
-    
+
     if deck_ids and study_mode == 'deck':
         decks = Deck.objects.filter(id__in=deck_ids, user=user)
         session.decks_studied.set(decks)
-    
+
     return session
 
 
