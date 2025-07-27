@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dictionary Link Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        .test-button:hover {
+            background: #1d4ed8;
+        }
+        .word-link {
+            color: #4f46e5;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            padding: 4px 8px;
+            display: inline-block;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .word-link:hover {
+            color: #3730a3;
+            background: rgba(79, 70, 229, 0.1);
+            text-decoration: underline;
+            transform: translateY(-1px);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+        .log-output {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .word-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .word-item {
+            text-align: center;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dictionary Link Test</h1>
+    
+    <div class="test-container">
+        <h2>Dictionary Fallback System Status</h2>
+        <div id="status" class="status info">Initializing dictionary system...</div>
+        
+        <p><strong>How it works:</strong></p>
+        <ul>
+            <li>🎯 <strong>Primary:</strong> Cambridge Dictionary (fast, comprehensive)</li>
+            <li>📚 <strong>Fallback:</strong> Oxford Learner's Dictionary (if Cambridge is slow/unavailable)</li>
+            <li>⏱️ <strong>Timeout:</strong> 3 seconds for response time check</li>
+            <li>🔄 <strong>Automatic:</strong> Seamless switching between dictionaries</li>
+        </ul>
+    </div>
+
+    <div class="test-container">
+        <h2>Test Dictionary Links</h2>
+        <p>Click on any word below to test the dictionary fallback system:</p>
+        
+        <div class="word-grid">
+            <div class="word-item">
+                <a href="#" class="word-link" data-word="hello">hello</a>
+            </div>
+            <div class="word-item">
+                <a href="#" class="word-link" data-word="beautiful">beautiful</a>
+            </div>
+            <div class="word-item">
+                <a href="#" class="word-link" data-word="knowledge">knowledge</a>
+            </div>
+            <div class="word-item">
+                <a href="#" class="word-link" data-word="extraordinary">extraordinary</a>
+            </div>
+            <div class="word-item">
+                <a href="#" class="word-link" data-word="serendipity">serendipity</a>
+            </div>
+            <div class="word-item">
+                <a href="#" class="word-link" data-word="ephemeral">ephemeral</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>Manual Tests</h2>
+        <p>Test specific scenarios:</p>
+        
+        <button id="testCambridge" class="test-button">🎯 Test Cambridge Direct</button>
+        <button id="testOxford" class="test-button">📚 Test Oxford Direct</button>
+        <button id="testFallback" class="test-button">🔄 Test Fallback Logic</button>
+        <button id="testInvalidWord" class="test-button">❌ Test Invalid Word</button>
+        <button id="clearLog" class="test-button" style="background: #6b7280;">🗑️ Clear Log</button>
+    </div>
+
+    <div class="test-container">
+        <h2>Test Results</h2>
+        <div id="log" class="log-output">Test log will appear here...</div>
+    </div>
+
+    <!-- Include the dictionary utilities -->
+    <script src="/static/js/dictionary-utils.js"></script>
+    
+    <script>
+        // Logging functionality
+        const logElement = document.getElementById('log');
+        const statusElement = document.getElementById('status');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            
+            logElement.innerHTML += logMessage + '\n';
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+            
+            console.log(logMessage);
+        }
+        
+        function clearLog() {
+            logElement.innerHTML = '';
+            statusElement.textContent = 'Log cleared';
+            statusElement.className = 'status info';
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Dictionary link test initialized', 'success');
+            
+            // Test if DictionaryUtils is available
+            if (typeof window.DictionaryUtils !== 'undefined') {
+                log('✅ DictionaryUtils loaded successfully', 'success');
+                
+                // Enhance all word links
+                const wordLinks = document.querySelectorAll('.word-link');
+                wordLinks.forEach(link => {
+                    const word = link.getAttribute('data-word') || link.textContent.trim();
+                    
+                    if (word) {
+                        DictionaryUtils.enhanceExistingLink(link, word, {
+                            onFallback: (word, fallbackUrl) => {
+                                log(`🔄 Fallback used for "${word}": ${fallbackUrl}`, 'info');
+                            },
+                            onError: (error) => {
+                                log(`❌ Error for "${word}": ${error.message}`, 'error');
+                            }
+                        });
+                    }
+                });
+                
+                log(`✅ Enhanced ${wordLinks.length} word links`, 'success');
+            } else {
+                log('❌ DictionaryUtils not found', 'error');
+            }
+            
+            // Set up manual test buttons
+            document.getElementById('testCambridge').addEventListener('click', () => {
+                log('Testing Cambridge Dictionary direct access...', 'info');
+                const testWord = 'example';
+                const cambridgeUrl = `https://dictionary.cambridge.org/dictionary/english/${testWord}`;
+                window.open(cambridgeUrl, '_blank');
+                log(`🎯 Opened Cambridge: ${cambridgeUrl}`, 'success');
+            });
+            
+            document.getElementById('testOxford').addEventListener('click', () => {
+                log('Testing Oxford Dictionary direct access...', 'info');
+                const testWord = 'example';
+                const oxfordUrl = `https://www.oxfordlearnersdictionaries.com/definition/english/${testWord}`;
+                window.open(oxfordUrl, '_blank');
+                log(`📚 Opened Oxford: ${oxfordUrl}`, 'success');
+            });
+            
+            document.getElementById('testFallback').addEventListener('click', () => {
+                log('Testing fallback logic with word "test"...', 'info');
+                if (typeof window.DictionaryUtils !== 'undefined') {
+                    DictionaryUtils.openDictionaryLink('test', {
+                        onFallback: (word, fallbackUrl) => {
+                            log(`🔄 Fallback triggered: ${fallbackUrl}`, 'info');
+                        },
+                        onError: (error) => {
+                            log(`❌ Fallback test error: ${error.message}`, 'error');
+                        }
+                    });
+                } else {
+                    log('❌ DictionaryUtils not available for fallback test', 'error');
+                }
+            });
+            
+            document.getElementById('testInvalidWord').addEventListener('click', () => {
+                log('Testing with invalid word...', 'info');
+                if (typeof window.DictionaryUtils !== 'undefined') {
+                    DictionaryUtils.openDictionaryLink('', {
+                        onFallback: (word, fallbackUrl) => {
+                            log(`🔄 Unexpected fallback: ${fallbackUrl}`, 'info');
+                        },
+                        onError: (error) => {
+                            log(`✅ Expected error caught: ${error.message}`, 'success');
+                        }
+                    });
+                } else {
+                    log('❌ DictionaryUtils not available for invalid word test', 'error');
+                }
+            });
+            
+            document.getElementById('clearLog').addEventListener('click', clearLog);
+            
+            log('🧪 All test functions initialized', 'success');
+        });
+    </script>
+</body>
+</html>
