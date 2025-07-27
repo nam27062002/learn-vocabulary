@@ -26,17 +26,17 @@ class Flashcard(models.Model):
     related_image_url = models.URLField(max_length=500, blank=True, null=True, help_text="Auto-fetched related image URL")
     general_synonyms = models.TextField(blank=True, null=True, help_text="Comma-separated list of general synonyms")
     general_antonyms = models.TextField(blank=True, null=True, help_text="Comma-separated list of general antonyms")
-    # Spaced repetition scheduling fields
-    ease_factor = models.FloatField(default=2.5, help_text="SM-2 ease factor")
-    repetitions = models.PositiveIntegerField(default=0, help_text="Number of successful reviews in a row")
-    interval = models.PositiveIntegerField(default=0, help_text="Interval (days) until next review")
-    next_review = models.DateField(default=timezone.now)
-    last_reviewed = models.DateTimeField(blank=True, null=True)
+    # Legacy spaced repetition fields (no longer used in difficulty-based system)
+    ease_factor = models.FloatField(default=2.5, help_text="Legacy SM-2 ease factor (not used)")
+    repetitions = models.PositiveIntegerField(default=0, help_text="Legacy successful reviews count (not used)")
+    interval = models.PositiveIntegerField(default=0, help_text="Legacy interval days (not used)")
+    next_review = models.DateField(default=timezone.now, help_text="Legacy next review date (not used)")
+    last_reviewed = models.DateTimeField(blank=True, null=True, help_text="Last time card was reviewed")
 
-    # Enhanced spaced repetition fields
+    # Difficulty-based system fields
     times_seen_today = models.PositiveIntegerField(default=0, help_text="Number of times seen today (reset daily)")
     last_seen_date = models.DateField(blank=True, null=True, help_text="Last date this card was shown")
-    difficulty_score = models.FloatField(default=0.0, help_text="Difficulty score based on user performance")
+    difficulty_score = models.FloatField(default=None, null=True, blank=True, help_text="Difficulty level: 0.0=Again, 0.33=Hard, 0.67=Good, 1.0=Easy")
     total_reviews = models.PositiveIntegerField(default=0, help_text="Total number of times reviewed")
     correct_reviews = models.PositiveIntegerField(default=0, help_text="Number of correct reviews")
 
@@ -48,16 +48,19 @@ class Flashcard(models.Model):
     @property
     def difficulty_level(self):
         """Return a user-friendly difficulty level based on difficulty_score."""
-        if self.difficulty_score <= 0.2:
-            return "Very Easy"
-        elif self.difficulty_score <= 0.4:
-            return "Easy"
-        elif self.difficulty_score <= 0.6:
-            return "Medium"
-        elif self.difficulty_score <= 0.8:
+        if self.difficulty_score is None:
+            return "New"
+        elif self.difficulty_score == 0.0:
+            return "Again"
+        elif self.difficulty_score == 0.33:
             return "Hard"
+        elif self.difficulty_score == 0.67:
+            return "Good"
+        elif self.difficulty_score == 1.0:
+            return "Easy"
         else:
-            return "Very Hard"
+            # Fallback for any unexpected values
+            return "Unknown"
 
     @property
     def accuracy_percentage(self):

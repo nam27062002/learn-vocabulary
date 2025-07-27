@@ -20,13 +20,19 @@ from django.contrib.auth.decorators import login_required
 from deep_translator import GoogleTranslator
 from django.db.models.functions import Random
 
-# Enhanced Spaced Repetition Configuration
+# Difficulty-Based Card Selection Configuration
 SPACED_REPETITION_CONFIG = {
-    'MAX_DAILY_REVIEWS': 3,          # Maximum times a card can be shown per day
-    'NEGLECT_THRESHOLD_DAYS': 14,    # Days after which a card is considered neglected
+    'MAX_DAILY_REVIEWS': 5,          # Maximum times a card can be shown per day (increased for difficulty-based)
     'SIMILARITY_THRESHOLD': 0.6,     # Threshold for semantic similarity filtering
-    'DIFFICULTY_ADJUSTMENT': 0.3,    # How much difficulty affects interval (0.0-1.0)
     'MIN_DISTRACTORS': 10,          # Minimum distractors to collect for filtering
+    # Difficulty selection weights (used in _get_next_card_enhanced)
+    'DIFFICULTY_WEIGHTS': {
+        'again': 40,  # Again cards (highest difficulty) - 40% selection weight
+        'hard': 30,   # Hard cards - 30% selection weight
+        'good': 20,   # Good cards - 20% selection weight
+        'easy': 10,   # Easy cards (lowest difficulty) - 10% selection weight
+        'new': 35,    # New cards (never reviewed) - 35% selection weight
+    }
 }
 import random
 from .statistics_utils import create_study_session, record_answer, end_study_session
@@ -68,18 +74,24 @@ def _filter_semantic_distractors(correct_word, candidates):
 
     return filtered
 
-# Enhanced word selection algorithm
+# Difficulty-based card selection algorithm (replaces SM-2)
 def _get_next_card_enhanced(user, deck_ids=None):
     """
-    Enhanced card selection algorithm that prevents short-term repetition
-    and long-term neglect while maintaining spaced repetition principles.
+    Difficulty-based card selection algorithm that prioritizes cards based on their difficulty levels.
+    Shows harder cards more frequently than easier ones while maintaining variety.
+
+    Difficulty Levels (stored in difficulty_score field):
+    - 0.0 (Again): Highest difficulty - 40% selection weight
+    - 0.33 (Hard): High difficulty - 30% selection weight
+    - 0.67 (Good): Medium difficulty - 20% selection weight
+    - 1.0 (Easy): Low difficulty - 10% selection weight
     """
-    from django.db.models import F, Q, Case, When, FloatField
+    from django.db.models import Case, When, FloatField, Q
     from django.db.models.functions import Random
-    from datetime import datetime, timedelta
+    from datetime import datetime
+    import random
 
     today = datetime.now().date()
-    now = datetime.now()
 
     # Base queryset
     qs = Flashcard.objects.filter(user=user)
@@ -89,45 +101,55 @@ def _get_next_card_enhanced(user, deck_ids=None):
     # Reset daily counters if needed
     qs.filter(last_seen_date__lt=today).update(times_seen_today=0)
 
-    # Priority 1: Cards due for review that haven't been seen too much today
-    due_cards = qs.filter(
-        next_review__lte=today,
-        times_seen_today__lt=SPACED_REPETITION_CONFIG['MAX_DAILY_REVIEWS']
-    ).annotate(
-        # Priority score: older due dates get higher priority
-        priority_score=Case(
-            When(next_review__lt=today - timedelta(days=7), then=10.0),  # Very overdue
-            When(next_review__lt=today - timedelta(days=3), then=8.0),   # Overdue
-            When(next_review__lt=today - timedelta(days=1), then=6.0),   # Yesterday
-            When(next_review=today, then=4.0),                           # Due today
-            default=2.0,
-            output_field=FloatField()
-        )
-    ).order_by('-priority_score', 'next_review', Random())
+    # Apply daily limit filter
+    available_cards = qs.filter(times_seen_today__lt=SPACED_REPETITION_CONFIG['MAX_DAILY_REVIEWS'])
 
-    card = due_cards.first()
-    if card:
-        return card
+    if not available_cards.exists():
+        # If all cards hit daily limit, relax the constraint
+        available_cards = qs.filter(times_seen_today__lt=SPACED_REPETITION_CONFIG['MAX_DAILY_REVIEWS'] + 2)
+        if not available_cards.exists():
+            return qs.order_by(Random()).first()  # Last resort
 
-    # Priority 2: Cards that haven't been seen in a long time (prevent neglect)
-    neglected_threshold = today - timedelta(days=SPACED_REPETITION_CONFIG['NEGLECT_THRESHOLD_DAYS'])
-    neglected_cards = qs.filter(
-        Q(last_reviewed__lt=neglected_threshold) | Q(last_reviewed__isnull=True),
-        times_seen_today__lt=SPACED_REPETITION_CONFIG['MAX_DAILY_REVIEWS'] - 1  # Less strict limit for neglected cards
-    ).order_by('last_reviewed', Random())
+    # Create difficulty-based priority groups
+    difficulty_groups = {
+        'again': available_cards.filter(difficulty_score=0.0),      # Again (highest priority)
+        'hard': available_cards.filter(difficulty_score=0.33),      # Hard
+        'good': available_cards.filter(difficulty_score=0.67),      # Good
+        'easy': available_cards.filter(difficulty_score=1.0),       # Easy (lowest priority)
+        'new': available_cards.filter(difficulty_score__isnull=True)  # New cards (never reviewed)
+    }
 
-    card = neglected_cards.first()
-    if card:
-        return card
+    # Define selection weights (higher = more likely to be selected)
+    selection_weights = [
+        ('again', 40),  # 40% chance for Again cards
+        ('hard', 30),   # 30% chance for Hard cards
+        ('good', 20),   # 20% chance for Good cards
+        ('easy', 10),   # 10% chance for Easy cards
+        ('new', 35),    # 35% chance for new cards (high priority for learning)
+    ]
 
-    # Priority 3: Random card from available pool (practice mode)
-    available_cards = qs.filter(times_seen_today__lt=1).order_by(Random())
-    card = available_cards.first()
-    if card:
-        return card
+    # Build weighted selection pool
+    weighted_pool = []
+    for difficulty_level, weight in selection_weights:
+        cards = difficulty_groups[difficulty_level]
+        if cards.exists():
+            # Add this difficulty level to the pool with its weight
+            for _ in range(weight):
+                weighted_pool.append(difficulty_level)
 
-    # Fallback: Any card (but this should rarely happen)
-    return qs.order_by(Random()).first()
+    if not weighted_pool:
+        # No cards available, return any card
+        return available_cards.order_by(Random()).first()
+
+    # Randomly select a difficulty level based on weights
+    selected_difficulty = random.choice(weighted_pool)
+    selected_group = difficulty_groups[selected_difficulty]
+
+    print(f"CARD SELECTION: Selected difficulty '{selected_difficulty}' from {len(weighted_pool)} weighted options", file=sys.stderr)
+    print(f"CARD SELECTION: Available cards in '{selected_difficulty}': {selected_group.count()}", file=sys.stderr)
+
+    # Return a random card from the selected difficulty group
+    return selected_group.order_by(Random()).first()
 
 # Helper to update tracking when card is shown
 def _update_card_shown_tracking(card):
@@ -145,69 +167,60 @@ def _update_card_shown_tracking(card):
 
     card.save(update_fields=['times_seen_today', 'last_seen_date'])
 
-# Helper for SM-2 update with enhanced tracking
-def _update_sm2(card, correct: bool):
-    from datetime import datetime, timedelta
+# Helper for difficulty-based card update (replaces SM-2)
+def _update_card_difficulty(card, correct: bool, grade: int = None):
+    """
+    Update card difficulty based on user performance and feedback.
+    Uses a 4-level difficulty system instead of SM-2 spaced repetition.
 
-    grade = 2 if correct else 0  # Good vs Again mapping
-    ef = card.ease_factor
-    reps = card.repetitions
-    interval = card.interval
-    today = datetime.now().date()
+    Difficulty Levels:
+    - 0 (Again): Highest difficulty - show most frequently
+    - 1 (Hard): High difficulty - show frequently
+    - 2 (Good): Medium difficulty - show moderately
+    - 3 (Easy): Low difficulty - show least frequently
+    """
+    from datetime import datetime
 
     # Update review tracking fields
     card.total_reviews += 1
     if correct:
         card.correct_reviews += 1
 
-    # Calculate difficulty score (0.0 = easy, 1.0 = very difficult)
-    if card.total_reviews > 0:
-        accuracy = card.correct_reviews / card.total_reviews
-        card.difficulty_score = 1.0 - accuracy
-
-    # SM-2 algorithm
-    if not correct:
-        reps = 0
-        interval = 1
-        # Increase difficulty for incorrect answers
-        card.difficulty_score = min(1.0, card.difficulty_score + 0.1)
+    # Determine difficulty level based on grade or correctness
+    if grade is not None:
+        # Use explicit grade from user feedback (0-3)
+        difficulty_level = grade
+        print(f"DIFFICULTY UPDATE: Using grade {grade} -> difficulty_level={difficulty_level}", file=sys.stderr)
     else:
-        ef = max(1.3, ef + 0.1 - (5 - 4) * (0.08 + (5 - 4) * 0.02))  # grade 4 equivalent
-        reps += 1
-        if reps == 1:
-            interval = 1
-        elif reps == 2:
-            interval = 6
+        # Default mapping for correct/incorrect answers
+        if correct:
+            difficulty_level = 2  # Good (medium difficulty)
         else:
-            interval = round(interval * ef)
-            # Prevent overflow immediately after calculation
-            MAX_INTERVAL_DAYS = 3650
-            if interval > MAX_INTERVAL_DAYS:
-                print(f"Warning: Interval {interval} exceeds maximum, capping at {MAX_INTERVAL_DAYS}")
-                interval = MAX_INTERVAL_DAYS
+            difficulty_level = 0  # Again (highest difficulty)
+        print(f"DIFFICULTY UPDATE: Using correct={correct} -> difficulty_level={difficulty_level}", file=sys.stderr)
 
-        # Adjust interval based on difficulty score
-        difficulty_multiplier = 1.0 - (card.difficulty_score * SPACED_REPETITION_CONFIG['DIFFICULTY_ADJUSTMENT'])
-        interval = max(1, round(interval * difficulty_multiplier))
+    # Store the difficulty level (0-3) in the difficulty_score field
+    # We'll repurpose this field: 0.0=Again, 0.33=Hard, 0.67=Good, 1.0=Easy
+    difficulty_score_mapping = {
+        0: 0.0,   # Again (highest difficulty)
+        1: 0.33,  # Hard
+        2: 0.67,  # Good
+        3: 1.0    # Easy (lowest difficulty)
+    }
 
-    # Final safety check for date overflow
-    MAX_INTERVAL_DAYS = 3650
-    if interval > MAX_INTERVAL_DAYS:
-        print(f"Warning: Final interval {interval} exceeds maximum, capping at {MAX_INTERVAL_DAYS}")
-        interval = MAX_INTERVAL_DAYS
+    card.difficulty_score = difficulty_score_mapping.get(difficulty_level, 0.0)
 
-    try:
-        next_review_date = today + timedelta(days=int(interval))
-    except (OverflowError, ValueError) as e:
-        # Fallback: set to maximum safe date (1 year from now)
-        print(f"Date overflow error with interval {interval}: {e}")
-        next_review_date = today + timedelta(days=365)
-        interval = 365
-    card.ease_factor = ef
-    card.repetitions = reps
-    card.interval = interval
-    card.next_review = next_review_date
+    # Update timestamp
     card.last_reviewed = datetime.now()
+
+    # Clear SM-2 fields (no longer used)
+    card.ease_factor = 2.5  # Reset to default
+    card.repetitions = 0    # Not used
+    card.interval = 0       # Not used
+    card.next_review = datetime.now().date()  # Always available
+
+    print(f"DIFFICULTY UPDATE: Card '{card.word}' set to difficulty_score={card.difficulty_score} (level {difficulty_level})", file=sys.stderr)
+
     card.save()
 
 
@@ -498,21 +511,12 @@ def api_submit_answer(request):
             except Exception as e:
                 print(f"Error resolving incorrect word: {e}", file=sys.stderr)
 
-        # Update SM-2 algorithm
+        # Update difficulty-based system (replaces SM-2)
         try:
-            # Use grade for SM-2 if available, otherwise use correct parameter
-            if grade is not None:
-                # Convert grade to SM-2 correctness: Grade 2+ (Good/Easy) = correct
-                sm2_correct = grade >= 2
-                print(f"SM-2 update: Using grade {grade} -> sm2_correct={sm2_correct}", file=sys.stderr)
-            else:
-                # Fallback to correct parameter for backward compatibility
-                sm2_correct = correct
-                print(f"SM-2 update: Using correct parameter -> sm2_correct={sm2_correct}", file=sys.stderr)
-
-            _update_sm2(card, sm2_correct)
+            # Use grade for difficulty if available, otherwise use correct parameter
+            _update_card_difficulty(card, correct, grade)
         except Exception as e:
-            print(f"Error in SM-2 update: {e}")
+            print(f"Error in difficulty update: {e}")
             # Continue anyway - the incorrect word tracking is more important
 
         return JsonResponse({'success': True})
@@ -1279,12 +1283,12 @@ def api_submit_review(request):
     except Exception:
         return JsonResponse({'success': False}, status=400)
 
-    # Use enhanced SM-2 update with grade mapping
+    # Use difficulty-based update with grade
     correct = grade >= 2  # Good or Easy considered correct
     try:
-        _update_sm2(card, correct)
+        _update_card_difficulty(card, correct, grade)
     except Exception as e:
-        print(f"Error in SM-2 update (grade): {e}")
+        print(f"Error in difficulty update (grade): {e}")
         # Continue anyway - return success to avoid breaking the UI
 
     return JsonResponse({'success': True})
