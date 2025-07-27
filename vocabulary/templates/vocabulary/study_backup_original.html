@@ -1,15 +1,8 @@
-{% extends "base.html" %}
-{% load static %}
-
-{% block title %}
-{{ manual_texts.study }} - {{ manual_texts.learn_english }}
-{% endblock %}
-
-{% block extra_css %}
+{% extends "base.html" %} {% load static %} {% block title %} {{
+manual_texts.study }} - {{ manual_texts.learn_english }} {% endblock %} {% block
+extra_css %}
 <link rel="stylesheet" href="{% static 'css/study.css' %}" />
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="study-page">
   <div class="study-header">
     <h1 class="study-title">📖 {{ manual_texts.study }}</h1>
@@ -345,9 +338,7 @@
   </div>
 </div>
 
-{% endblock %}
-
-{% block extra_js %}
+{% endblock %} {% block extra_js %}
 <script src="{% static 'js/dictionary-utils.js' %}"></script>
 <script>
   const STUDY_CFG = {
@@ -379,5 +370,6 @@
     },
   };
 </script>
+<script src="{% static 'js/dictionary-utils.js' %}"></script>
 <script src="{% static 'js/study.js' %}"></script>
 {% endblock %}

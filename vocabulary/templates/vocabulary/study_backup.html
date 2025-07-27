@@ -1,15 +1,8 @@
-{% extends "base.html" %}
-{% load static %}
-
-{% block title %}
-{{ manual_texts.study }} - {{ manual_texts.learn_english }}
-{% endblock %}
-
-{% block extra_css %}
+{% extends "base.html" %} {% load static %} {% block title %}{{
+manual_texts.study }} - {{ manual_texts.learn_english }}{% endblock %} {% block
+extra_css %}
 <link rel="stylesheet" href="{% static 'css/study.css' %}" />
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="study-page">
   <div class="study-header">
     <h1 class="study-title">📖 {{ manual_texts.study }}</h1>
@@ -18,26 +11,30 @@
 
   <!-- Study Mode Selection -->
   <div class="study-mode-section">
-    <h2 class="section-title">{{ manual_texts.study_mode }}</h2>
+    <h2 class="section-title">{{ manual_texts.choose_study_mode }}</h2>
 
     <!-- Mode Slider Container -->
     <div class="mode-slider-container">
       <!-- Navigation Arrows -->
       <button
-        class="slider-nav slider-nav-prev"
+        class="slider-nav slider-prev"
+        aria-label="Previous study mode"
         id="sliderPrev"
-        aria-label="Previous mode"
       >
-        <span class="nav-arrow">‹</span>
+        <i class="fas fa-chevron-left"></i>
       </button>
 
-      <!-- Slider Wrapper -->
-      <div
-        class="mode-slider-wrapper"
-        role="region"
-        aria-label="Study mode selection"
+      <button
+        class="slider-nav slider-next"
+        aria-label="Next study mode"
+        id="sliderNext"
       >
-        <div class="mode-slider" id="modeSlider" role="tablist">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+
+      <!-- Mode Slider -->
+      <div class="mode-slider" id="modeSlider">
+        <div class="mode-slides">
           <!-- Deck Study Mode -->
           <div
             class="mode-slide active"
@@ -56,7 +53,7 @@
               <div class="mode-card">
                 <div class="mode-icon" aria-hidden="true">📚</div>
                 <div class="mode-content">
-                  <h3>{{ manual_texts.normal_study_by_decks }}</h3>
+                  <h3>{{ manual_texts.deck_study }}</h3>
                   <p id="deck-description">
                     {{ manual_texts.deck_study_description }}
                   </p>
@@ -82,7 +79,7 @@
               <div class="mode-card">
                 <div class="mode-icon" aria-hidden="true">🎲</div>
                 <div class="mode-content">
-                  <h3>{{ manual_texts.study_random_words }}</h3>
+                  <h3>{{ manual_texts.random_study }}</h3>
                   <p id="random-description">
                     {{ manual_texts.random_study_description }}
                   </p>
@@ -125,36 +122,67 @@
               </div>
             </label>
           </div>
+
+          <!-- Favorites Mode -->
+          <div
+            class="mode-slide"
+            data-mode="favorites"
+            role="tabpanel"
+            aria-label="Study favorite words mode"
+          >
+            <label class="mode-option" id="favoritesModeOption">
+              <input
+                type="radio"
+                name="study_mode"
+                value="favorites"
+                aria-describedby="favorites-description"
+              />
+              <div class="mode-card">
+                <div class="mode-icon" aria-hidden="true">❤️</div>
+                <div class="mode-content">
+                  <h3>{{ manual_texts.study_favorites }}</h3>
+                  <p id="favorites-description">
+                    {{ manual_texts.favorites_study_description }}
+                  </p>
+                  <div
+                    class="favorites-count"
+                    id="favoritesCount"
+                    style="display: none"
+                  >
+                    <span id="favoritesCountText"
+                      >0 {{ manual_texts.favorite_words_count }}</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </label>
+          </div>
         </div>
       </div>
 
-      <!-- Navigation Arrows -->
-      <button
-        class="slider-nav slider-nav-next"
-        id="sliderNext"
-        aria-label="Next mode"
-      >
-        <span class="nav-arrow">›</span>
-      </button>
-    </div>
-
-    <!-- Slider Indicators -->
-    <div class="slider-indicators">
-      <button
-        class="indicator active"
-        data-slide="0"
-        aria-label="Deck study mode"
-      ></button>
-      <button
-        class="indicator"
-        data-slide="1"
-        aria-label="Random study mode"
-      ></button>
-      <button
-        class="indicator"
-        data-slide="2"
-        aria-label="Review mode"
-      ></button>
+      <!-- Slider Indicators -->
+      <div class="slider-indicators">
+        <button
+          class="indicator active"
+          data-slide="0"
+          aria-label="Deck study mode"
+        ></button>
+        <button
+          class="indicator"
+          data-slide="1"
+          aria-label="Random study mode"
+        ></button>
+        <button
+          class="indicator"
+          data-slide="2"
+          aria-label="Review mode"
+        ></button>
+        <button
+          class="indicator"
+          data-slide="3"
+          aria-label="Favorites mode"
+        ></button>
+      </div>
     </div>
   </div>
 
@@ -162,60 +190,79 @@
   <div id="deckStudyOptions" class="study-options-section">
     <h3 class="options-title">{{ manual_texts.select_decks }}</h3>
 
-    <div class="deck-selector">
-      <button id="deckDropdownToggle" class="dropdown-toggle">
-        <span id="selectedDecksText">{{ manual_texts.no_decks_selected }}</span>
-        <i class="fas fa-chevron-down dropdown-arrow"></i>
-      </button>
-
-      <div id="deckDropdown" class="dropdown-menu">
-        {% for d in decks %}
-        <label class="deck-option">
-          <input type="checkbox" name="deck_ids" value="{{ d.id }}" />
-          <span class="deck-name">{{ d.name }}</span>
-          <span class="deck-count"
-            >{{ d.flashcards.count }} {{ manual_texts.words_unit }}</span
-          >
-        </label>
-        {% empty %}
-        <p class="no-decks-message">{{ manual_texts.no_decks_available }}</p>
-        {% endfor %}
+    <div class="deck-options">
+      <div class="deck-selection">
+        <div class="deck-grid">
+          {% for deck in decks %}
+          <label class="deck-option">
+            <input
+              type="checkbox"
+              name="deck_ids"
+              value="{{ deck.id }}"
+              {%
+              if
+              forloop.first
+              %}checked{%
+              endif
+              %}
+            />
+            <div class="deck-card">
+              <div class="deck-info">
+                <h4 class="deck-name">{{ deck.name }}</h4>
+                <p class="deck-description">{{ deck.description }}</p>
+                <div class="deck-stats">
+                  <span class="card-count"
+                    >{{ deck.flashcard_count }} {{ manual_texts.flashcards
+                    }}</span
+                  >
+                </div>
+              </div>
+            </div>
+          </label>
+          {% empty %}
+          <div class="no-decks">
+            <p>{{ manual_texts.no_decks_available }}</p>
+            <a href="{% url 'deck_list' %}" class="create-deck-link"
+              >{{ manual_texts.create_first_deck }}</a
+            >
+          </div>
+          {% endfor %}
+        </div>
       </div>
     </div>
 
-    <button id="startBtn" class="start-button">
+    <button id="startBtn" class="start-button" disabled>
       <span class="button-icon">🚀</span>
-      {{ manual_texts.start_study }}
+      {{ manual_texts.start_studying }}
     </button>
   </div>
 
   <!-- Random Study Options -->
   <div id="randomStudyOptions" class="study-options-section hidden">
-    <h3 class="options-title">{{ manual_texts.study_random_words }}</h3>
+    <h3 class="options-title">{{ manual_texts.random_study_settings }}</h3>
 
     <div class="random-options">
-      <div class="word-count-input">
-        <label for="randomWordCount">{{ manual_texts.number_of_words }}</label>
-        <input
-          type="number"
-          id="randomWordCount"
-          min="1"
-          max="100"
-          value="10"
-        />
+      <div class="word-count-selection">
+        <label for="randomWordCount" class="option-label"
+          >{{ manual_texts.number_of_words }}</label
+        >
+        <select id="randomWordCount" class="word-count-select">
+          <option value="10">10 {{ manual_texts.words }}</option>
+          <option value="20" selected>20 {{ manual_texts.words }}</option>
+          <option value="30">30 {{ manual_texts.words }}</option>
+          <option value="50">50 {{ manual_texts.words }}</option>
+          <option value="100">100 {{ manual_texts.words }}</option>
+        </select>
       </div>
 
-      <div class="available-words-info">
-        <span class="info-label">{{ manual_texts.available_words }}:</span>
-        <span id="totalWordsAvailable" class="info-value"
-          >{{ total_words_available }}</span
-        >
+      <div class="random-description">
+        <p>{{ manual_texts.random_mode_description }}</p>
       </div>
     </div>
 
     <button id="startRandomBtn" class="start-button">
       <span class="button-icon">🎲</span>
-      {{ manual_texts.start_study }}
+      {{ manual_texts.start_random_study }}
     </button>
   </div>
 
@@ -231,21 +278,21 @@
             <div class="review-breakdown">
               <div class="breakdown-item">
                 <span class="breakdown-label"
-                  >{{ manual_texts.multiple_choice }}:</span
+                  >{{ manual_texts.total_incorrect }}:</span
                 >
-                <span class="breakdown-count" id="mcCount">0</span>
+                <span class="breakdown-count" id="totalIncorrectCount">0</span>
               </div>
               <div class="breakdown-item">
                 <span class="breakdown-label"
-                  >{{ manual_texts.input_mode }}:</span
+                  >{{ manual_texts.unresolved }}:</span
                 >
-                <span class="breakdown-count" id="typeCount">0</span>
+                <span class="breakdown-count" id="unresolvedCount">0</span>
               </div>
               <div class="breakdown-item">
                 <span class="breakdown-label"
-                  >{{ manual_texts.dictation_mode }}:</span
+                  >{{ manual_texts.resolved }}:</span
                 >
-                <span class="breakdown-count" id="dictationCount">0</span>
+                <span class="breakdown-count" id="resolvedCount">0</span>
               </div>
             </div>
           </div>
@@ -256,6 +303,38 @@
     <button id="startReviewBtn" class="start-button" disabled>
       <span class="button-icon">🔄</span>
       {{ manual_texts.start_review }}
+    </button>
+  </div>
+
+  <!-- Favorites Study Options -->
+  <div id="favoritesStudyOptions" class="study-options-section hidden">
+    <h3 class="options-title">{{ manual_texts.study_favorites }}</h3>
+
+    <div class="favorites-options">
+      <div class="favorites-info">
+        <div class="favorites-description">
+          <p>{{ manual_texts.favorites_mode_description }}</p>
+          <div
+            class="favorites-details"
+            id="favoritesDetails"
+            style="display: none"
+          >
+            <div class="favorites-breakdown">
+              <div class="breakdown-item">
+                <span class="breakdown-label"
+                  >{{ manual_texts.total_favorites }}:</span
+                >
+                <span class="breakdown-count" id="totalFavoritesCount">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button id="startFavoritesBtn" class="start-button" disabled>
+      <span class="button-icon">❤️</span>
+      {{ manual_texts.start_favorites_study }}
     </button>
   </div>
 
@@ -345,10 +424,7 @@
   </div>
 </div>
 
-{% endblock %}
-
-{% block extra_js %}
-<script src="{% static 'js/dictionary-utils.js' %}"></script>
+{% endblock %} {% block extra_js %}
 <script>
   const STUDY_CFG = {
     nextUrl: "{% url 'api_next_question' %}",
@@ -363,7 +439,6 @@
       grade_hard: "{{ manual_texts.grade_hard }}",
       grade_good: "{{ manual_texts.grade_good }}",
       grade_easy: "{{ manual_texts.grade_easy }}",
-
       no_cards_due: "{{ manual_texts.no_cards_due }}",
       play_audio: "{{ manual_texts.play_audio }}",
       listen_and_type: "{{ manual_texts.listen_and_type }}",
@@ -379,5 +454,6 @@
     },
   };
 </script>
+<script src="{% static 'js/dictionary-utils.js' %}"></script>
 <script src="{% static 'js/study.js' %}"></script>
 {% endblock %}
