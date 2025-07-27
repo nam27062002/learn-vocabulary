@@ -160,8 +160,8 @@
       });
 
       // Set the source
-      this.correctSound.src = "/static/audio/correct.mp3";
-      this.incorrectSound.src = "/static/audio/incorrect.mp3";
+      this.correctSound.src = "/static/audio/correct.wav";
+      this.incorrectSound.src = "/static/audio/incorrect.wav";
     },
 
     createFallbackAudio(type) {
@@ -223,7 +223,7 @@
 
       try {
         // Check correct sound file
-        const correctResponse = await fetch("/static/audio/correct.mp3", {
+        const correctResponse = await fetch("/static/audio/correct.wav", {
           method: "HEAD",
         });
         if (correctResponse.ok) {
@@ -245,7 +245,7 @@
         }
 
         // Check incorrect sound file
-        const incorrectResponse = await fetch("/static/audio/incorrect.mp3", {
+        const incorrectResponse = await fetch("/static/audio/incorrect.wav", {
           method: "HEAD",
         });
         if (incorrectResponse.ok) {
