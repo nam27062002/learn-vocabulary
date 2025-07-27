@@ -1170,7 +1170,7 @@
       this.isTransitioning = false;
       this.touchStartX = 0;
       this.touchEndX = 0;
-      this.isEnabled = true;
+      this.isEnabled = false; // Start as disabled, will be enabled in init()
 
       // Store bound event handlers for removal
       this.boundPrevSlide = () => this.prevSlide();
@@ -1196,13 +1196,21 @@
       if (!this.isEnabled) {
         this.isEnabled = true;
 
+        console.log("🎯 ModeSlider: Enabling event listeners...");
+
         // Add arrow button event listeners
         if (sliderPrev) {
           sliderPrev.addEventListener("click", this.boundPrevSlide);
+          console.log("✅ Added click listener to sliderPrev");
+        } else {
+          console.warn("❌ sliderPrev element not found");
         }
 
         if (sliderNext) {
           sliderNext.addEventListener("click", this.boundNextSlide);
+          console.log("✅ Added click listener to sliderNext");
+        } else {
+          console.warn("❌ sliderNext element not found");
         }
 
         // Store indicator handlers for removal
@@ -1214,18 +1222,25 @@
           this.indicatorHandlers.push({ indicator, handler });
           indicator.addEventListener("click", handler);
         });
+        console.log(
+          `✅ Added click listeners to ${indicators.length} indicators`
+        );
 
         // Touch/swipe support
         if (modeSlider) {
           modeSlider.addEventListener("touchstart", this.boundTouchStart);
           modeSlider.addEventListener("touchend", this.boundTouchEnd);
           modeSlider.addEventListener("touchmove", this.boundTouchMove);
+          console.log("✅ Added touch/swipe listeners");
         }
 
         // Keyboard navigation
         document.addEventListener("keydown", this.boundKeydownHandler);
+        console.log("✅ Added keyboard navigation listener");
 
-        console.log("ModeSlider: Event listeners enabled");
+        console.log("🎯 ModeSlider: Event listeners enabled successfully");
+      } else {
+        console.log("⚠️ ModeSlider: Event listeners already enabled, skipping");
       }
     }
 
@@ -1309,38 +1324,66 @@
     }
 
     goToSlide(index) {
-      if (
-        !this.isEnabled ||
-        this.isTransitioning ||
-        index === this.currentSlide
-      )
+      console.log(
+        `🎯 goToSlide(${index}) called, current: ${this.currentSlide}, enabled: ${this.isEnabled}, transitioning: ${this.isTransitioning}`
+      );
+
+      if (!this.isEnabled) {
+        console.warn("⚠️ goToSlide() blocked - slider disabled");
         return;
+      }
+
+      if (this.isTransitioning) {
+        console.warn("⚠️ goToSlide() blocked - transition in progress");
+        return;
+      }
+
+      if (index === this.currentSlide) {
+        console.log("⚠️ goToSlide() blocked - already at target slide");
+        return;
+      }
 
       this.isTransitioning = true;
       this.currentSlide = Math.max(0, Math.min(index, this.totalSlides - 1));
 
+      console.log(`🎯 Transitioning to slide ${this.currentSlide}`);
       this.updateSlider();
       this.updateIndicators();
       this.updateNavButtons();
 
       setTimeout(() => {
         this.isTransitioning = false;
+        console.log("✅ Transition completed");
       }, 400);
     }
 
     nextSlide() {
-      if (!this.isEnabled) return;
+      console.log("🎯 nextSlide() called, isEnabled:", this.isEnabled);
+      if (!this.isEnabled) {
+        console.warn("⚠️ nextSlide() blocked - slider disabled");
+        return;
+      }
 
       if (this.currentSlide < this.totalSlides - 1) {
+        console.log(`➡️ Moving to slide ${this.currentSlide + 1}`);
         this.goToSlide(this.currentSlide + 1);
+      } else {
+        console.log("➡️ Already at last slide");
       }
     }
 
     prevSlide() {
-      if (!this.isEnabled) return;
+      console.log("🎯 prevSlide() called, isEnabled:", this.isEnabled);
+      if (!this.isEnabled) {
+        console.warn("⚠️ prevSlide() blocked - slider disabled");
+        return;
+      }
 
       if (this.currentSlide > 0) {
+        console.log(`⬅️ Moving to slide ${this.currentSlide - 1}`);
         this.goToSlide(this.currentSlide - 1);
+      } else {
+        console.log("⬅️ Already at first slide");
       }
     }
 
@@ -1370,7 +1413,35 @@
   // Initialize slider
   let modeSliderInstance;
   if (modeSlider) {
+    console.log("🎯 Initializing ModeSlider...");
+    console.log("🔍 Found elements:", {
+      modeSlider: !!modeSlider,
+      sliderPrev: !!sliderPrev,
+      sliderNext: !!sliderNext,
+      indicators: indicators.length,
+      modeSlides: modeSlides.length,
+    });
     modeSliderInstance = new ModeSlider();
+    console.log("✅ ModeSlider initialized successfully");
+
+    // Test arrow button functionality after a short delay
+    setTimeout(() => {
+      console.log("🧪 Testing arrow button functionality...");
+      if (sliderPrev && sliderNext) {
+        console.log("🔍 Arrow button states:", {
+          prevDisabled: sliderPrev.disabled,
+          nextDisabled: sliderNext.disabled,
+          prevHasListeners:
+            sliderPrev.onclick !== null ||
+            sliderPrev.addEventListener !== undefined,
+          nextHasListeners:
+            sliderNext.onclick !== null ||
+            sliderNext.addEventListener !== undefined,
+        });
+      }
+    }, 100);
+  } else {
+    console.warn("❌ modeSlider element not found - slider not initialized");
   }
 
   // Study mode selection handling
