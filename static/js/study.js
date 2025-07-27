@@ -1190,8 +1190,10 @@
   // Mode Slider Class
   class ModeSlider {
     constructor() {
+      console.log("🎯 Initializing ModeSlider...");
       this.currentSlide = 0;
       this.totalSlides = modeSlides.length;
+      console.log(`📊 Found ${this.totalSlides} mode slides:`, modeSlides);
       this.isTransitioning = false;
       this.touchStartX = 0;
       this.touchEndX = 0;
@@ -1855,14 +1857,22 @@
 
   // Load favorites count
   function loadFavoritesCount() {
+    console.log("🔍 Loading favorites count...");
+
     // Check if required elements exist
     const favoritesCountText = document.getElementById("favoritesCountText");
     const favoritesCount = document.getElementById("favoritesCount");
     const favoritesModeOption = document.getElementById("favoritesModeOption");
 
+    console.log("🔍 Found elements:", {
+      favoritesCountText: !!favoritesCountText,
+      favoritesCount: !!favoritesCount,
+      favoritesModeOption: !!favoritesModeOption
+    });
+
     if (!favoritesCountText || !favoritesCount || !favoritesModeOption) {
       console.log(
-        "Favorites mode elements not found, skipping favorites count loading"
+        "❌ Favorites mode elements not found, skipping favorites count loading"
       );
       return;
     }

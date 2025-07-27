@@ -1845,3 +1845,45 @@ def favorites_page(request):
     }
 
     return render(request, 'vocabulary/favorites.html', context)
+
+
+def debug_study_template(request):
+    """Debug view to check study template rendering without authentication."""
+    context = {
+        'manual_texts': {
+            'study': 'Study',
+            'learn_english': 'Learn English',
+            'normal_study_by_decks': 'Study by Decks',
+            'deck_study_description': 'Study flashcards from selected decks',
+            'random_study': 'Random Study',
+            'random_study_description': 'Study random flashcards',
+            'review_incorrect_words': 'Review Mode',
+            'review_study_description': 'Review incorrect words',
+            'study_favorites': 'Study Favorites',
+            'favorites_study_description': 'Study your favorite vocabulary words',
+            'favorite_words_count': 'favorite words',
+            'select_decks': 'Select Decks',
+            'start_study': 'Start Study',
+            'correct': 'Correct',
+            'incorrect': 'Incorrect',
+            'check': 'Check',
+            'answer_placeholder': 'Your answer...',
+            'grade_again': 'Again',
+            'grade_hard': 'Hard',
+            'grade_good': 'Good',
+            'grade_easy': 'Easy',
+            'no_cards_due': 'No cards due',
+            'play_audio': 'Play Audio',
+            'listen_and_type': 'Listen and Type',
+            'type_what_you_hear': 'Type what you hear',
+            'correct_answer': 'Correct Answer',
+            'incorrect_answer': 'Incorrect Answer',
+            'replay_audio': 'Replay Audio',
+            'english_label': 'English',
+            'vietnamese_label': 'Vietnamese',
+            'review_completed_title': 'Review Completed',
+            'review_completed_message': 'Great job!',
+            'continue_studying': 'Continue Studying'
+        }
+    }
+    return render(request, 'vocabulary/study.html', context)

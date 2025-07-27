@@ -190,6 +190,11 @@
         data-slide="2"
         aria-label="Review mode"
       ></button>
+      <button
+        class="indicator"
+        data-slide="3"
+        aria-label="Favorites study mode"
+      ></button>
     </div>
   </div>
 
@@ -414,6 +419,7 @@
       review_completed_title: "{{ manual_texts.review_completed_title }}",
       review_completed_message: "{{ manual_texts.review_completed_message }}",
       continue_studying: "{{ manual_texts.continue_studying }}",
+      favorite_words_count: "{{ manual_texts.favorite_words_count|default:'favorite words' }}",
     },
   };
 </script>

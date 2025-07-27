@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favorites Mode Debug</title>
+    <meta name="csrf-token" content="test-token">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .debug-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .mode-slide {
+            border: 2px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        .mode-slide.active {
+            border-color: #4f46e5;
+            background: #f0f9ff;
+        }
+        .log-output {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #3730a3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Favorites Mode Debug</h1>
+    
+    <div class="debug-container">
+        <h2>Mode Slides Test</h2>
+        <p>Testing if all 4 mode slides are detected:</p>
+        
+        <!-- Simulated mode slides like in study.html -->
+        <div class="mode-slide active" data-mode="decks">
+            <h3>📚 Deck Study Mode</h3>
+            <p>Study flashcards from selected decks</p>
+        </div>
+        
+        <div class="mode-slide" data-mode="random">
+            <h3>🎲 Random Study Mode</h3>
+            <p>Study random flashcards</p>
+        </div>
+        
+        <div class="mode-slide" data-mode="review">
+            <h3>🔄 Review Mode</h3>
+            <p>Review incorrect words</p>
+            <div class="review-count" id="reviewCount" style="display: none">
+                <span id="reviewCountText">0 incorrect words</span>
+            </div>
+        </div>
+        
+        <div class="mode-slide" data-mode="favorites">
+            <h3>❤️ Favorites Mode</h3>
+            <p>Study your favorite vocabulary words</p>
+            <div class="favorites-count" id="favoritesCount" style="display: none">
+                <span id="favoritesCountText">0 favorite words</span>
+            </div>
+        </div>
+        
+        <button onclick="testModeSlides()">🧪 Test Mode Slides Detection</button>
+        <button onclick="testFavoritesAPI()">📡 Test Favorites API</button>
+        <button onclick="testFavoritesElements()">🔍 Test Favorites Elements</button>
+        <button onclick="clearLog()">🗑️ Clear Log</button>
+    </div>
+
+    <div class="debug-container">
+        <h2>Debug Output</h2>
+        <div id="log" class="log-output">Debug log will appear here...</div>
+    </div>
+
+    <script>
+        // Mock STUDY_CFG for testing
+        const STUDY_CFG = {
+            csrfToken: 'test-token',
+            labels: {
+                favorite_words_count: 'favorite words'
+            }
+        };
+
+        // Logging functionality
+        const logElement = document.getElementById('log');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            
+            logElement.innerHTML += logMessage + '\n';
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            console.log(logMessage);
+        }
+        
+        function clearLog() {
+            logElement.innerHTML = '';
+        }
+
+        // Test functions
+        function testModeSlides() {
+            log('🧪 Testing mode slides detection...');
+            
+            const modeSlides = document.querySelectorAll('.mode-slide');
+            log(`📊 Found ${modeSlides.length} mode slides`);
+            
+            modeSlides.forEach((slide, index) => {
+                const mode = slide.getAttribute('data-mode');
+                const isActive = slide.classList.contains('active');
+                log(`  ${index + 1}. Mode: ${mode}, Active: ${isActive}`);
+            });
+            
+            if (modeSlides.length === 4) {
+                log('✅ All 4 mode slides detected correctly!');
+            } else {
+                log(`❌ Expected 4 mode slides, found ${modeSlides.length}`);
+            }
+        }
+
+        function testFavoritesElements() {
+            log('🔍 Testing favorites elements...');
+            
+            const favoritesCountText = document.getElementById('favoritesCountText');
+            const favoritesCount = document.getElementById('favoritesCount');
+            const favoritesModeOption = document.getElementById('favoritesModeOption');
+            
+            log(`Elements found:`);
+            log(`  favoritesCountText: ${!!favoritesCountText}`);
+            log(`  favoritesCount: ${!!favoritesCount}`);
+            log(`  favoritesModeOption: ${!!favoritesModeOption} (Note: This should be false in this test)`);
+            
+            if (favoritesCountText && favoritesCount) {
+                log('✅ Basic favorites elements found');
+                
+                // Test showing favorites count
+                favoritesCountText.textContent = '5 favorite words';
+                favoritesCount.style.display = 'block';
+                log('✅ Favorites count display test successful');
+            } else {
+                log('❌ Some favorites elements missing');
+            }
+        }
+
+        function testFavoritesAPI() {
+            log('📡 Testing favorites API...');
+            
+            // Test favorites count API (will fail in this test environment)
+            fetch('/api/favorites/count/', {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': STUDY_CFG.csrfToken
+                }
+            })
+            .then(response => {
+                log(`API Response status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                log(`API Response data: ${JSON.stringify(data)}`);
+                if (data.success) {
+                    log(`✅ Favorites count: ${data.count}`);
+                } else {
+                    log(`❌ API error: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                log(`❌ API request failed: ${error.message}`);
+                log('ℹ️ This is expected in the test environment');
+            });
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Favorites Debug Page Initialized');
+            log('Click the test buttons above to run diagnostics');
+            
+            // Auto-run basic tests
+            setTimeout(() => {
+                testModeSlides();
+                testFavoritesElements();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
