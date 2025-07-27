@@ -436,6 +436,21 @@ def api_submit_answer(request):
         if current_session_id:
             try:
                 session = StudySession.objects.get(id=current_session_id, user=request.user)
+
+                # Check for recent duplicate submissions (within last 5 seconds)
+                from django.utils import timezone
+                recent_cutoff = timezone.now() - timedelta(seconds=5)
+                recent_answer = StudySessionAnswer.objects.filter(
+                    session=session,
+                    flashcard=card,
+                    answered_at__gte=recent_cutoff
+                ).first()
+
+                if recent_answer:
+                    print(f"DUPLICATE SUBMISSION DETECTED: Card {card.id} already answered recently", file=sys.stderr)
+                    # Return success but don't record duplicate
+                    return JsonResponse({'success': True, 'duplicate_prevented': True})
+
                 # Record the answer in the session
                 record_answer(session, card, correct, response_time, question_type)
             except StudySession.DoesNotExist:

@@ -271,6 +271,10 @@
     currentQuestion = q;
     questionStartTime = Date.now(); // Track when question was shown
 
+    // Reset submission flag for new question
+    window.submittingGrade = false;
+    window.currentAnswerCorrectness = undefined;
+
     // Clear any existing timeout
     if (nextTimeout) {
       clearTimeout(nextTimeout);
@@ -707,17 +711,37 @@
       gradeButtons.className = "grade-buttons show";
     }
 
-    // Handle grade button clicks
+    // Handle grade button clicks - only attach listeners if not already attached
     const gradeBtns = document.querySelectorAll(".grade-btn");
     gradeBtns.forEach((btn) => {
-      btn.onclick = () => {
-        const grade = parseInt(btn.dataset.grade);
-        submitGrade(grade);
-      };
+      // Check if listener is already attached
+      if (!btn.hasAttribute("data-listener-attached")) {
+        btn.setAttribute("data-listener-attached", "true");
+        btn.onclick = () => {
+          const grade = parseInt(btn.dataset.grade);
+          submitGrade(grade);
+        };
+      }
     });
   }
 
   function submitGrade(grade) {
+    // Prevent multiple submissions for the same question
+    if (window.submittingGrade) {
+      console.log(
+        "Grade submission already in progress, ignoring duplicate call"
+      );
+      return;
+    }
+
+    // Check if we have a current question to submit for
+    if (!currentQuestion || !currentQuestion.id) {
+      console.log("No current question to submit grade for");
+      return;
+    }
+
+    window.submittingGrade = true;
+
     // Calculate response time
     const responseTime = questionStartTime
       ? (Date.now() - questionStartTime) / 1000
@@ -751,20 +775,23 @@
       })
       .then((data) => {
         if (data.success) {
-          // Chuyển sang câu hỏi tiếp theo NGAY LẬP TỨC, không delay
+          // Reset submission flag and proceed to next question
+          window.submittingGrade = false;
           getNextQuestion();
         } else {
           console.error(
             "Grade submission failed:",
             data.error || "Unknown error"
           );
-          // Still proceed to next question to avoid getting stuck
+          // Reset submission flag and still proceed to next question to avoid getting stuck
+          window.submittingGrade = false;
           getNextQuestion();
         }
       })
       .catch((error) => {
         console.error("Error submitting grade:", error);
-        // Still proceed to next question to avoid getting stuck
+        // Reset submission flag and still proceed to next question to avoid getting stuck
+        window.submittingGrade = false;
         getNextQuestion();
       });
   }
