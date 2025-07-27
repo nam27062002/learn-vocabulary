@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Feedback Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+        .test-button:hover {
+            background: #1d4ed8;
+        }
+        .test-button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+        .log-output {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .toggle {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: #ccc;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .toggle.enabled {
+            background: #10b981;
+        }
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+        .toggle.enabled::after {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body>
+    <h1>Audio Feedback System Test</h1>
+    
+    <div class="test-container">
+        <h2>Audio System Status</h2>
+        <div id="status" class="status info">Initializing audio system...</div>
+        
+        <div class="toggle-container">
+            <label for="audioToggle">Audio Feedback:</label>
+            <div id="audioToggle" class="toggle"></div>
+            <span id="toggleStatus">Enabled</span>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>Audio Tests</h2>
+        <p>Click the buttons below to test audio feedback:</p>
+        
+        <button id="testCorrect" class="test-button">🎵 Test Correct Sound</button>
+        <button id="testIncorrect" class="test-button">🎵 Test Incorrect Sound</button>
+        <button id="testBoth" class="test-button">🎵 Test Both (Sequence)</button>
+        
+        <h3>Direct Audio Tests</h3>
+        <button id="testDirectCorrect" class="test-button">🔊 Direct Correct Audio</button>
+        <button id="testDirectIncorrect" class="test-button">🔊 Direct Incorrect Audio</button>
+        
+        <h3>File Tests</h3>
+        <button id="testFileExists" class="test-button">📁 Check Audio Files</button>
+        <button id="clearLog" class="test-button" style="background: #6b7280;">🗑️ Clear Log</button>
+    </div>
+
+    <div class="test-container">
+        <h2>Test Results</h2>
+        <div id="log" class="log-output">Test log will appear here...</div>
+    </div>
+
+    <script>
+        // Audio Feedback System (simplified version from study.js)
+        const AudioFeedback = {
+            correctSound: null,
+            incorrectSound: null,
+            enabled: true,
+            userInteracted: false,
+
+            init() {
+                try {
+                    // Load audio files
+                    this.correctSound = new Audio("/static/audio/correct.mp3");
+                    this.incorrectSound = new Audio("/static/audio/incorrect.mp3");
+
+                    // Set volume levels
+                    this.correctSound.volume = 0.6;
+                    this.incorrectSound.volume = 0.6;
+
+                    // Add event listeners
+                    this.correctSound.addEventListener("error", (e) => {
+                        log("❌ Failed to load correct sound: " + e.message, "error");
+                        this.correctSound = null;
+                    });
+
+                    this.incorrectSound.addEventListener("error", (e) => {
+                        log("❌ Failed to load incorrect sound: " + e.message, "error");
+                        this.incorrectSound = null;
+                    });
+
+                    this.correctSound.addEventListener("loadeddata", () => {
+                        log("✅ Correct sound loaded successfully", "success");
+                    });
+
+                    this.incorrectSound.addEventListener("loadeddata", () => {
+                        log("✅ Incorrect sound loaded successfully", "success");
+                    });
+
+                    this.correctSound.addEventListener("canplaythrough", () => {
+                        log("🎵 Correct sound ready to play", "info");
+                    });
+
+                    this.incorrectSound.addEventListener("canplaythrough", () => {
+                        log("🎵 Incorrect sound ready to play", "info");
+                    });
+
+                    // Preload
+                    this.preloadAudio();
+
+                    log("🎵 Audio feedback system initialized", "success");
+                } catch (error) {
+                    log("❌ Failed to initialize audio system: " + error.message, "error");
+                    this.enabled = false;
+                }
+            },
+
+            preloadAudio() {
+                if (this.correctSound) {
+                    this.correctSound.load();
+                }
+                if (this.incorrectSound) {
+                    this.incorrectSound.load();
+                }
+            },
+
+            playCorrect() {
+                if (!this.enabled) {
+                    log("🔇 Audio feedback disabled", "info");
+                    return;
+                }
+
+                if (!this.correctSound) {
+                    log("❌ Correct sound not loaded", "error");
+                    return;
+                }
+
+                try {
+                    this.correctSound.currentTime = 0;
+                    const playPromise = this.correctSound.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise
+                            .then(() => {
+                                log("🎵 ✅ Playing correct answer sound", "success");
+                            })
+                            .catch((err) => {
+                                log("🔇 Correct sound play failed: " + err.message, "error");
+                            });
+                    }
+                } catch (error) {
+                    log("❌ Error playing correct sound: " + error.message, "error");
+                }
+            },
+
+            playIncorrect() {
+                if (!this.enabled) {
+                    log("🔇 Audio feedback disabled", "info");
+                    return;
+                }
+
+                if (!this.incorrectSound) {
+                    log("❌ Incorrect sound not loaded", "error");
+                    return;
+                }
+
+                try {
+                    this.incorrectSound.currentTime = 0;
+                    const playPromise = this.incorrectSound.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise
+                            .then(() => {
+                                log("🎵 ❌ Playing incorrect answer sound", "success");
+                            })
+                            .catch((err) => {
+                                log("🔇 Incorrect sound play failed: " + err.message, "error");
+                            });
+                    }
+                } catch (error) {
+                    log("❌ Error playing incorrect sound: " + error.message, "error");
+                }
+            }
+        };
+
+        // Logging functionality
+        const logElement = document.getElementById('log');
+        const statusElement = document.getElementById('status');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            
+            logElement.innerHTML += logMessage + '\n';
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+            
+            console.log(logMessage);
+        }
+        
+        function clearLog() {
+            logElement.innerHTML = '';
+            statusElement.textContent = 'Log cleared';
+            statusElement.className = 'status info';
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Initializing audio feedback test...', 'info');
+            
+            // Initialize audio system
+            AudioFeedback.init();
+            
+            // Set up toggle
+            const toggle = document.getElementById('audioToggle');
+            const toggleStatus = document.getElementById('toggleStatus');
+            
+            function updateToggle() {
+                toggle.classList.toggle('enabled', AudioFeedback.enabled);
+                toggleStatus.textContent = AudioFeedback.enabled ? 'Enabled' : 'Disabled';
+            }
+            
+            updateToggle();
+            
+            toggle.addEventListener('click', () => {
+                AudioFeedback.enabled = !AudioFeedback.enabled;
+                updateToggle();
+                log(`Audio feedback ${AudioFeedback.enabled ? 'enabled' : 'disabled'}`, 'info');
+            });
+            
+            // Set up test buttons
+            document.getElementById('testCorrect').addEventListener('click', () => {
+                log('Testing correct sound...', 'info');
+                AudioFeedback.playCorrect();
+            });
+            
+            document.getElementById('testIncorrect').addEventListener('click', () => {
+                log('Testing incorrect sound...', 'info');
+                AudioFeedback.playIncorrect();
+            });
+            
+            document.getElementById('testBoth').addEventListener('click', () => {
+                log('Testing both sounds in sequence...', 'info');
+                AudioFeedback.playCorrect();
+                setTimeout(() => {
+                    AudioFeedback.playIncorrect();
+                }, 1000);
+            });
+            
+            document.getElementById('testDirectCorrect').addEventListener('click', () => {
+                log('Testing direct correct audio...', 'info');
+                const audio = new Audio('/static/audio/correct.mp3');
+                audio.play().then(() => {
+                    log('✅ Direct correct audio played', 'success');
+                }).catch(err => {
+                    log('❌ Direct correct audio failed: ' + err.message, 'error');
+                });
+            });
+            
+            document.getElementById('testDirectIncorrect').addEventListener('click', () => {
+                log('Testing direct incorrect audio...', 'info');
+                const audio = new Audio('/static/audio/incorrect.mp3');
+                audio.play().then(() => {
+                    log('✅ Direct incorrect audio played', 'success');
+                }).catch(err => {
+                    log('❌ Direct incorrect audio failed: ' + err.message, 'error');
+                });
+            });
+            
+            document.getElementById('testFileExists').addEventListener('click', () => {
+                log('Checking audio file accessibility...', 'info');
+                
+                fetch('/static/audio/correct.mp3', { method: 'HEAD' })
+                    .then(response => {
+                        if (response.ok) {
+                            log('✅ correct.mp3 is accessible', 'success');
+                        } else {
+                            log('❌ correct.mp3 not accessible: ' + response.status, 'error');
+                        }
+                    })
+                    .catch(err => {
+                        log('❌ Error checking correct.mp3: ' + err.message, 'error');
+                    });
+                
+                fetch('/static/audio/incorrect.mp3', { method: 'HEAD' })
+                    .then(response => {
+                        if (response.ok) {
+                            log('✅ incorrect.mp3 is accessible', 'success');
+                        } else {
+                            log('❌ incorrect.mp3 not accessible: ' + response.status, 'error');
+                        }
+                    })
+                    .catch(err => {
+                        log('❌ Error checking incorrect.mp3: ' + err.message, 'error');
+                    });
+            });
+            
+            document.getElementById('clearLog').addEventListener('click', clearLog);
+            
+            log('✅ Audio feedback test initialized', 'success');
+        });
+    </script>
+</body>
+</html>

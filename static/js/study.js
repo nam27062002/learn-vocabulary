@@ -31,12 +31,21 @@
     correctSound: null,
     incorrectSound: null,
     enabled: true,
+    audioContext: null,
+    userInteracted: false,
 
     init() {
       try {
-        // Load audio files
-        this.correctSound = new Audio("/static/audio/correct.mp3");
-        this.incorrectSound = new Audio("/static/audio/incorrect.mp3");
+        console.log("🎵 Initializing audio feedback system...");
+
+        // Try to load audio files - fallback to WAV if MP3 fails
+        this.correctSound = new Audio();
+        this.incorrectSound = new Audio();
+
+        // Set up sources with fallbacks
+        this.setupAudioSources();
+
+        console.log("🎵 Audio objects created, setting up event listeners...");
 
         // Set volume levels
         this.correctSound.volume = 0.6;
@@ -44,13 +53,51 @@
 
         // Add error event listeners
         this.correctSound.addEventListener("error", (e) => {
-          console.warn("Failed to load correct sound:", e);
+          console.error("❌ Failed to load correct sound:", e);
+          console.error("❌ Error details:", {
+            error: e.error,
+            message: e.message,
+            type: e.type,
+            target: e.target,
+          });
           this.correctSound = null;
         });
 
         this.incorrectSound.addEventListener("error", (e) => {
-          console.warn("Failed to load incorrect sound:", e);
+          console.error("❌ Failed to load incorrect sound:", e);
+          console.error("❌ Error details:", {
+            error: e.error,
+            message: e.message,
+            type: e.type,
+            target: e.target,
+          });
           this.incorrectSound = null;
+        });
+
+        // Add load event listeners for debugging
+        this.correctSound.addEventListener("loadeddata", () => {
+          console.log("✅ Correct sound loaded successfully");
+        });
+
+        this.incorrectSound.addEventListener("loadeddata", () => {
+          console.log("✅ Incorrect sound loaded successfully");
+        });
+
+        // Add additional debugging events
+        this.correctSound.addEventListener("loadstart", () => {
+          console.log("🔄 Started loading correct sound...");
+        });
+
+        this.incorrectSound.addEventListener("loadstart", () => {
+          console.log("🔄 Started loading incorrect sound...");
+        });
+
+        this.correctSound.addEventListener("canplay", () => {
+          console.log("🎵 Correct sound can start playing");
+        });
+
+        this.incorrectSound.addEventListener("canplay", () => {
+          console.log("🎵 Incorrect sound can start playing");
         });
 
         // Load saved preference from localStorage
@@ -75,8 +122,14 @@
           });
         }
 
-        // Preload audio files
-        this.preloadAudio();
+        // Set up user interaction detection for autoplay policy
+        this.setupUserInteractionDetection();
+
+        // Check if audio files exist before preloading
+        this.checkAudioFiles().then(() => {
+          // Preload audio files
+          this.preloadAudio();
+        });
 
         console.log(
           "Audio feedback system initialized. Enabled:",
@@ -86,6 +139,191 @@
         console.error("Failed to initialize audio feedback system:", error);
         this.enabled = false;
       }
+    },
+
+    setupAudioSources() {
+      console.log("🔧 Setting up audio sources...");
+
+      // Try MP3 first, then fallback to creating simple audio tones
+      this.correctSound.addEventListener("error", () => {
+        console.warn(
+          "🔄 MP3 failed, creating fallback audio for correct sound"
+        );
+        this.createFallbackAudio("correct");
+      });
+
+      this.incorrectSound.addEventListener("error", () => {
+        console.warn(
+          "🔄 MP3 failed, creating fallback audio for incorrect sound"
+        );
+        this.createFallbackAudio("incorrect");
+      });
+
+      // Set the source
+      this.correctSound.src = "/static/audio/correct.mp3";
+      this.incorrectSound.src = "/static/audio/incorrect.mp3";
+    },
+
+    createFallbackAudio(type) {
+      console.log(`🎵 Creating fallback ${type} audio using Web Audio API...`);
+
+      try {
+        if (!this.audioContext) {
+          this.audioContext = new (window.AudioContext ||
+            window.webkitAudioContext)();
+        }
+
+        const duration = type === "correct" ? 0.6 : 0.4;
+        const frequencies =
+          type === "correct" ? [523.25, 659.25, 783.99] : [220.0, 246.94];
+
+        // Create audio buffer
+        const sampleRate = this.audioContext.sampleRate;
+        const buffer = this.audioContext.createBuffer(
+          1,
+          duration * sampleRate,
+          sampleRate
+        );
+        const data = buffer.getChannelData(0);
+
+        // Generate tone
+        for (let i = 0; i < buffer.length; i++) {
+          let sample = 0;
+          for (const freq of frequencies) {
+            sample += Math.sin((2 * Math.PI * freq * i) / sampleRate);
+          }
+          data[i] = (sample / frequencies.length) * 0.3; // Volume control
+
+          // Apply fade in/out
+          const fadeFrames = sampleRate * 0.01; // 10ms fade
+          if (i < fadeFrames) {
+            data[i] *= i / fadeFrames;
+          } else if (i > buffer.length - fadeFrames) {
+            data[i] *= (buffer.length - i) / fadeFrames;
+          }
+        }
+
+        // Store the buffer for playback
+        if (type === "correct") {
+          this.correctSoundBuffer = buffer;
+          this.correctSound = null; // Use buffer instead
+        } else {
+          this.incorrectSoundBuffer = buffer;
+          this.incorrectSound = null; // Use buffer instead
+        }
+
+        console.log(`✅ Fallback ${type} audio created successfully`);
+      } catch (error) {
+        console.error(`❌ Failed to create fallback ${type} audio:`, error);
+      }
+    },
+
+    async checkAudioFiles() {
+      console.log("🔍 Checking audio file accessibility...");
+
+      try {
+        // Check correct sound file
+        const correctResponse = await fetch("/static/audio/correct.mp3", {
+          method: "HEAD",
+        });
+        if (correctResponse.ok) {
+          console.log("✅ correct.mp3 is accessible");
+          console.log(
+            "📋 Content-Type:",
+            correctResponse.headers.get("content-type")
+          );
+          console.log(
+            "📏 Content-Length:",
+            correctResponse.headers.get("content-length")
+          );
+        } else {
+          console.error(
+            "❌ correct.mp3 not accessible:",
+            correctResponse.status,
+            correctResponse.statusText
+          );
+        }
+
+        // Check incorrect sound file
+        const incorrectResponse = await fetch("/static/audio/incorrect.mp3", {
+          method: "HEAD",
+        });
+        if (incorrectResponse.ok) {
+          console.log("✅ incorrect.mp3 is accessible");
+          console.log(
+            "📋 Content-Type:",
+            incorrectResponse.headers.get("content-type")
+          );
+          console.log(
+            "📏 Content-Length:",
+            incorrectResponse.headers.get("content-length")
+          );
+        } else {
+          console.error(
+            "❌ incorrect.mp3 not accessible:",
+            incorrectResponse.status,
+            incorrectResponse.statusText
+          );
+        }
+
+        // Test if we can actually load the audio data
+        await this.testAudioLoad();
+      } catch (error) {
+        console.error("❌ Error checking audio files:", error);
+      }
+    },
+
+    async testAudioLoad() {
+      console.log("🧪 Testing actual audio loading...");
+
+      return new Promise((resolve) => {
+        const testAudio = new Audio("/static/audio/correct.mp3");
+
+        testAudio.addEventListener("loadeddata", () => {
+          console.log("✅ Test audio loaded successfully");
+          console.log("⏱️ Duration:", testAudio.duration);
+          console.log("🔊 Ready state:", testAudio.readyState);
+          resolve();
+        });
+
+        testAudio.addEventListener("error", (e) => {
+          console.error("❌ Test audio failed to load:", e);
+          console.error("🔍 Audio error code:", testAudio.error?.code);
+          console.error("🔍 Audio error message:", testAudio.error?.message);
+          resolve();
+        });
+
+        testAudio.load();
+      });
+    },
+
+    setupUserInteractionDetection() {
+      // Listen for first user interaction to enable audio
+      const enableAudio = () => {
+        this.userInteracted = true;
+        console.log("🎵 User interaction detected - audio enabled");
+
+        // Try to create audio context if needed
+        if (!this.audioContext && window.AudioContext) {
+          try {
+            this.audioContext = new (window.AudioContext ||
+              window.webkitAudioContext)();
+            console.log("🎵 Audio context created");
+          } catch (e) {
+            console.warn("Could not create audio context:", e);
+          }
+        }
+
+        // Remove listeners after first interaction
+        document.removeEventListener("click", enableAudio);
+        document.removeEventListener("keydown", enableAudio);
+        document.removeEventListener("touchstart", enableAudio);
+      };
+
+      // Add listeners for user interaction
+      document.addEventListener("click", enableAudio, { once: true });
+      document.addEventListener("keydown", enableAudio, { once: true });
+      document.addEventListener("touchstart", enableAudio, { once: true });
     },
 
     preloadAudio() {
@@ -99,31 +337,159 @@
     },
 
     playCorrect() {
-      if (this.enabled && this.correctSound) {
-        try {
-          this.correctSound.currentTime = 0; // Reset to beginning
-          this.correctSound.play().catch((err) => {
-            console.log("Correct sound play failed:", err);
-          });
-          console.log("Playing correct answer sound");
-        } catch (error) {
-          console.error("Error playing correct sound:", error);
+      if (!this.enabled) {
+        console.log("🔇 Audio feedback disabled");
+        return;
+      }
+
+      try {
+        if (this.correctSound && this.correctSound.src) {
+          // Use MP3 file
+          this.correctSound.currentTime = 0;
+          const playPromise = this.correctSound.play();
+
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                console.log("🎵 ✅ Playing correct answer sound (MP3)");
+              })
+              .catch((err) => {
+                console.warn(
+                  "🔇 MP3 play failed, trying fallback:",
+                  err.message
+                );
+                this.playFallbackAudio("correct");
+              });
+          }
+        } else if (this.correctSoundBuffer) {
+          // Use fallback audio buffer
+          this.playFallbackAudio("correct");
+        } else {
+          console.warn("❌ No correct sound available");
+          this.showAudioFeedbackMessage("✅ Correct!", "success");
         }
+      } catch (error) {
+        console.error("❌ Error playing correct sound:", error);
+        this.showAudioFeedbackMessage("✅ Correct!", "success");
       }
     },
 
     playIncorrect() {
-      if (this.enabled && this.incorrectSound) {
-        try {
-          this.incorrectSound.currentTime = 0; // Reset to beginning
-          this.incorrectSound.play().catch((err) => {
-            console.log("Incorrect sound play failed:", err);
-          });
-          console.log("Playing incorrect answer sound");
-        } catch (error) {
-          console.error("Error playing incorrect sound:", error);
-        }
+      if (!this.enabled) {
+        console.log("🔇 Audio feedback disabled");
+        return;
       }
+
+      try {
+        if (this.incorrectSound && this.incorrectSound.src) {
+          // Use MP3 file
+          this.incorrectSound.currentTime = 0;
+          const playPromise = this.incorrectSound.play();
+
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                console.log("🎵 ❌ Playing incorrect answer sound (MP3)");
+              })
+              .catch((err) => {
+                console.warn(
+                  "🔇 MP3 play failed, trying fallback:",
+                  err.message
+                );
+                this.playFallbackAudio("incorrect");
+              });
+          }
+        } else if (this.incorrectSoundBuffer) {
+          // Use fallback audio buffer
+          this.playFallbackAudio("incorrect");
+        } else {
+          console.warn("❌ No incorrect sound available");
+          this.showAudioFeedbackMessage("❌ Try again!", "error");
+        }
+      } catch (error) {
+        console.error("❌ Error playing incorrect sound:", error);
+        this.showAudioFeedbackMessage("❌ Try again!", "error");
+      }
+    },
+
+    playFallbackAudio(type) {
+      try {
+        if (!this.audioContext) {
+          console.warn("❌ No audio context available for fallback");
+          this.showAudioFeedbackMessage(
+            type === "correct" ? "✅ Correct!" : "❌ Try again!",
+            type === "correct" ? "success" : "error"
+          );
+          return;
+        }
+
+        const buffer =
+          type === "correct"
+            ? this.correctSoundBuffer
+            : this.incorrectSoundBuffer;
+
+        if (!buffer) {
+          console.warn(`❌ No ${type} buffer available`);
+          this.showAudioFeedbackMessage(
+            type === "correct" ? "✅ Correct!" : "❌ Try again!",
+            type === "correct" ? "success" : "error"
+          );
+          return;
+        }
+
+        // Create buffer source
+        const source = this.audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(this.audioContext.destination);
+
+        // Play the sound
+        source.start(0);
+        console.log(
+          `🎵 ${
+            type === "correct" ? "✅" : "❌"
+          } Playing ${type} answer sound (fallback)`
+        );
+      } catch (error) {
+        console.error(`❌ Error playing fallback ${type} sound:`, error);
+        this.showAudioFeedbackMessage(
+          type === "correct" ? "✅ Correct!" : "❌ Try again!",
+          type === "correct" ? "success" : "error"
+        );
+      }
+    },
+
+    showAudioFeedbackMessage(message, type) {
+      // Create a temporary visual feedback when audio fails
+      const feedbackEl = document.createElement("div");
+      feedbackEl.textContent = message;
+      feedbackEl.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 10px 20px;
+        border-radius: 5px;
+        color: white;
+        font-weight: bold;
+        z-index: 10000;
+        transition: opacity 0.3s ease;
+        ${
+          type === "success"
+            ? "background-color: #10b981;"
+            : "background-color: #ef4444;"
+        }
+      `;
+
+      document.body.appendChild(feedbackEl);
+
+      // Remove after 2 seconds
+      setTimeout(() => {
+        feedbackEl.style.opacity = "0";
+        setTimeout(() => {
+          if (feedbackEl.parentNode) {
+            feedbackEl.parentNode.removeChild(feedbackEl);
+          }
+        }, 300);
+      }, 2000);
     },
   };
 
