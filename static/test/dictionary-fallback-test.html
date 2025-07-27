@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dictionary Fallback Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-word {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2563eb;
+            text-decoration: underline;
+            cursor: pointer;
+            margin: 10px 0;
+            display: inline-block;
+        }
+        .test-word:hover {
+            color: #1d4ed8;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #374151;
+        }
+        .log-output {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #1d4ed8;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+        }
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dictionary Fallback Mechanism Test</h1>
+    
+    <div class="test-container">
+        <h2>Test Overview</h2>
+        <p>This page tests the dictionary fallback mechanism. Click on the words below to test the fallback functionality.</p>
+        <p><strong>Expected behavior:</strong></p>
+        <ol>
+            <li>First attempt: Try to access the main Cambridge Dictionary site</li>
+            <li>If that fails: Automatically redirect to the specific word definition page</li>
+            <li>Check the console and log output below for detailed information</li>
+        </ol>
+    </div>
+
+    <div class="test-container">
+        <h2>Test Words</h2>
+        <div class="test-section">
+            <h3>Test 1: Normal Dictionary Link</h3>
+            <p>Click this word to test the fallback mechanism:</p>
+            <a href="#" class="test-word" data-word="hello">hello</a>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 2: Complex Word</h3>
+            <p>Test with a more complex word:</p>
+            <a href="#" class="test-word" data-word="extraordinary">extraordinary</a>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 3: Word with Special Characters</h3>
+            <p>Test with a word that needs URL encoding:</p>
+            <a href="#" class="test-word" data-word="café">café</a>
+        </div>
+
+        <div class="test-section">
+            <h3>Test 4: Programmatic Test</h3>
+            <p>Test the API directly:</p>
+            <button class="button" onclick="testDictionaryAPI('programming')">Test "programming"</button>
+            <button class="button" onclick="testDictionaryAPI('javascript')">Test "javascript"</button>
+            <button class="button" onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>Test Results</h2>
+        <div id="status" class="status info">Ready to test...</div>
+        <div id="log" class="log-output">Console output will appear here...</div>
+    </div>
+
+    <!-- Include the dictionary utils -->
+    <script src="../js/dictionary-utils.js"></script>
+    
+    <script>
+        // Test logging functionality
+        const logElement = document.getElementById('log');
+        const statusElement = document.getElementById('status');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            
+            // Add to log display
+            logElement.innerHTML += logMessage + '\n';
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            // Update status
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+            
+            // Also log to console
+            console.log(logMessage);
+        }
+        
+        function clearLog() {
+            logElement.innerHTML = '';
+            statusElement.textContent = 'Log cleared';
+            statusElement.className = 'status info';
+        }
+        
+        // Test the dictionary API programmatically
+        async function testDictionaryAPI(word) {
+            log(`Testing dictionary API for word: ${word}`, 'info');
+            
+            try {
+                await DictionaryUtils.openDictionaryLink(word, {
+                    newTab: false, // Don't open new tab for testing
+                    onFallback: (word, fallbackUrl) => {
+                        log(`✓ Fallback triggered for "${word}": ${fallbackUrl}`, 'success');
+                    },
+                    onError: (error) => {
+                        log(`✗ Error for "${word}": ${error.message}`, 'error');
+                    }
+                });
+                
+                log(`✓ Dictionary API test completed for "${word}"`, 'success');
+            } catch (error) {
+                log(`✗ Dictionary API test failed for "${word}": ${error.message}`, 'error');
+            }
+        }
+        
+        // Initialize test links
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Initializing dictionary fallback test...', 'info');
+            
+            // Check if DictionaryUtils is available
+            if (typeof window.DictionaryUtils === 'undefined') {
+                log('✗ DictionaryUtils not found! Make sure dictionary-utils.js is loaded.', 'error');
+                return;
+            }
+            
+            log('✓ DictionaryUtils loaded successfully', 'success');
+            
+            // Enhance all test word links
+            const testWords = document.querySelectorAll('.test-word');
+            testWords.forEach(link => {
+                const word = link.getAttribute('data-word') || link.textContent.trim();
+                
+                link.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    log(`Clicked on word: ${word}`, 'info');
+                    
+                    DictionaryUtils.openDictionaryLink(word, {
+                        newTab: true,
+                        onFallback: (word, fallbackUrl) => {
+                            log(`✓ Fallback used for "${word}": ${fallbackUrl}`, 'success');
+                        },
+                        onError: (error) => {
+                            log(`✗ Error for "${word}": ${error.message}`, 'error');
+                        }
+                    });
+                });
+                
+                log(`Enhanced test link for word: ${word}`, 'info');
+            });
+            
+            log(`✓ Test initialization complete. Enhanced ${testWords.length} test links.`, 'success');
+        });
+    </script>
+</body>
+</html>

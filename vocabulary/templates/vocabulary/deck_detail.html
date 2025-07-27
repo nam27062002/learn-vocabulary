@@ -1,209 +1,352 @@
-{% extends "base.html" %}
-{% load static %}
-{% block title %}{{ deck.name }} - {{ manual_texts.my_decks }}{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% load static %} {% block title %}{{ deck.name }} -
+{{ manual_texts.my_decks }}{% endblock %} {% block content %}
 <meta name="csrf-token" content="{{ csrf_token }}" />
 
 <!-- ESC Hint -->
 <div class="esc-hint">
-    <i class="fas fa-keyboard mr-2"></i>
-    Press <kbd class="bg-gray-700 px-2 py-1 rounded text-xs">ESC</kbd> to cancel editing
+  <i class="fas fa-keyboard mr-2"></i>
+  Press <kbd class="bg-gray-700 px-2 py-1 rounded text-xs">ESC</kbd> to cancel
+  editing
 </div>
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-    <div class="flex justify-between items-center mb-8 pb-4 border-b border-gray-700">
-        <!-- Deck Name Display/Edit -->
-        <div class="flex items-center gap-4">
-            <!-- View Mode -->
-            <div id="deck-name-view" class="flex items-center gap-3">
-                <h1 class="text-4xl font-extrabold text-white">{{ deck.name }}</h1>
-                <button id="edit-deck-name-btn" class="text-gray-400 hover:text-primary-color transition-colors duration-200 p-2 rounded-full hover:bg-gray-800" title="{{ manual_texts.edit_deck_name }}">
-                    <i class="fas fa-edit text-lg"></i>
-                </button>
-            </div>
+  <div
+    class="flex justify-between items-center mb-8 pb-4 border-b border-gray-700"
+  >
+    <!-- Deck Name Display/Edit -->
+    <div class="flex items-center gap-4">
+      <!-- View Mode -->
+      <div id="deck-name-view" class="flex items-center gap-3">
+        <h1 class="text-4xl font-extrabold text-white">{{ deck.name }}</h1>
+        <button
+          id="edit-deck-name-btn"
+          class="text-gray-400 hover:text-primary-color transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
+          title="{{ manual_texts.edit_deck_name }}"
+        >
+          <i class="fas fa-edit text-lg"></i>
+        </button>
+      </div>
 
-            <!-- Edit Mode (Hidden by default) -->
-            <div id="deck-name-edit" class="hidden flex items-center gap-3">
-                <input type="text" id="deck-name-input" class="text-3xl font-bold bg-gray-800 border border-gray-600 rounded-md text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent" value="{{ deck.name }}" maxlength="100">
-                <button id="save-deck-name-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">
-                    {{ manual_texts.save_deck_name }}
-                </button>
-                <button id="cancel-deck-edit-btn" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">
-                    {{ manual_texts.cancel_deck_edit }}
-                </button>
-            </div>
-        </div>
-
-        <a href="{% url 'deck_list' %}" class="text-primary-color hover:text-primary-color-dark font-semibold transition-colors duration-200">← {{ manual_texts.back_to_all_decks }}</a>
+      <!-- Edit Mode (Hidden by default) -->
+      <div id="deck-name-edit" class="hidden flex items-center gap-3">
+        <input
+          type="text"
+          id="deck-name-input"
+          class="text-3xl font-bold bg-gray-800 border border-gray-600 rounded-md text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent"
+          value="{{ deck.name }}"
+          maxlength="100"
+        />
+        <button
+          id="save-deck-name-btn"
+          class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+        >
+          {{ manual_texts.save_deck_name }}
+        </button>
+        <button
+          id="cancel-deck-edit-btn"
+          class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+        >
+          {{ manual_texts.cancel_deck_edit }}
+        </button>
+      </div>
     </div>
 
-    {% if flashcards %}
-        <!-- Audio Filter Controls -->
-        <div class="audio-filter-controls">
-            <label for="audio-filter">{{ manual_texts.filter_by_audio }}:</label>
-            <select id="audio-filter">
-                <option value="all">{{ manual_texts.show_all_cards }}</option>
-                <option value="with-audio">{{ manual_texts.show_cards_with_audio }}</option>
-                <option value="without-audio">{{ manual_texts.show_cards_without_audio }}</option>
-            </select>
+    <a
+      href="{% url 'deck_list' %}"
+      class="text-primary-color hover:text-primary-color-dark font-semibold transition-colors duration-200"
+      >← {{ manual_texts.back_to_all_decks }}</a
+    >
+  </div>
 
-            <div class="audio-stats">
-                <div class="stat-item has-audio">
-                    <i class="fas fa-volume-up"></i>
-                    <span id="cards-with-audio-count">0</span>
-                </div>
-                <div class="stat-item no-audio">
-                    <i class="fas fa-volume-mute"></i>
-                    <span id="cards-without-audio-count">0</span>
-                </div>
-            </div>
+  {% if flashcards %}
+  <!-- Audio Filter Controls -->
+  <div class="audio-filter-controls">
+    <label for="audio-filter">{{ manual_texts.filter_by_audio }}:</label>
+    <select id="audio-filter">
+      <option value="all">{{ manual_texts.show_all_cards }}</option>
+      <option value="with-audio">
+        {{ manual_texts.show_cards_with_audio }}
+      </option>
+      <option value="without-audio">
+        {{ manual_texts.show_cards_without_audio }}
+      </option>
+    </select>
 
-            <!-- Fetch Missing Audio Button -->
-            <button id="fetch-missing-audio-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center gap-2">
-                <i class="fas fa-download"></i>
-                {{ manual_texts.fetch_missing_audio }}
+    <div class="audio-stats">
+      <div class="stat-item has-audio">
+        <i class="fas fa-volume-up"></i>
+        <span id="cards-with-audio-count">0</span>
+      </div>
+      <div class="stat-item no-audio">
+        <i class="fas fa-volume-mute"></i>
+        <span id="cards-without-audio-count">0</span>
+      </div>
+    </div>
+
+    <!-- Fetch Missing Audio Button -->
+    <button
+      id="fetch-missing-audio-btn"
+      class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center gap-2"
+    >
+      <i class="fas fa-download"></i>
+      {{ manual_texts.fetch_missing_audio }}
+    </button>
+  </div>
+
+  <div
+    id="carousel-container"
+    class="relative w-full max-w-xl mx-auto overflow-hidden rounded-xl shadow-2xl bg-gray-800 p-6"
+  >
+    <!-- Edit Mode Overlay -->
+    <div class="edit-mode-overlay"></div>
+
+    <div
+      id="carousel-slides"
+      class="flex overflow-x-scroll no-scrollbar snap-x snap-mandatory"
+      style="scroll-behavior: auto"
+    >
+      {% for card in flashcards %}
+      <div
+        class="flex-shrink-0 snap-center"
+        style="width: 100%"
+        data-card-id="{{ card.id }}"
+      >
+        <!-- View Mode -->
+        <div
+          class="card-view-mode word-item-tailwind p-6 bg-gray-900 rounded-lg shadow-lg w-full max-w-md mx-auto text-white flex flex-col items-start relative"
+          data-has-audio="{% if card.audio_url %}true{% else %}false{% endif %}"
+        >
+          <!-- Edit Button -->
+          <button
+            class="edit-card-btn absolute top-4 right-4 text-gray-400 hover:text-primary-color transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
+            title="{{ manual_texts.edit_card }}"
+          >
+            <i class="fas fa-edit text-lg"></i>
+          </button>
+
+          <div class="text-3xl font-bold mb-2">
+            <a
+              href="https://dictionary.cambridge.org/dictionary/english/{{ card.word }}"
+              target="_blank"
+              class="dictionary-word-link hover:underline focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 focus:ring-offset-gray-900"
+              data-word="{{ card.word }}"
+              >{{ card.word }}</a
+            >
+          </div>
+          {% if card.part_of_speech %}
+          <div class="text-lg text-gray-400 mb-2 italic">
+            ({{ card.part_of_speech }})
+          </div>
+          {% endif %} {% if card.phonetic %}
+          <div
+            class="text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2"
+          >
+            <span>{{ card.phonetic }}</span>
+            {% if card.audio_url %}
+            <button
+              class="audio-icon-tailwind text-gray-500 hover:text-primary-color transition-colors duration-200"
+              data-audio-url="{{ card.audio_url }}"
+              title="{{ manual_texts.listen }}"
+            >
+              <i class="fas fa-volume-up text-xl"></i>
             </button>
+            {% endif %}
+          </div>
+          {% elif card.audio_url %}
+          <!-- Show audio button even without phonetic if audio is available -->
+          <div
+            class="text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2"
+          >
+            <span class="text-gray-500 text-sm"
+              >{{ manual_texts.listen }}:</span
+            >
+            <button
+              class="audio-icon-tailwind text-gray-500 hover:text-primary-color transition-colors duration-200"
+              data-audio-url="{{ card.audio_url }}"
+              title="{{ manual_texts.listen }}"
+            >
+              <i class="fas fa-volume-up text-xl"></i>
+            </button>
+          </div>
+          {% endif %} {% for def in card.definitions.all %}
+          <div class="text-base text-gray-300 leading-relaxed mb-2">
+            <span class="font-semibold text-primary-color"
+              >{{ manual_texts.english_label }}</span
+            >
+            {{ def.english_definition }}
+          </div>
+          <div class="text-base text-gray-300 leading-relaxed mb-2">
+            <span class="font-semibold text-primary-color"
+              >{{ manual_texts.vietnamese_label }}</span
+            >
+            {{ def.vietnamese_definition }}
+          </div>
+          {% endfor %}
         </div>
 
-        <div id="carousel-container" class="relative w-full max-w-xl mx-auto overflow-hidden rounded-xl shadow-2xl bg-gray-800 p-6">
-            <!-- Edit Mode Overlay -->
-            <div class="edit-mode-overlay"></div>
+        <!-- Edit Mode (Hidden by default) -->
+        <div
+          class="card-edit-mode hidden word-item-tailwind p-6 bg-gray-900 rounded-lg shadow-lg w-full max-w-md mx-auto text-white"
+        >
+          <div class="mb-4">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-primary-color">
+                {{ manual_texts.edit_mode }}
+              </h3>
+              <div class="flex space-x-2">
+                <button
+                  class="save-card-btn bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                >
+                  {{ manual_texts.save_changes }}
+                </button>
+                <button
+                  class="cancel-edit-btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                >
+                  {{ manual_texts.cancel_edit }}
+                </button>
+              </div>
+            </div>
 
-            <div id="carousel-slides" class="flex overflow-x-scroll no-scrollbar snap-x snap-mandatory" style="scroll-behavior: auto;">
-                {% for card in flashcards %}
-                    <div class="flex-shrink-0 snap-center" style="width: 100%;" data-card-id="{{ card.id }}">
-                        <!-- View Mode -->
-                        <div class="card-view-mode word-item-tailwind p-6 bg-gray-900 rounded-lg shadow-lg w-full max-w-md mx-auto text-white flex flex-col items-start relative" data-has-audio="{% if card.audio_url %}true{% else %}false{% endif %}">
-                            <!-- Edit Button -->
-                            <button class="edit-card-btn absolute top-4 right-4 text-gray-400 hover:text-primary-color transition-colors duration-200 p-2 rounded-full hover:bg-gray-800" title="{{ manual_texts.edit_card }}">
-                                <i class="fas fa-edit text-lg"></i>
-                            </button>
+            <!-- Edit Form -->
+            <div class="space-y-4">
+              <!-- Word -->
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1"
+                  >{{ manual_texts.term_label }}</label
+                >
+                <input
+                  type="text"
+                  class="edit-word w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent"
+                  value="{{ card.word }}"
+                />
+              </div>
 
-                            <div class="text-3xl font-bold mb-2">
-                                <a href="https://dictionary.cambridge.org/dictionary/english/{{ card.word }}" target="_blank" class="hover:underline focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 focus:ring-offset-gray-900">{{ card.word }}</a>
-                            </div>
-                            {% if card.part_of_speech %}
-                                <div class="text-lg text-gray-400 mb-2 italic">({{ card.part_of_speech }})</div>
-                            {% endif %}
-                            {% if card.phonetic %}
-                                <div class="text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2">
-                                    <span>{{ card.phonetic }}</span>
-                                    {% if card.audio_url %}
-                                        <button class="audio-icon-tailwind text-gray-500 hover:text-primary-color transition-colors duration-200" data-audio-url="{{ card.audio_url }}" title="{{ manual_texts.listen }}">
-                                            <i class="fas fa-volume-up text-xl"></i>
-                                        </button>
-                                    {% endif %}
-                                </div>
-                            {% elif card.audio_url %}
-                                <!-- Show audio button even without phonetic if audio is available -->
-                                <div class="text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2">
-                                    <span class="text-gray-500 text-sm">{{ manual_texts.listen }}:</span>
-                                    <button class="audio-icon-tailwind text-gray-500 hover:text-primary-color transition-colors duration-200" data-audio-url="{{ card.audio_url }}" title="{{ manual_texts.listen }}">
-                                        <i class="fas fa-volume-up text-xl"></i>
-                                    </button>
-                                </div>
-                            {% endif %}
-                            {% for def in card.definitions.all %}
-                                <div class="text-base text-gray-300 leading-relaxed mb-2">
-                                    <span class="font-semibold text-primary-color">{{ manual_texts.english_label }}</span> {{ def.english_definition }}
-                                </div>
-                                <div class="text-base text-gray-300 leading-relaxed mb-2">
-                                    <span class="font-semibold text-primary-color">{{ manual_texts.vietnamese_label }}</span> {{ def.vietnamese_definition }}
-                                </div>
-                            {% endfor %}
-                        </div>
+              <!-- Phonetic -->
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1"
+                  >{{ manual_texts.phonetic_label }}</label
+                >
+                <input
+                  type="text"
+                  class="edit-phonetic w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent"
+                  value="{{ card.phonetic|default:'' }}"
+                />
+              </div>
 
-                        <!-- Edit Mode (Hidden by default) -->
-                        <div class="card-edit-mode hidden word-item-tailwind p-6 bg-gray-900 rounded-lg shadow-lg w-full max-w-md mx-auto text-white">
-                            <div class="mb-4">
-                                <div class="flex items-center justify-between mb-4">
-                                    <h3 class="text-lg font-semibold text-primary-color">{{ manual_texts.edit_mode }}</h3>
-                                    <div class="flex space-x-2">
-                                        <button class="save-card-btn bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">
-                                            {{ manual_texts.save_changes }}
-                                        </button>
-                                        <button class="cancel-edit-btn bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">
-                                            {{ manual_texts.cancel_edit }}
-                                        </button>
-                                    </div>
-                                </div>
+              <!-- Part of Speech -->
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1"
+                  >{{ manual_texts.part_of_speech }}</label
+                >
+                <input
+                  type="text"
+                  class="edit-part-of-speech w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent"
+                  value="{{ card.part_of_speech|default:'' }}"
+                />
+              </div>
 
-                                <!-- Edit Form -->
-                                <div class="space-y-4">
-                                    <!-- Word -->
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-300 mb-1">{{ manual_texts.term_label }}</label>
-                                        <input type="text" class="edit-word w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent" value="{{ card.word }}">
-                                    </div>
+              <!-- Audio URL -->
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1"
+                  >{{ manual_texts.audio_url_label }}</label
+                >
+                <input
+                  type="url"
+                  class="edit-audio-url w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent"
+                  value="{{ card.audio_url|default:'' }}"
+                  placeholder="{{ manual_texts.audio_url_placeholder }}"
+                />
+              </div>
 
-                                    <!-- Phonetic -->
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-300 mb-1">{{ manual_texts.phonetic_label }}</label>
-                                        <input type="text" class="edit-phonetic w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent" value="{{ card.phonetic|default:'' }}">
-                                    </div>
-
-                                    <!-- Part of Speech -->
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-300 mb-1">{{ manual_texts.part_of_speech }}</label>
-                                        <input type="text" class="edit-part-of-speech w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent" value="{{ card.part_of_speech|default:'' }}">
-                                    </div>
-
-                                    <!-- Audio URL -->
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-300 mb-1">{{ manual_texts.audio_url_label }}</label>
-                                        <input type="url" class="edit-audio-url w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent" value="{{ card.audio_url|default:'' }}" placeholder="{{ manual_texts.audio_url_placeholder }}">
-                                    </div>
-
-                                    <!-- Definitions -->
-                                    <div class="definitions-container">
-                                        <label class="block text-sm font-medium text-gray-300 mb-2">{{ manual_texts.definitions_label }}</label>
-                                        {% for def in card.definitions.all %}
-                                            <div class="definition-pair mb-4 p-4 bg-gray-800 rounded-md">
-                                                <div class="mb-2">
-                                                    <label class="block text-xs font-medium text-gray-400 mb-1">{{ manual_texts.english_definition_label }}</label>
-                                                    <textarea class="edit-english-def w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent" rows="2">{{ def.english_definition }}</textarea>
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-medium text-gray-400 mb-1">{{ manual_texts.vietnamese_definition_label }}</label>
-                                                    <textarea class="edit-vietnamese-def w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent" rows="2">{{ def.vietnamese_definition }}</textarea>
-                                                </div>
-                                            </div>
-                                        {% empty %}
-                                            <!-- Default definition pair if no definitions exist -->
-                                            <div class="definition-pair mb-4 p-4 bg-gray-800 rounded-md">
-                                                <div class="mb-2">
-                                                    <label class="block text-xs font-medium text-gray-400 mb-1">{{ manual_texts.english_definition_label }}</label>
-                                                    <textarea class="edit-english-def w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent" rows="2" placeholder="{{ manual_texts.definition_placeholder }}"></textarea>
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-medium text-gray-400 mb-1">{{ manual_texts.vietnamese_definition_label }}</label>
-                                                    <textarea class="edit-vietnamese-def w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent" rows="2" placeholder="{{ manual_texts.vietnamese_placeholder }}"></textarea>
-                                                </div>
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+              <!-- Definitions -->
+              <div class="definitions-container">
+                <label class="block text-sm font-medium text-gray-300 mb-2"
+                  >{{ manual_texts.definitions_label }}</label
+                >
+                {% for def in card.definitions.all %}
+                <div class="definition-pair mb-4 p-4 bg-gray-800 rounded-md">
+                  <div class="mb-2">
+                    <label class="block text-xs font-medium text-gray-400 mb-1"
+                      >{{ manual_texts.english_definition_label }}</label
+                    >
+                    <textarea
+                      class="edit-english-def w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent"
+                      rows="2"
+                    >
+{{ def.english_definition }}</textarea
+                    >
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1"
+                      >{{ manual_texts.vietnamese_definition_label }}</label
+                    >
+                    <textarea
+                      class="edit-vietnamese-def w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent"
+                      rows="2"
+                    >
+{{ def.vietnamese_definition }}</textarea
+                    >
+                  </div>
+                </div>
+                {% empty %}
+                <!-- Default definition pair if no definitions exist -->
+                <div class="definition-pair mb-4 p-4 bg-gray-800 rounded-md">
+                  <div class="mb-2">
+                    <label class="block text-xs font-medium text-gray-400 mb-1"
+                      >{{ manual_texts.english_definition_label }}</label
+                    >
+                    <textarea
+                      class="edit-english-def w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent"
+                      rows="2"
+                      placeholder="{{ manual_texts.definition_placeholder }}"
+                    ></textarea>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1"
+                      >{{ manual_texts.vietnamese_definition_label }}</label
+                    >
+                    <textarea
+                      class="edit-vietnamese-def w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent"
+                      rows="2"
+                      placeholder="{{ manual_texts.vietnamese_placeholder }}"
+                    ></textarea>
+                  </div>
+                </div>
                 {% endfor %}
+              </div>
             </div>
-            <button id="prevBtn" class="absolute top-1/2 left-2 -translate-y-1/2 bg-gray-700 bg-opacity-75 text-white p-3 rounded-full hover:bg-opacity-100 transition-all duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 focus:ring-offset-gray-800">
-                <i class="fas fa-chevron-left text-xl"></i>
-            </button>
-            <button id="nextBtn" class="absolute top-1/2 right-2 -translate-y-1/2 bg-gray-700 bg-opacity-75 text-white p-3 rounded-full hover:bg-opacity-100 transition-all duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 focus:ring-offset-gray-800">
-                <i class="fas fa-chevron-right text-xl"></i>
-            </button>
+          </div>
         </div>
-        <div id="pagination-dots" class="text-center mt-6 space-x-2"></div>
-    {% else %}
-        <p class="text-gray-400 text-center text-lg mt-10">{{ manual_texts.this_deck_empty }} <a href="{% url 'add_flashcard' %}" class="text-primary-color hover:underline">{{ manual_texts.add_some_cards }}</a></p>
-    {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <button
+      id="prevBtn"
+      class="absolute top-1/2 left-2 -translate-y-1/2 bg-gray-700 bg-opacity-75 text-white p-3 rounded-full hover:bg-opacity-100 transition-all duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 focus:ring-offset-gray-800"
+    >
+      <i class="fas fa-chevron-left text-xl"></i>
+    </button>
+    <button
+      id="nextBtn"
+      class="absolute top-1/2 right-2 -translate-y-1/2 bg-gray-700 bg-opacity-75 text-white p-3 rounded-full hover:bg-opacity-100 transition-all duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 focus:ring-offset-gray-800"
+    >
+      <i class="fas fa-chevron-right text-xl"></i>
+    </button>
+  </div>
+  <div id="pagination-dots" class="text-center mt-6 space-x-2"></div>
+  {% else %}
+  <p class="text-gray-400 text-center text-lg mt-10">
+    {{ manual_texts.this_deck_empty }}
+    <a
+      href="{% url 'add_flashcard' %}"
+      class="text-primary-color hover:underline"
+      >{{ manual_texts.add_some_cards }}</a
+    >
+  </p>
+  {% endif %}
 </div>
 
-{% endblock %}
-
-{% block extra_js %}
+{% endblock %} {% block extra_js %}
+<script src="{% static 'js/dictionary-utils.js' %}"></script>
 <script src="{% static 'js/deck_detail.js' %}"></script>
-{% endblock %} 
+{% endblock %}
