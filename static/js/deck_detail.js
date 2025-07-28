@@ -712,35 +712,161 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Audio status functionality
   function initializeAudioStatusFeatures() {
+    console.log(`[DEBUG] ========== INITIALIZING AUDIO STATUS FEATURES ==========`);
+    console.log(`[DEBUG] DOM ready state: ${document.readyState}`);
+    console.log(`[DEBUG] Current time: ${new Date().toISOString()}`);
+
+    // Check initial DOM state
+    const initialCards = document.querySelectorAll("[data-card-id]");
+    console.log(`[DEBUG] Initial DOM scan: Found ${initialCards.length} elements with [data-card-id]`);
+
     updateAudioStats();
     setupAudioFilter();
     setupAudioUrlFieldHandlers();
+
+    console.log(`[DEBUG] ========== AUDIO STATUS FEATURES INITIALIZED ==========`);
   }
 
   function updateAudioStats() {
-    const allCards = document.querySelectorAll("[data-card-id]");
+    console.log(`[DEBUG] ========== AUDIO STATS DEBUG START ==========`);
+    console.log(`[DEBUG] Called from:`, new Error().stack.split('\n')[2].trim());
+    console.log(`[DEBUG] Timestamp: ${new Date().toISOString()}`);
+
+    // Get all elements with data-card-id attribute
+    const allElements = document.querySelectorAll("[data-card-id]");
+    console.log(`[DEBUG] DOM Query Result: Found ${allElements.length} elements with [data-card-id]`);
+
+    // Filter to only get card containers (not favorite buttons or other elements)
+    const allCards = Array.from(allElements).filter(element => {
+      const hasViewMode = element.querySelector(".card-view-mode");
+      const isCardContainer = element.classList.contains("flex-shrink-0");
+      console.log(`[DEBUG] Element analysis: tagName=${element.tagName}, hasViewMode=${!!hasViewMode}, isCardContainer=${isCardContainer}, classes="${element.className}"`);
+      return hasViewMode && isCardContainer;
+    });
+
+    console.log(`[DEBUG] Filtered to ${allCards.length} actual card containers`);
+
+    // Check for duplicate card IDs
+    const cardIds = [];
+    const duplicateIds = [];
+    const cardDetails = [];
+
+    allCards.forEach((card, index) => {
+      const cardId = card.getAttribute("data-card-id");
+      const isVisible = card.style.display !== "none";
+      const hasViewMode = !!card.querySelector(".card-view-mode");
+      const hasEditMode = !!card.querySelector(".card-edit-mode");
+      const cardClasses = card.className;
+      const cardPosition = card.getBoundingClientRect();
+
+      // Track card IDs for duplicate detection
+      if (cardIds.includes(cardId)) {
+        duplicateIds.push(cardId);
+      } else {
+        cardIds.push(cardId);
+      }
+
+      // Collect detailed info about each card element
+      cardDetails.push({
+        index: index + 1,
+        cardId: cardId,
+        isVisible: isVisible,
+        hasViewMode: hasViewMode,
+        hasEditMode: hasEditMode,
+        classes: cardClasses,
+        position: `x:${Math.round(cardPosition.x)}, y:${Math.round(cardPosition.y)}, w:${Math.round(cardPosition.width)}, h:${Math.round(cardPosition.height)}`,
+        element: card
+      });
+
+      console.log(`[DEBUG] Element ${index + 1}:`);
+      console.log(`  - Card ID: ${cardId}`);
+      console.log(`  - Visible: ${isVisible} (display: ${card.style.display || 'default'})`);
+      console.log(`  - Has View Mode: ${hasViewMode}`);
+      console.log(`  - Has Edit Mode: ${hasEditMode}`);
+      console.log(`  - Classes: ${cardClasses}`);
+      console.log(`  - Position: ${cardPosition.x}, ${cardPosition.y} (${cardPosition.width}x${cardPosition.height})`);
+    });
+
+    // Report duplicate detection results
+    console.log(`[DEBUG] Unique Card IDs: [${cardIds.join(', ')}]`);
+    if (duplicateIds.length > 0) {
+      console.error(`[ERROR] DUPLICATE CARD IDs DETECTED: [${duplicateIds.join(', ')}]`);
+      console.error(`[ERROR] This explains why counts are wrong!`);
+    } else {
+      console.log(`[DEBUG] ✅ No duplicate card IDs found`);
+    }
+
+    // Count audio statistics
     let withAudioCount = 0;
     let withoutAudioCount = 0;
+    let processedCards = 0;
 
-    allCards.forEach((card) => {
-      // Check if card has audio button (indicates audio is available)
-      const hasAudioButton = card.querySelector(".audio-icon-tailwind");
-      if (hasAudioButton) {
+    allCards.forEach((card, index) => {
+      const cardId = card.getAttribute("data-card-id");
+      const viewMode = card.querySelector(".card-view-mode");
+
+      if (!viewMode) {
+        console.warn(`[WARN] Card ${index + 1} (ID: ${cardId}) has no view mode - skipping`);
+        return;
+      }
+
+      const hasAudioAttr = viewMode.getAttribute("data-has-audio");
+      const hasAudio = hasAudioAttr === "true";
+
+      console.log(`[DEBUG] Processing Card ${index + 1} (ID: ${cardId}):`);
+      console.log(`  - data-has-audio attribute: "${hasAudioAttr}"`);
+      console.log(`  - Parsed hasAudio: ${hasAudio}`);
+
+      if (hasAudio) {
         withAudioCount++;
+        console.log(`  - ✅ Counted as WITH audio (total with audio: ${withAudioCount})`);
       } else {
         withoutAudioCount++;
+        console.log(`  - ❌ Counted as WITHOUT audio (total without audio: ${withoutAudioCount})`);
       }
+
+      processedCards++;
     });
+
+    console.log(`[DEBUG] Processing Summary:`);
+    console.log(`  - Total elements found: ${allCards.length}`);
+    console.log(`  - Cards processed: ${processedCards}`);
+    console.log(`  - Cards with audio: ${withAudioCount}`);
+    console.log(`  - Cards without audio: ${withoutAudioCount}`);
+    console.log(`  - Sum: ${withAudioCount + withoutAudioCount}`);
 
     // Update stats display
     const withAudioElement = document.getElementById("cards-with-audio-count");
-    const withoutAudioElement = document.getElementById(
-      "cards-without-audio-count"
-    );
+    const withoutAudioElement = document.getElementById("cards-without-audio-count");
 
-    if (withAudioElement) withAudioElement.textContent = withAudioCount;
-    if (withoutAudioElement)
+    if (withAudioElement) {
+      withAudioElement.textContent = withAudioCount;
+      console.log(`[DEBUG] Updated display: cards-with-audio-count = ${withAudioCount}`);
+    }
+    if (withoutAudioElement) {
       withoutAudioElement.textContent = withoutAudioCount;
+      console.log(`[DEBUG] Updated display: cards-without-audio-count = ${withoutAudioCount}`);
+    }
+
+    // Final validation
+    const totalCalculated = withAudioCount + withoutAudioCount;
+    const uniqueCardCount = cardIds.length;
+
+    console.log(`[DEBUG] Final Validation:`);
+    console.log(`  - DOM elements found: ${allCards.length}`);
+    console.log(`  - Unique card IDs: ${uniqueCardCount}`);
+    console.log(`  - Total calculated: ${totalCalculated}`);
+
+    if (totalCalculated !== uniqueCardCount) {
+      console.error(`[ERROR] MISMATCH: Calculated total (${totalCalculated}) != Unique cards (${uniqueCardCount})`);
+      console.error(`[ERROR] This suggests duplicate DOM elements or counting logic error`);
+    } else if (allCards.length !== uniqueCardCount) {
+      console.error(`[ERROR] DUPLICATE ELEMENTS: Found ${allCards.length} DOM elements but only ${uniqueCardCount} unique card IDs`);
+    } else {
+      console.log(`[DEBUG] ✅ All counts match correctly!`);
+    }
+
+    console.log(`[DEBUG] ========== AUDIO STATS DEBUG END ==========`);
   }
 
   function setupAudioFilter() {
@@ -749,25 +875,37 @@ document.addEventListener("DOMContentLoaded", function () {
 
     filterSelect.addEventListener("change", function () {
       const filterValue = this.value;
-      const allCards = document.querySelectorAll("[data-card-id]");
+      const allElements = document.querySelectorAll("[data-card-id]");
 
-      allCards.forEach((card) => {
-        // Check if card has audio button (indicates audio is available)
-        const hasAudioButton = card.querySelector(".audio-icon-tailwind");
+      // Filter to only get card containers (not favorite buttons)
+      const allCards = Array.from(allElements).filter(element => {
+        const hasViewMode = element.querySelector(".card-view-mode");
+        const isCardContainer = element.classList.contains("flex-shrink-0");
+        return hasViewMode && isCardContainer;
+      });
+
+      console.log(`[DEBUG] Audio filter changed to: ${filterValue}, found ${allCards.length} card containers`);
+
+      allCards.forEach((card, index) => {
+        // Use the data-has-audio attribute for consistent detection
+        const viewMode = card.querySelector(".card-view-mode");
+        const hasAudio = viewMode && viewMode.getAttribute("data-has-audio") === "true";
         let shouldShow = true;
 
         switch (filterValue) {
           case "with-audio":
-            shouldShow = !!hasAudioButton;
+            shouldShow = hasAudio;
             break;
           case "without-audio":
-            shouldShow = !hasAudioButton;
+            shouldShow = !hasAudio;
             break;
           case "all":
           default:
             shouldShow = true;
             break;
         }
+
+        console.log(`[DEBUG] Card ${index + 1}: hasAudio=${hasAudio}, shouldShow=${shouldShow} (filter: ${filterValue})`);
 
         if (shouldShow) {
           card.style.display = "";
