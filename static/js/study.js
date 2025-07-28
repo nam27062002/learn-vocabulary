@@ -27,6 +27,10 @@
   const audioButton = document.getElementById("audioButton");
   const audioToggle = document.getElementById("audioToggle");
 
+  // Timer elements
+  const timerDisplay = document.getElementById("timerDisplay");
+  const timerText = document.getElementById("timerText");
+
   // Audio feedback system
   const AudioFeedback = {
     correctSound: null,
@@ -567,6 +571,82 @@
 
   let currentQuestion = null;
   let questionStartTime = null;
+
+  // Study session timer variables
+  let studyStartTime = null;
+  let timerInterval = null;
+
+  // Study session timer functions
+  function startStudyTimer() {
+    console.log(`[DEBUG] Starting study session timer`);
+
+    // Reset timer if already running
+    if (timerInterval) {
+      clearInterval(timerInterval);
+    }
+
+    // Set start time
+    studyStartTime = Date.now();
+
+    // Update timer display immediately
+    updateTimerDisplay();
+
+    // Start interval to update every second
+    timerInterval = setInterval(updateTimerDisplay, 1000);
+
+    // Show timer display
+    if (timerDisplay) {
+      timerDisplay.style.display = "flex";
+    }
+  }
+
+  function stopStudyTimer() {
+    console.log(`[DEBUG] Stopping study session timer`);
+
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+
+    // Hide timer display
+    if (timerDisplay) {
+      timerDisplay.style.display = "none";
+    }
+  }
+
+  function resetStudyTimer() {
+    console.log(`[DEBUG] Resetting study session timer`);
+
+    stopStudyTimer();
+    studyStartTime = null;
+
+    // Reset display to 00:00
+    if (timerText) {
+      timerText.textContent = "00:00";
+    }
+  }
+
+  function updateTimerDisplay() {
+    if (!studyStartTime || !timerText) return;
+
+    const elapsed = Date.now() - studyStartTime;
+    const totalSeconds = Math.floor(elapsed / 1000);
+
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    let timeString;
+    if (hours > 0) {
+      // Format as HH:MM:SS for sessions longer than 1 hour
+      timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+      // Format as MM:SS for sessions under 1 hour
+      timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    timerText.textContent = timeString;
+  }
 
   function getNextQuestion() {
     const params = new URLSearchParams();
@@ -1674,6 +1754,9 @@
         modeSliderInstance.disableEventListeners();
       }
 
+      // Start the study session timer
+      startStudyTimer();
+
       // Start studying
       getNextQuestion();
     });
@@ -1703,6 +1786,9 @@
       if (modeSliderInstance) {
         modeSliderInstance.disableEventListeners();
       }
+
+      // Start the study session timer
+      startStudyTimer();
 
       // Start studying
       getNextQuestion();
@@ -1741,6 +1827,9 @@
       if (modeSliderInstance) {
         modeSliderInstance.disableEventListeners();
       }
+
+      // Start the study session timer
+      startStudyTimer();
 
       // Start studying
       getNextQuestion();
@@ -1795,6 +1884,9 @@
         if (randomStudyOptions) randomStudyOptions.classList.remove("hidden");
         if (reviewStudyOptions) reviewStudyOptions.classList.add("hidden");
       }
+
+      // Reset study session timer
+      resetStudyTimer();
 
       // Reset stats
       correctCnt = 0;
@@ -2262,6 +2354,14 @@
         }
       }, 300);
     }, 2000);
+  }
+
+  // Initialize timer display (hidden by default)
+  if (timerDisplay) {
+    timerDisplay.style.display = "none";
+  }
+  if (timerText) {
+    timerText.textContent = "00:00";
   }
 
   // Make functions globally available

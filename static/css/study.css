@@ -625,6 +625,33 @@
   transform: translateX(-2px);
 }
 
+/* Timer Display */
+.timer-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: var(--shadow-sm);
+  min-width: 80px;
+}
+
+.timer-display i {
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+#timerText {
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
 .stats-display {
   background: var(--card-background);
   border: 1px solid var(--card-border-color);
@@ -1351,6 +1378,13 @@
   .header-controls {
     flex-direction: column;
     gap: 10px;
+  }
+
+  .timer-display {
+    justify-content: center;
+    min-width: 70px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
   }
 
   .audio-toggle {
