@@ -667,8 +667,11 @@
     // Hide grade buttons initially
     const gradeButtons = document.getElementById("gradeButtons");
     if (gradeButtons) {
-      gradeButtons.className = "grade-buttons";
-      gradeButtons.classList.remove("hidden"); // Ensure no hidden class
+      gradeButtons.className = "grade-buttons"; // Remove 'show' class to hide
+      gradeButtons.classList.remove("show", "hidden"); // Clean up any extra classes
+      gradeButtons.style.display = ""; // Clear inline styles to let CSS take over
+      gradeButtons.style.visibility = ""; // Clear inline visibility
+      console.log(`[DEBUG] Grade buttons hidden for new question`);
     }
 
     // Hide audio button during question phase - it will be shown after answer submission
@@ -895,6 +898,19 @@
   }
 
   function submitAnswer(correct) {
+    console.log(`[DEBUG] ========== SUBMIT ANSWER DEBUG START ==========`);
+    console.log(`[DEBUG] Question Type: ${currentQuestion?.type}`);
+    console.log(`[DEBUG] Answer Correct: ${correct}`);
+    console.log(`[DEBUG] Current Question:`, currentQuestion);
+
+    // Debug DOM elements state
+    console.log(`[DEBUG] DOM Elements Check:`);
+    console.log(`  - favoriteButton exists: ${!!favoriteButton}`);
+    console.log(`  - favoriteButton parentNode: ${favoriteButton?.parentNode}`);
+    console.log(`  - favoriteButton in DOM: ${document.contains(favoriteButton)}`);
+    console.log(`  - cardWordEl exists: ${!!cardWordEl}`);
+    console.log(`  - optionsArea exists: ${!!optionsArea}`);
+
     // Store the actual correctness for later use in submitGrade
     window.currentAnswerCorrectness = correct;
 
@@ -907,8 +923,10 @@
     // Play audio feedback immediately
     if (correct) {
       AudioFeedback.playCorrect();
+      console.log(`[DEBUG] Playing correct audio feedback`);
     } else {
       AudioFeedback.playIncorrect();
+      console.log(`[DEBUG] Playing incorrect audio feedback`);
     }
 
     // Hide answer elements based on question type
@@ -1045,19 +1063,52 @@
     }
 
     // Show and setup favorite button
-    if (favoriteButton && currentQuestion.id) {
-      favoriteButton.style.display = "block";
-      favoriteButton.setAttribute("data-card-id", currentQuestion.id);
+    let currentFavoriteButton = favoriteButton;
+
+    // Re-query the favorite button if the original reference is stale
+    if (!currentFavoriteButton || !document.contains(currentFavoriteButton)) {
+      console.warn(`[WARN] Favorite button reference is stale, re-querying...`);
+      currentFavoriteButton = document.getElementById("favoriteButton");
+    }
+
+    if (currentFavoriteButton && currentQuestion.id) {
+      currentFavoriteButton.style.display = "block";
+      currentFavoriteButton.setAttribute("data-card-id", currentQuestion.id);
 
       // Load favorite status for this card
       loadCardFavoriteStatus(currentQuestion.id);
 
-      // Remove any existing event listeners
-      const newFavoriteButton = favoriteButton.cloneNode(true);
-      favoriteButton.parentNode.replaceChild(newFavoriteButton, favoriteButton);
+      // Remove any existing event listeners - with null check for parentNode
+      try {
+        if (currentFavoriteButton.parentNode) {
+          const newFavoriteButton = currentFavoriteButton.cloneNode(true);
+          currentFavoriteButton.parentNode.replaceChild(newFavoriteButton, currentFavoriteButton);
 
-      // Add new event listener
-      newFavoriteButton.addEventListener("click", handleStudyFavoriteToggle);
+          // Add new event listener to the new button
+          newFavoriteButton.addEventListener("click", handleStudyFavoriteToggle);
+
+          console.log(`[DEBUG] Favorite button event listener updated successfully`);
+        } else {
+          // If parentNode is null, just remove and re-add the event listener
+          console.warn(`[WARN] Favorite button has no parent, using alternative method`);
+
+          // Remove existing event listeners by cloning the element's attributes
+          currentFavoriteButton.removeEventListener("click", handleStudyFavoriteToggle);
+
+          // Add new event listener
+          currentFavoriteButton.addEventListener("click", handleStudyFavoriteToggle);
+
+          console.log(`[DEBUG] Favorite button event listener added directly`);
+        }
+      } catch (error) {
+        console.error(`[ERROR] Failed to update favorite button event listener:`, error);
+
+        // Fallback: just add the event listener without removing old ones
+        currentFavoriteButton.addEventListener("click", handleStudyFavoriteToggle);
+        console.log(`[DEBUG] Fallback: Added event listener without cleanup`);
+      }
+    } else {
+      console.log(`[DEBUG] Favorite button setup skipped - button exists: ${!!currentFavoriteButton}, question ID: ${currentQuestion?.id}`);
     }
 
     // Show definitions in the definitions area
@@ -1094,44 +1145,81 @@
     }
 
     // Show grade buttons
+    console.log(`[DEBUG] Attempting to show grade buttons...`);
     const gradeButtons = document.getElementById("gradeButtons");
+    console.log(`[DEBUG] Grade buttons element found:`, !!gradeButtons);
+
     if (gradeButtons) {
-      // Clear any inline styles and hidden classes
-      gradeButtons.style.display = "";
+      // Remove any hidden classes and add show class
       gradeButtons.classList.remove("hidden");
-      gradeButtons.className = "grade-buttons show";
+      gradeButtons.classList.add("show");
+
+      // Ensure the element has the correct base class
+      if (!gradeButtons.classList.contains("grade-buttons")) {
+        gradeButtons.classList.add("grade-buttons");
+      }
+
+      // Force display using inline style as backup (CSS should handle this with .grade-buttons.show)
+      gradeButtons.style.display = "grid";
+      gradeButtons.style.visibility = "visible";
+
+      console.log(`[DEBUG] Grade buttons should now be visible`);
+      console.log(`[DEBUG] Grade buttons classes:`, gradeButtons.className);
+      console.log(`[DEBUG] Grade buttons display style:`, gradeButtons.style.display);
+      console.log(`[DEBUG] Grade buttons visibility:`, gradeButtons.style.visibility);
+
+      // Additional debugging - check computed styles
+      const computedStyle = window.getComputedStyle(gradeButtons);
+      console.log(`[DEBUG] Computed display:`, computedStyle.display);
+      console.log(`[DEBUG] Computed visibility:`, computedStyle.visibility);
+    } else {
+      console.error(`[ERROR] Grade buttons element not found! Cannot show difficulty rating.`);
     }
 
     // Handle grade button clicks - only attach listeners if not already attached
     const gradeBtns = document.querySelectorAll(".grade-btn");
-    gradeBtns.forEach((btn) => {
+    console.log(`[DEBUG] Found ${gradeBtns.length} grade button elements`);
+
+    gradeBtns.forEach((btn, index) => {
+      console.log(`[DEBUG] Grade button ${index + 1}: grade=${btn.dataset.grade}, hasListener=${btn.hasAttribute("data-listener-attached")}`);
+
       // Check if listener is already attached
       if (!btn.hasAttribute("data-listener-attached")) {
         btn.setAttribute("data-listener-attached", "true");
         btn.onclick = () => {
           const grade = parseInt(btn.dataset.grade);
+          console.log(`[DEBUG] Grade button clicked: ${grade}`);
           submitGrade(grade);
         };
+        console.log(`[DEBUG] Attached click listener to grade button ${index + 1}`);
       }
     });
+
+    console.log(`[DEBUG] ========== SUBMIT ANSWER DEBUG END ==========`);
   }
 
   function submitGrade(grade) {
+    console.log(`[DEBUG] ========== SUBMIT GRADE DEBUG START ==========`);
+    console.log(`[DEBUG] Grade submitted: ${grade}`);
+    console.log(`[DEBUG] Question Type: ${currentQuestion?.type}`);
+    console.log(`[DEBUG] Current Answer Correctness: ${window.currentAnswerCorrectness}`);
+
     // Prevent multiple submissions for the same question
     if (window.submittingGrade) {
       console.log(
-        "Grade submission already in progress, ignoring duplicate call"
+        "[DEBUG] Grade submission already in progress, ignoring duplicate call"
       );
       return;
     }
 
     // Check if we have a current question to submit for
     if (!currentQuestion || !currentQuestion.id) {
-      console.log("No current question to submit grade for");
+      console.log("[DEBUG] No current question to submit grade for");
       return;
     }
 
     window.submittingGrade = true;
+    console.log(`[DEBUG] Starting grade submission process...`);
 
     // Calculate response time
     const responseTime = questionStartTime
@@ -1651,8 +1739,10 @@
 
       const gradeButtons = document.getElementById("gradeButtons");
       if (gradeButtons) {
-        gradeButtons.className = "grade-buttons"; // Use class instead of inline style
-        gradeButtons.style.display = ""; // Clear any inline styles
+        gradeButtons.className = "grade-buttons"; // Remove 'show' class to hide
+        gradeButtons.classList.remove("show", "hidden"); // Clean up any extra classes
+        gradeButtons.style.display = ""; // Clear inline styles to let CSS take over
+        gradeButtons.style.visibility = ""; // Clear inline visibility
       }
 
       const noCardMsg = document.getElementById("noCardMsg");
