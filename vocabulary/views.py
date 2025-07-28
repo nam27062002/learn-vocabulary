@@ -976,6 +976,153 @@ def check_word_exists(request):
     return JsonResponse({'exists': exists})
 
 @login_required
+@require_GET
+def api_search_word_in_decks(request):
+    """
+    Search for a specific word across all user's decks.
+    Returns which decks contain the word and deck information.
+    """
+    search_word = request.GET.get('word', '').strip()
+
+    if not search_word:
+        return JsonResponse({
+            'success': False,
+            'error': 'Search word is required'
+        }, status=400)
+
+    try:
+        # Search for the word in user's flashcards (case-insensitive)
+        matching_cards = Flashcard.objects.filter(
+            user=request.user,
+            word__icontains=search_word
+        ).select_related('deck').order_by('word')
+
+        if not matching_cards.exists():
+            return JsonResponse({
+                'success': True,
+                'found': False,
+                'message': f'Word "{search_word}" not found in any of your decks.',
+                'results': []
+            })
+
+        # Group results by deck
+        deck_results = {}
+        for card in matching_cards:
+            deck_id = card.deck.id
+            deck_name = card.deck.name
+
+            if deck_id not in deck_results:
+                deck_results[deck_id] = {
+                    'deck_id': deck_id,
+                    'deck_name': deck_name,
+                    'words': []
+                }
+
+            # Get first definition for preview
+            first_definition = card.definitions.first()
+            definition_preview = ""
+            if first_definition:
+                if first_definition.english_definition:
+                    definition_preview = first_definition.english_definition[:100]
+                elif first_definition.vietnamese_definition:
+                    definition_preview = first_definition.vietnamese_definition[:100]
+
+            deck_results[deck_id]['words'].append({
+                'id': card.id,
+                'word': card.word,
+                'phonetic': card.phonetic or '',
+                'part_of_speech': card.part_of_speech or '',
+                'definition_preview': definition_preview,
+                'exact_match': card.word.lower() == search_word.lower()
+            })
+
+        # Convert to list and sort by exact matches first
+        results = list(deck_results.values())
+        for deck_result in results:
+            deck_result['words'].sort(key=lambda x: (not x['exact_match'], x['word'].lower()))
+
+        return JsonResponse({
+            'success': True,
+            'found': True,
+            'search_word': search_word,
+            'total_matches': matching_cards.count(),
+            'deck_count': len(results),
+            'results': results
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Search failed: {str(e)}'
+        }, status=500)
+
+@login_required
+@require_GET
+def api_get_word_suggestions(request):
+    """
+    Get autocomplete suggestions for word search.
+    Returns a list of words that match the partial input.
+    """
+    partial_word = request.GET.get('partial', '').strip()
+
+    if not partial_word or len(partial_word) < 2:
+        return JsonResponse({
+            'success': True,
+            'suggestions': []
+        })
+
+    try:
+        # Get words that start with or contain the partial word
+        # Prioritize words that start with the partial word
+        start_matches = Flashcard.objects.filter(
+            user=request.user,
+            word__istartswith=partial_word
+        ).select_related('deck').order_by('word')[:5]
+
+        contain_matches = Flashcard.objects.filter(
+            user=request.user,
+            word__icontains=partial_word
+        ).exclude(
+            word__istartswith=partial_word
+        ).select_related('deck').order_by('word')[:5]
+
+        # Combine results, prioritizing start matches
+        all_matches = list(start_matches) + list(contain_matches)
+
+        suggestions = []
+        seen_words = set()
+
+        for card in all_matches[:8]:  # Limit to 8 suggestions
+            if card.word.lower() not in seen_words:
+                seen_words.add(card.word.lower())
+
+                # Get first definition for preview
+                first_definition = card.definitions.first()
+                definition_preview = ""
+                if first_definition and first_definition.english_definition:
+                    definition_preview = first_definition.english_definition[:50]
+
+                suggestions.append({
+                    'word': card.word,
+                    'phonetic': card.phonetic or '',
+                    'part_of_speech': card.part_of_speech or '',
+                    'definition_preview': definition_preview,
+                    'deck_name': card.deck.name,
+                    'starts_with': card.word.lower().startswith(partial_word.lower())
+                })
+
+        return JsonResponse({
+            'success': True,
+            'suggestions': suggestions
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Failed to get suggestions: {str(e)}'
+        }, status=500)
+
+@login_required
 @require_POST
 def delete_flashcard(request):
     try:

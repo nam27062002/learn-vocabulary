@@ -99,11 +99,399 @@
         border-radius: 20px;
         font-weight: 600;
     }
+
+    /* Word Search Styles */
+    .search-section {
+        background-color: var(--card-background);
+        border: 1px solid var(--card-border-color);
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .search-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .search-header h3 {
+        margin: 0;
+        color: var(--text-main);
+        font-size: 1.3em;
+    }
+
+    .search-input-container {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .search-input {
+        flex: 1;
+        padding: 12px 16px;
+        border: 2px solid var(--card-border-color);
+        border-radius: 8px;
+        font-size: 1rem;
+        background-color: #ffffff;
+        color: #2d3748;
+        transition: border-color 0.3s ease;
+    }
+
+    /* Dark mode support for search input */
+    @media (prefers-color-scheme: dark) {
+        .search-input {
+            background-color: #2d3748;
+            color: #e2e8f0;
+            border-color: #4a5568;
+        }
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(106, 108, 255, 0.1);
+    }
+
+    .search-input::placeholder {
+        color: #a0aec0;
+        opacity: 1;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        .search-input::placeholder {
+            color: #718096;
+        }
+    }
+
+    .search-btn {
+        padding: 12px 20px;
+        background: linear-gradient(135deg, var(--primary-color), #8e44ad);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .search-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(106, 108, 255, 0.3);
+    }
+
+    .search-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .search-results {
+        margin-top: 20px;
+    }
+
+    .search-results.hidden {
+        display: none;
+    }
+
+    .search-result-header {
+        padding: 15px;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border-radius: 8px 8px 0 0;
+        font-weight: 600;
+    }
+
+    .search-result-header.not-found {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+
+    .search-result-content {
+        border: 1px solid var(--card-border-color);
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        background-color: var(--background-light);
+    }
+
+    .deck-result {
+        padding: 20px;
+        border-bottom: 1px solid var(--card-border-color);
+    }
+
+    .deck-result:last-child {
+        border-bottom: none;
+    }
+
+    .deck-result-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .deck-name {
+        font-size: 1.1em;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin: 0;
+    }
+
+    .edit-deck-btn {
+        padding: 8px 16px;
+        background-color: var(--primary-color);
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 0.9em;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .edit-deck-btn:hover {
+        background-color: #5a5cff;
+        transform: translateY(-1px);
+    }
+
+    .word-matches {
+        display: grid;
+        gap: 10px;
+    }
+
+    .word-match {
+        padding: 12px;
+        background-color: var(--card-background);
+        border: 1px solid var(--card-border-color);
+        border-radius: 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .word-match.exact-match {
+        border-color: var(--primary-color);
+        background-color: rgba(106, 108, 255, 0.05);
+    }
+
+    .word-info {
+        flex: 1;
+    }
+
+    .word-text {
+        font-weight: 600;
+        color: var(--text-main);
+        margin-bottom: 4px;
+    }
+
+    .word-text.exact-match {
+        color: var(--primary-color);
+    }
+
+    .word-details {
+        font-size: 0.85em;
+        color: var(--text-muted);
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .word-phonetic {
+        font-style: italic;
+    }
+
+    .word-pos {
+        background-color: rgba(106, 108, 255, 0.1);
+        color: var(--primary-color);
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.8em;
+    }
+
+    .word-definition {
+        margin-top: 6px;
+        font-size: 0.9em;
+        color: var(--text-main);
+        line-height: 1.4;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ffffff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Autocomplete Suggestions Styles */
+    .suggestions-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 70px; /* Account for search button width */
+        background-color: #ffffff;
+        border: 2px solid var(--card-border-color);
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+    }
+
+    .suggestions-dropdown.show {
+        display: block;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        .suggestions-dropdown {
+            background-color: #2d3748;
+            border-color: #4a5568;
+        }
+    }
+
+    .suggestion-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--card-border-color);
+        transition: background-color 0.2s ease;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .suggestion-item:last-child {
+        border-bottom: none;
+    }
+
+    .suggestion-item:hover,
+    .suggestion-item.highlighted {
+        background-color: rgba(106, 108, 255, 0.1);
+    }
+
+    @media (prefers-color-scheme: dark) {
+        .suggestion-item {
+            border-bottom-color: #4a5568;
+        }
+
+        .suggestion-item:hover,
+        .suggestion-item.highlighted {
+            background-color: rgba(106, 108, 255, 0.2);
+        }
+    }
+
+    .suggestion-word {
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 2px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        .suggestion-word {
+            color: #e2e8f0;
+        }
+    }
+
+    .suggestion-details {
+        font-size: 0.85em;
+        color: #718096;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .suggestion-phonetic {
+        font-style: italic;
+    }
+
+    .suggestion-pos {
+        background-color: rgba(106, 108, 255, 0.1);
+        color: var(--primary-color);
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-size: 0.75em;
+    }
+
+    .suggestion-deck {
+        font-size: 0.8em;
+        color: #a0aec0;
+        font-style: italic;
+    }
+
+    .no-suggestions {
+        padding: 12px 16px;
+        color: #718096;
+        font-style: italic;
+        text-align: center;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .search-input-container {
+            flex-direction: column;
+        }
+
+        .deck-result-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .word-details {
+            flex-direction: column;
+            gap: 5px;
+        }
+    }
 </style>
 
 <div class="deck-list-page">
     <div class="page-header">
         <h1>📚 {{ manual_texts.my_decks }}</h1>
+    </div>
+
+    <!-- Word Search Section -->
+    <div class="search-section">
+        <div class="search-header">
+            <i class="fas fa-search"></i>
+            <h3>Search for Words in Your Decks</h3>
+        </div>
+
+        <div class="search-input-container">
+            <input
+                type="text"
+                id="wordSearchInput"
+                class="search-input"
+                placeholder="Enter an English word to search across all your decks..."
+                autocomplete="off"
+            >
+            <button id="searchBtn" class="search-btn">
+                <i class="fas fa-search"></i>
+                Search
+            </button>
+
+            <!-- Suggestions Dropdown -->
+            <div id="suggestionsDropdown" class="suggestions-dropdown">
+                <!-- Dynamic suggestions will be populated here -->
+            </div>
+        </div>
+
+        <div id="searchResults" class="search-results hidden">
+            <!-- Search results will be populated here -->
+        </div>
     </div>
 
     {% if decks %}
@@ -127,4 +515,300 @@
         </div>
     {% endif %}
 </div>
-{% endblock %} 
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('wordSearchInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const searchResults = document.getElementById('searchResults');
+    const suggestionsDropdown = document.getElementById('suggestionsDropdown');
+
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                     document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                     '{{ csrf_token }}';
+
+    // Autocomplete variables
+    let suggestionTimeout = null;
+    let currentSuggestionIndex = -1;
+    let suggestions = [];
+
+    // Autocomplete functions
+    async function fetchSuggestions(partialWord) {
+        if (!partialWord || partialWord.length < 2) {
+            hideSuggestions();
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/get-word-suggestions/?partial=${encodeURIComponent(partialWord)}`, {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success && data.suggestions.length > 0) {
+                suggestions = data.suggestions;
+                displaySuggestions(suggestions);
+            } else {
+                hideSuggestions();
+            }
+
+        } catch (error) {
+            console.error('Suggestions error:', error);
+            hideSuggestions();
+        }
+    }
+
+    function displaySuggestions(suggestionList) {
+        if (suggestionList.length === 0) {
+            hideSuggestions();
+            return;
+        }
+
+        const suggestionsHtml = suggestionList.map((suggestion, index) => `
+            <div class="suggestion-item" data-index="${index}" data-word="${suggestion.word}">
+                <div>
+                    <div class="suggestion-word">${suggestion.word}</div>
+                    <div class="suggestion-details">
+                        ${suggestion.phonetic ? `<span class="suggestion-phonetic">/${suggestion.phonetic}/</span>` : ''}
+                        ${suggestion.part_of_speech ? `<span class="suggestion-pos">${suggestion.part_of_speech}</span>` : ''}
+                    </div>
+                    ${suggestion.definition_preview ? `<div class="suggestion-details">${suggestion.definition_preview}${suggestion.definition_preview.length >= 50 ? '...' : ''}</div>` : ''}
+                </div>
+                <div class="suggestion-deck">📚 ${suggestion.deck_name}</div>
+            </div>
+        `).join('');
+
+        suggestionsDropdown.innerHTML = suggestionsHtml;
+        suggestionsDropdown.classList.add('show');
+        currentSuggestionIndex = -1;
+
+        // Add click listeners to suggestions
+        suggestionsDropdown.querySelectorAll('.suggestion-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const word = item.getAttribute('data-word');
+                selectSuggestion(word);
+            });
+        });
+    }
+
+    function hideSuggestions() {
+        suggestionsDropdown.classList.remove('show');
+        suggestionsDropdown.innerHTML = '';
+        currentSuggestionIndex = -1;
+        suggestions = [];
+    }
+
+    function selectSuggestion(word) {
+        searchInput.value = word;
+        hideSuggestions();
+        performSearch();
+    }
+
+    function highlightSuggestion(index) {
+        const items = suggestionsDropdown.querySelectorAll('.suggestion-item');
+        items.forEach(item => item.classList.remove('highlighted'));
+
+        if (index >= 0 && index < items.length) {
+            items[index].classList.add('highlighted');
+            currentSuggestionIndex = index;
+        }
+    }
+
+    function navigateSuggestions(direction) {
+        const items = suggestionsDropdown.querySelectorAll('.suggestion-item');
+        if (items.length === 0) return;
+
+        if (direction === 'down') {
+            currentSuggestionIndex = (currentSuggestionIndex + 1) % items.length;
+        } else if (direction === 'up') {
+            currentSuggestionIndex = currentSuggestionIndex <= 0 ? items.length - 1 : currentSuggestionIndex - 1;
+        }
+
+        highlightSuggestion(currentSuggestionIndex);
+    }
+
+    // Search function
+    async function performSearch() {
+        const searchWord = searchInput.value.trim();
+
+        if (!searchWord) {
+            alert('Please enter a word to search for.');
+            return;
+        }
+
+        // Show loading state
+        searchBtn.disabled = true;
+        searchBtn.innerHTML = '<span class="loading-spinner"></span> Searching...';
+        searchResults.classList.remove('hidden');
+        searchResults.innerHTML = '<div class="search-result-header">Searching...</div>';
+
+        try {
+            const response = await fetch(`/api/search-word-in-decks/?word=${encodeURIComponent(searchWord)}`, {
+                method: 'GET',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.error || 'Search failed');
+            }
+
+            displaySearchResults(data);
+
+        } catch (error) {
+            console.error('Search error:', error);
+            searchResults.innerHTML = `
+                <div class="search-result-header not-found">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Search Error
+                </div>
+                <div class="search-result-content">
+                    <div class="deck-result">
+                        <p>An error occurred while searching: ${error.message}</p>
+                    </div>
+                </div>
+            `;
+        } finally {
+            // Reset button state
+            searchBtn.disabled = false;
+            searchBtn.innerHTML = '<i class="fas fa-search"></i> Search';
+        }
+    }
+
+    // Display search results
+    function displaySearchResults(data) {
+        if (!data.found) {
+            searchResults.innerHTML = `
+                <div class="search-result-header not-found">
+                    <i class="fas fa-search"></i>
+                    No Results Found
+                </div>
+                <div class="search-result-content">
+                    <div class="deck-result">
+                        <p>${data.message}</p>
+                        <p><small>Try searching for a different word or check your spelling.</small></p>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        const resultsHtml = `
+            <div class="search-result-header">
+                <i class="fas fa-check-circle"></i>
+                Found "${data.search_word}" in ${data.deck_count} deck${data.deck_count !== 1 ? 's' : ''}
+                (${data.total_matches} match${data.total_matches !== 1 ? 'es' : ''})
+            </div>
+            <div class="search-result-content">
+                ${data.results.map(deck => `
+                    <div class="deck-result">
+                        <div class="deck-result-header">
+                            <h4 class="deck-name">📚 ${deck.deck_name}</h4>
+                            <a href="/decks/${deck.deck_id}/" class="edit-deck-btn">
+                                <i class="fas fa-edit"></i>
+                                Edit Deck
+                            </a>
+                        </div>
+                        <div class="word-matches">
+                            ${deck.words.map(word => `
+                                <div class="word-match ${word.exact_match ? 'exact-match' : ''}">
+                                    <div class="word-info">
+                                        <div class="word-text ${word.exact_match ? 'exact-match' : ''}">
+                                            ${word.word}
+                                            ${word.exact_match ? '<i class="fas fa-star" title="Exact match"></i>' : ''}
+                                        </div>
+                                        <div class="word-details">
+                                            ${word.phonetic ? `<span class="word-phonetic">/${word.phonetic}/</span>` : ''}
+                                            ${word.part_of_speech ? `<span class="word-pos">${word.part_of_speech}</span>` : ''}
+                                        </div>
+                                        ${word.definition_preview ? `<div class="word-definition">${word.definition_preview}${word.definition_preview.length >= 100 ? '...' : ''}</div>` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        searchResults.innerHTML = resultsHtml;
+    }
+
+    // Event listeners
+    searchBtn.addEventListener('click', performSearch);
+
+    searchInput.addEventListener('keydown', function(e) {
+        const isDropdownVisible = suggestionsDropdown.classList.contains('show');
+
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (isDropdownVisible && currentSuggestionIndex >= 0) {
+                // Select highlighted suggestion
+                const highlightedItem = suggestionsDropdown.querySelector('.suggestion-item.highlighted');
+                if (highlightedItem) {
+                    const word = highlightedItem.getAttribute('data-word');
+                    selectSuggestion(word);
+                }
+            } else {
+                performSearch();
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (isDropdownVisible) {
+                navigateSuggestions('down');
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (isDropdownVisible) {
+                navigateSuggestions('up');
+            }
+        } else if (e.key === 'Escape') {
+            hideSuggestions();
+        }
+    });
+
+    searchInput.addEventListener('input', function() {
+        const value = this.value.trim();
+
+        // Clear previous timeout
+        if (suggestionTimeout) {
+            clearTimeout(suggestionTimeout);
+        }
+
+        if (!value) {
+            searchResults.classList.add('hidden');
+            hideSuggestions();
+            return;
+        }
+
+        // Debounce suggestions
+        suggestionTimeout = setTimeout(() => {
+            fetchSuggestions(value);
+        }, 300);
+    });
+
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !suggestionsDropdown.contains(e.target)) {
+            hideSuggestions();
+        }
+    });
+
+    // Prevent suggestions from closing when clicking inside
+    suggestionsDropdown.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+});
+</script>
+
+{% endblock %}
