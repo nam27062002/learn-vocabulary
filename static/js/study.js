@@ -679,9 +679,20 @@
       audioButton.style.display = "none";
     }
 
-    // Hide favorite button during question phase - it will be shown after answer submission
+    // Hide and reset favorite button during question phase - it will be shown after answer submission
     if (favoriteButton) {
       favoriteButton.style.display = "none";
+
+      // Reset favorite button to default state for new question
+      const favoriteIcon = favoriteButton.querySelector(".favorite-icon");
+      if (favoriteIcon) {
+        favoriteIcon.textContent = "🤍"; // Default unfavorited state
+      }
+      favoriteButton.classList.remove("favorited");
+      favoriteButton.title = "Add to favorites";
+      favoriteButton.removeAttribute("data-card-id");
+
+      console.log(`[DEBUG] Favorite button reset to default state for new question`);
     }
 
     // Remove any existing temporary audio containers
@@ -1081,13 +1092,26 @@
       // Remove any existing event listeners - with null check for parentNode
       try {
         if (currentFavoriteButton.parentNode) {
+          // Store current visual state before replacing
+          const currentIcon = currentFavoriteButton.querySelector(".favorite-icon")?.textContent;
+          const currentClasses = currentFavoriteButton.className;
+          const currentTitle = currentFavoriteButton.title;
+
           const newFavoriteButton = currentFavoriteButton.cloneNode(true);
           currentFavoriteButton.parentNode.replaceChild(newFavoriteButton, currentFavoriteButton);
+
+          // Restore visual state to the new button
+          const newIcon = newFavoriteButton.querySelector(".favorite-icon");
+          if (newIcon && currentIcon) {
+            newIcon.textContent = currentIcon;
+          }
+          newFavoriteButton.className = currentClasses;
+          newFavoriteButton.title = currentTitle;
 
           // Add new event listener to the new button
           newFavoriteButton.addEventListener("click", handleStudyFavoriteToggle);
 
-          console.log(`[DEBUG] Favorite button event listener updated successfully`);
+          console.log(`[DEBUG] Favorite button event listener updated successfully, state preserved`);
         } else {
           // If parentNode is null, just remove and re-add the event listener
           console.warn(`[WARN] Favorite button has no parent, using alternative method`);
@@ -2099,8 +2123,13 @@
 
   // Favorite button functionality for study mode
   function loadCardFavoriteStatus(cardId) {
+    console.log(`[DEBUG] Loading favorite status for card ID: ${cardId}`);
+
     const favoriteBtn = document.getElementById("favoriteButton");
-    if (!favoriteBtn) return;
+    if (!favoriteBtn) {
+      console.warn(`[WARN] Favorite button not found when loading status for card ${cardId}`);
+      return;
+    }
 
     fetch(`/api/favorites/check/?card_ids[]=${cardId}`, {
       method: "GET",
@@ -2111,7 +2140,11 @@
       .then((response) => response.json())
       .then((data) => {
         if (data.success && data.favorites[cardId] !== undefined) {
-          updateStudyFavoriteButton(favoriteBtn, data.favorites[cardId]);
+          const isFavorited = data.favorites[cardId];
+          console.log(`[DEBUG] Card ${cardId} favorite status: ${isFavorited}`);
+          updateStudyFavoriteButton(favoriteBtn, isFavorited);
+        } else {
+          console.warn(`[WARN] No favorite status data received for card ${cardId}`);
         }
       })
       .catch((error) => {
@@ -2178,15 +2211,24 @@
   }
 
   function updateStudyFavoriteButton(button, isFavorited) {
+    console.log(`[DEBUG] Updating favorite button visual state: ${isFavorited ? 'favorited' : 'not favorited'}`);
+
     const icon = button.querySelector(".favorite-icon");
+    if (!icon) {
+      console.error(`[ERROR] Favorite icon element not found in button`);
+      return;
+    }
+
     if (isFavorited) {
       icon.textContent = "❤️";
       button.classList.add("favorited");
       button.title = "Remove from favorites";
+      console.log(`[DEBUG] Button updated to favorited state (❤️)`);
     } else {
       icon.textContent = "🤍";
       button.classList.remove("favorited");
       button.title = "Add to favorites";
+      console.log(`[DEBUG] Button updated to unfavorited state (🤍)`);
     }
   }
 
