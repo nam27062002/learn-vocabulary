@@ -13,7 +13,7 @@
   <div
     class="flex justify-between items-center mb-8 pb-4 border-b border-gray-700"
   >
-    <!-- Deck Name Display/Edit -->
+    <!-- Left Section: Deck Name Display/Edit -->
     <div class="flex items-center gap-4">
       <!-- View Mode -->
       <div id="deck-name-view" class="flex items-center gap-3">
@@ -51,11 +51,57 @@
       </div>
     </div>
 
-    <a
-      href="{% url 'deck_list' %}"
-      class="text-primary-color hover:text-primary-color-dark font-semibold transition-colors duration-200"
-      >← {{ manual_texts.back_to_all_decks }}</a
-    >
+    <!-- Right Section: Navigation and Back Link -->
+    <div class="flex items-center gap-6">
+      <!-- Deck Navigation Controls -->
+      {% if has_navigation %}
+      <div class="deck-navigation flex items-center gap-4">
+        <!-- Previous Deck Button -->
+        {% if previous_deck %}
+        <a
+          href="{% url 'deck_detail' previous_deck.id %}"
+          class="deck-nav-btn deck-nav-prev text-gray-400 hover:text-primary-color transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
+          title="{{ manual_texts.previous_deck|default:'Previous deck' }}: {{ previous_deck.name }}"
+          data-deck-id="{{ previous_deck.id }}"
+        >
+          <i class="fas fa-chevron-left text-lg"></i>
+        </a>
+        {% else %}
+        <span class="deck-nav-btn deck-nav-disabled text-gray-600 p-2 rounded-full cursor-not-allowed">
+          <i class="fas fa-chevron-left text-lg"></i>
+        </span>
+        {% endif %}
+
+        <!-- Deck Position Indicator -->
+        <div class="deck-position text-gray-300 text-sm font-medium px-3 py-1 bg-gray-800 rounded-full">
+          {{ deck_position }} / {{ total_decks }}
+        </div>
+
+        <!-- Next Deck Button -->
+        {% if next_deck %}
+        <a
+          href="{% url 'deck_detail' next_deck.id %}"
+          class="deck-nav-btn deck-nav-next text-gray-400 hover:text-primary-color transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
+          title="{{ manual_texts.next_deck|default:'Next deck' }}: {{ next_deck.name }}"
+          data-deck-id="{{ next_deck.id }}"
+        >
+          <i class="fas fa-chevron-right text-lg"></i>
+        </a>
+        {% else %}
+        <span class="deck-nav-btn deck-nav-disabled text-gray-600 p-2 rounded-full cursor-not-allowed">
+          <i class="fas fa-chevron-right text-lg"></i>
+        </span>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Back to All Decks Link -->
+      <a
+        href="{% url 'deck_list' %}"
+        class="text-primary-color hover:text-primary-color-dark font-semibold transition-colors duration-200"
+        >← {{ manual_texts.back_to_all_decks }}</a
+      >
+    </div>
   </div>
 
   {% if flashcards %}
@@ -438,6 +484,92 @@
       padding-top: 4rem !important;
     }
   }
+
+  /* Deck Navigation Styles */
+  .deck-navigation {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .deck-nav-btn {
+    min-width: 40px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    position: relative;
+    text-decoration: none;
+  }
+
+  .deck-nav-btn:hover:not(.deck-nav-disabled) {
+    border-color: rgba(107, 114, 128, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .deck-nav-btn:active:not(.deck-nav-disabled) {
+    transform: translateY(0);
+  }
+
+  .deck-nav-disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .deck-position {
+    font-family: 'Courier New', monospace;
+    min-width: 60px;
+    text-align: center;
+    user-select: none;
+  }
+
+  /* Responsive adjustments for deck navigation */
+  @media (max-width: 768px) {
+    .deck-navigation {
+      gap: 0.5rem;
+    }
+
+    .deck-nav-btn {
+      min-width: 36px;
+      min-height: 36px;
+    }
+
+    .deck-nav-btn i {
+      font-size: 1rem;
+    }
+
+    .deck-position {
+      font-size: 0.75rem;
+      min-width: 50px;
+      padding: 0.25rem 0.5rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    /* Stack navigation vertically on very small screens */
+    .flex.justify-between.items-center {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .flex.items-center.gap-6 {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .deck-navigation {
+      order: 1;
+    }
+  }
+
+  /* Keyboard navigation support */
+  .deck-nav-btn:focus {
+    outline: 2px solid #6a6cff;
+    outline-offset: 2px;
+  }
 </style>
 {% endblock %}
 
@@ -445,4 +577,65 @@
 <script src="{% static 'js/dictionary-utils.js' %}"></script>
 <script src="{% static 'js/enhanced-audio-manager.js' %}"></script>
 <script src="{% static 'js/deck_detail.js' %}"></script>
+
+<script>
+// Deck Navigation JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+  // Keyboard navigation for deck-to-deck navigation
+  document.addEventListener('keydown', function(e) {
+    // Only handle navigation if not in edit mode and not typing in input fields
+    if (document.activeElement.tagName === 'INPUT' ||
+        document.activeElement.tagName === 'TEXTAREA' ||
+        document.activeElement.isContentEditable ||
+        document.querySelector('#deck-name-edit:not(.hidden)')) {
+      return;
+    }
+
+    // Handle left arrow key (previous deck)
+    if (e.key === 'ArrowLeft' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      const prevBtn = document.querySelector('.deck-nav-prev');
+      if (prevBtn && !prevBtn.classList.contains('deck-nav-disabled')) {
+        window.location.href = prevBtn.href;
+      }
+    }
+
+    // Handle right arrow key (next deck)
+    if (e.key === 'ArrowRight' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      const nextBtn = document.querySelector('.deck-nav-next');
+      if (nextBtn && !nextBtn.classList.contains('deck-nav-disabled')) {
+        window.location.href = nextBtn.href;
+      }
+    }
+  });
+
+  // Add tooltips with keyboard shortcuts
+  const prevBtn = document.querySelector('.deck-nav-prev');
+  const nextBtn = document.querySelector('.deck-nav-next');
+
+  if (prevBtn) {
+    const originalTitle = prevBtn.title;
+    prevBtn.title = originalTitle + ' (Ctrl+←)';
+  }
+
+  if (nextBtn) {
+    const originalTitle = nextBtn.title;
+    nextBtn.title = originalTitle + ' (Ctrl+→)';
+  }
+
+  // Add visual feedback for navigation buttons
+  document.querySelectorAll('.deck-nav-btn:not(.deck-nav-disabled)').forEach(btn => {
+    btn.addEventListener('mouseenter', function() {
+      this.style.transform = 'translateY(-2px)';
+    });
+
+    btn.addEventListener('mouseleave', function() {
+      this.style.transform = 'translateY(0)';
+    });
+  });
+
+  console.log('Deck navigation initialized');
+});
+</script>
 {% endblock %}

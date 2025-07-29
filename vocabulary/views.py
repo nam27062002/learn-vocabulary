@@ -950,9 +950,26 @@ def deck_detail(request, deck_id):
     try:
         deck = Deck.objects.get(id=deck_id, user=request.user)
         flashcards = Flashcard.objects.filter(deck=deck).prefetch_related('definitions')
+
+        # Get navigation information for deck-to-deck navigation
+        user_decks = Deck.objects.filter(user=request.user).order_by('id')
+
+        # Find previous and next decks
+        previous_deck = user_decks.filter(id__lt=deck_id).order_by('-id').first()
+        next_deck = user_decks.filter(id__gt=deck_id).order_by('id').first()
+
+        # Get deck position information
+        deck_position = user_decks.filter(id__lte=deck_id).count()
+        total_decks = user_decks.count()
+
         context = {
             'deck': deck,
             'flashcards': flashcards,
+            'previous_deck': previous_deck,
+            'next_deck': next_deck,
+            'deck_position': deck_position,
+            'total_decks': total_decks,
+            'has_navigation': total_decks > 1,  # Show navigation only if user has multiple decks
         }
         return render(request, 'vocabulary/deck_detail.html', context)
     except Deck.DoesNotExist:
