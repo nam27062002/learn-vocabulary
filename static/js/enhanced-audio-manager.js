@@ -113,33 +113,47 @@ class EnhancedAudioManager {
             console.error('Modal not initialized');
             return;
         }
-        
+
+        // Validate input parameters
+        if (!cardId || !word) {
+            console.error('Invalid parameters:', { cardId, word });
+            return;
+        }
+
+        console.log(`Opening enhanced audio modal for card ${cardId}, word: ${word}`);
+
+        // Clean up any previous state
+        this.cleanupAudio();
+        this.resetModalUI();
+
+        // Set new state
         this.currentCardId = cardId;
         this.currentWord = word;
         this.selectedAudioUrl = null;
-        
+        this.audioOptions = [];
+
         // Update modal title
         const wordDisplay = this.modal.querySelector('.word-display');
         if (wordDisplay) {
             wordDisplay.textContent = word;
         }
-        
+
         // Show modal
         this.modal.classList.add('show');
         document.body.style.overflow = 'hidden';
-        
+
         // Show loading state
         this.showLoadingState();
-        
+
         try {
             // Fetch audio options
             const response = await this.fetchAudioOptions(cardId, word);
-            
+
             if (response.success) {
                 this.audioOptions = response.audio_options || [];
                 this.renderCurrentAudio(response.current_audio);
                 this.renderAudioOptions(this.audioOptions);
-                
+
                 if (this.audioOptions.length === 0) {
                     this.showNoOptionsState();
                 }
@@ -248,8 +262,11 @@ class EnhancedAudioManager {
         const container = this.modal.querySelector('.audio-options-content');
         if (!container) return;
 
+        // Remove any existing event listeners to prevent duplicates
+        this.unbindAudioOptionEvents();
+
         // Click-to-select functionality for entire audio option containers
-        container.addEventListener('click', (e) => {
+        this.audioOptionsClickHandler = (e) => {
             const previewBtn = e.target.closest('.btn-preview');
             const audioOption = e.target.closest('.audio-option');
 
@@ -276,10 +293,10 @@ class EnhancedAudioManager {
                     console.log(`Audio option selected via container click: ${radioButton.value}`);
                 }
             }
-        });
+        };
 
         // Radio button change events
-        container.addEventListener('change', (e) => {
+        this.audioOptionsChangeHandler = (e) => {
             if (e.target.type === 'radio') {
                 this.handleAudioSelection(e.target.value);
 
@@ -293,42 +310,72 @@ class EnhancedAudioManager {
                     selectedOption.classList.add('selected');
                 }
             }
-        });
+        };
+
+        // Attach event listeners
+        container.addEventListener('click', this.audioOptionsClickHandler);
+        container.addEventListener('change', this.audioOptionsChangeHandler);
+    }
+
+    unbindAudioOptionEvents() {
+        const container = this.modal?.querySelector('.audio-options-content');
+        if (!container) return;
+
+        // Remove existing event listeners if they exist
+        if (this.audioOptionsClickHandler) {
+            container.removeEventListener('click', this.audioOptionsClickHandler);
+            this.audioOptionsClickHandler = null;
+        }
+
+        if (this.audioOptionsChangeHandler) {
+            container.removeEventListener('change', this.audioOptionsChangeHandler);
+            this.audioOptionsChangeHandler = null;
+        }
+
+        console.log('Audio option event listeners cleaned up');
     }
     
     previewAudio(audioUrl, buttonElement) {
+        console.log(`Previewing audio: ${audioUrl}`);
+
         // Stop current audio if playing
-        if (this.currentAudio) {
-            this.currentAudio.pause();
-            this.currentAudio = null;
-        }
-        
-        // Reset all preview buttons
-        this.modal.querySelectorAll('.btn-preview').forEach(btn => {
-            btn.classList.remove('playing');
-            btn.innerHTML = `<i class="fas fa-play"></i> ${window.manual_texts?.preview || 'Preview'}`;
-        });
-        
+        this.cleanupAudio();
+
         try {
+            // Create new audio instance
             this.currentAudio = new Audio(audioUrl);
-            
-            // Update button state
-            buttonElement.classList.add('playing');
-            buttonElement.innerHTML = `<i class="fas fa-pause"></i> ${window.manual_texts?.playing || 'Playing'}`;
-            
-            // Play audio
-            this.currentAudio.play().catch(error => {
-                console.error('Audio playback error:', error);
-                this.showAudioError(buttonElement, 'Playback failed');
-            });
-            
-            // Handle audio end
+
+            // Set up audio event handlers before playing
             this.currentAudio.addEventListener('ended', () => {
+                console.log('Audio playback ended');
                 buttonElement.classList.remove('playing');
                 buttonElement.innerHTML = `<i class="fas fa-play"></i> ${window.manual_texts?.preview || 'Preview'}`;
                 this.currentAudio = null;
             });
-            
+
+            this.currentAudio.addEventListener('error', (error) => {
+                console.error('Audio error:', error);
+                this.showAudioError(buttonElement, 'Audio load failed');
+            });
+
+            // Update button state
+            buttonElement.classList.add('playing');
+            buttonElement.innerHTML = `<i class="fas fa-pause"></i> ${window.manual_texts?.playing || 'Playing'}`;
+
+            // Play audio with proper error handling
+            const playPromise = this.currentAudio.play();
+
+            if (playPromise !== undefined) {
+                playPromise
+                    .then(() => {
+                        console.log('Audio playback started successfully');
+                    })
+                    .catch(error => {
+                        console.error('Audio playback error:', error);
+                        this.showAudioError(buttonElement, 'Playback failed');
+                    });
+            }
+
         } catch (error) {
             console.error('Error creating Audio object:', error);
             this.showAudioError(buttonElement, 'Audio not supported');
@@ -564,22 +611,84 @@ class EnhancedAudioManager {
     
     closeModal() {
         if (!this.modal) return;
-        
-        // Stop any playing audio
-        if (this.currentAudio) {
-            this.currentAudio.pause();
-            this.currentAudio = null;
-        }
-        
+
+        console.log('Closing enhanced audio modal and cleaning up state...');
+
+        // Stop any playing audio and clean up
+        this.cleanupAudio();
+
+        // Clean up event listeners
+        this.unbindAudioOptionEvents();
+
         // Hide modal
         this.modal.classList.remove('show');
         document.body.style.overflow = '';
-        
-        // Reset state
+
+        // Reset all state variables
         this.currentCardId = null;
         this.currentWord = null;
         this.audioOptions = [];
         this.selectedAudioUrl = null;
+
+        // Reset UI elements
+        this.resetModalUI();
+
+        console.log('Modal closed and state reset successfully');
+    }
+
+    cleanupAudio() {
+        // Stop current audio if playing
+        if (this.currentAudio) {
+            try {
+                this.currentAudio.pause();
+                this.currentAudio.currentTime = 0;
+                this.currentAudio = null;
+                console.log('Audio cleanup completed');
+            } catch (error) {
+                console.warn('Error during audio cleanup:', error);
+                this.currentAudio = null;
+            }
+        }
+
+        // Reset all preview buttons
+        if (this.modal) {
+            const previewButtons = this.modal.querySelectorAll('.btn-preview');
+            previewButtons.forEach(btn => {
+                btn.classList.remove('playing');
+                btn.innerHTML = `<i class="fas fa-play"></i> ${window.manual_texts?.preview || 'Preview'}`;
+                btn.disabled = false;
+            });
+        }
+    }
+
+    resetModalUI() {
+        if (!this.modal) return;
+
+        // Reset confirm button
+        const confirmBtn = this.modal.querySelector('.btn-confirm-selection');
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = window.manual_texts?.confirm_selection || 'Confirm Selection';
+        }
+
+        // Clear content areas
+        const currentAudioContent = this.modal.querySelector('.current-audio-content');
+        if (currentAudioContent) {
+            currentAudioContent.innerHTML = '';
+        }
+
+        const audioOptionsContent = this.modal.querySelector('.audio-options-content');
+        if (audioOptionsContent) {
+            audioOptionsContent.innerHTML = '';
+        }
+
+        // Reset word display
+        const wordDisplay = this.modal.querySelector('.word-display');
+        if (wordDisplay) {
+            wordDisplay.textContent = '';
+        }
+
+        console.log('Modal UI reset completed');
     }
     
     showMessage(message, type = 'info') {

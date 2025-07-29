@@ -195,6 +195,9 @@ document.addEventListener("DOMContentLoaded", function () {
   // Make enhanced audio card display function globally available
   window.updateCardDisplayForAudio = updateCardDisplayForAudio;
 
+  // Make updateAudioStats globally available for enhanced audio manager
+  window.updateAudioStats = updateAudioStats;
+
   // Keyboard navigation
   document.addEventListener("keydown", function (event) {
     // Handle ESC key to exit edit mode
@@ -1550,9 +1553,23 @@ document.addEventListener("DOMContentLoaded", function () {
   function updateCardDisplayForAudio(cardId, updatedData) {
     console.log(`updateCardDisplayForAudio called with cardId: ${cardId}, updatedData:`, updatedData);
 
+    // Validate input parameters
+    if (!cardId) {
+      console.error('updateCardDisplayForAudio: cardId is null or undefined');
+      return;
+    }
+
+    if (!updatedData) {
+      console.error('updateCardDisplayForAudio: updatedData is null or undefined');
+      return;
+    }
+
     const cardContainer = document.querySelector(`[data-card-id="${cardId}"]`);
     if (!cardContainer) {
       console.error(`Card container not found for cardId: ${cardId}`);
+      // Try to find the card container with a more flexible selector
+      const allCards = document.querySelectorAll('[data-card-id]');
+      console.log('Available card IDs:', Array.from(allCards).map(card => card.dataset.cardId));
       return;
     }
 
