@@ -486,6 +486,94 @@ msgstr "thẻ đã cập nhật"
 msgid "Auto-fetch audio for new cards"
 msgstr "Tự động lấy âm thanh cho thẻ mới"
 
+# Enhanced Audio Fetching
+msgid "Enhanced Audio Selection"
+msgstr "Chọn âm thanh nâng cao"
+
+msgid "Select Audio Pronunciation for:"
+msgstr "Chọn cách phát âm cho:"
+
+msgid "Available Audio Options"
+msgstr "Tùy chọn âm thanh có sẵn"
+
+msgid "Current Audio"
+msgstr "Âm thanh hiện tại"
+
+msgid "No current audio"
+msgstr "Không có âm thanh hiện tại"
+
+msgid "Preview"
+msgstr "Nghe thử"
+
+msgid "US pronunciation"
+msgstr "Phát âm Mỹ"
+
+msgid "UK pronunciation"
+msgstr "Phát âm Anh"
+
+msgid "Primary pronunciation"
+msgstr "Phát âm chính"
+
+msgid "Alternative pronunciation"
+msgstr "Phát âm thay thế"
+
+msgid "Ready"
+msgstr "Sẵn sàng"
+
+msgid "Loading..."
+msgstr "Đang tải..."
+
+msgid "Error"
+msgstr "Lỗi"
+
+msgid "Playing"
+msgstr "Đang phát"
+
+msgid "Keep Current"
+msgstr "Giữ nguyên"
+
+msgid "Confirm Selection"
+msgstr "Xác nhận lựa chọn"
+
+msgid "Cancel"
+msgstr "Hủy"
+
+msgid "No audio options found"
+msgstr "Không tìm thấy tùy chọn âm thanh"
+
+msgid "No audio pronunciations were found for this word. This could be because:"
+msgstr "Không tìm thấy cách phát âm cho từ này. Có thể do:"
+
+msgid "The word is not available in Cambridge Dictionary"
+msgstr "Từ này không có trong Cambridge Dictionary"
+
+msgid "The pronunciation audio is temporarily unavailable"
+msgstr "Âm thanh phát âm tạm thời không khả dụng"
+
+msgid "Try checking the word spelling or search manually on Cambridge Dictionary"
+msgstr "Thử kiểm tra chính tả hoặc tìm kiếm thủ công trên Cambridge Dictionary"
+
+msgid "Fetching audio options..."
+msgstr "Đang tìm tùy chọn âm thanh..."
+
+msgid "Found {count} audio options"
+msgstr "Tìm thấy {count} tùy chọn âm thanh"
+
+msgid "Audio selection updated successfully!"
+msgstr "Cập nhật lựa chọn âm thanh thành công!"
+
+msgid "Error updating audio selection"
+msgstr "Lỗi khi cập nhật lựa chọn âm thanh"
+
+msgid "Please select an audio option"
+msgstr "Vui lòng chọn một tùy chọn âm thanh"
+
+msgid "Enhanced Audio Fetch"
+msgstr "Lấy âm thanh nâng cao"
+
+msgid "Get Multiple Pronunciations"
+msgstr "Lấy nhiều cách phát âm"
+
 # Study Mode Selection
 msgid "Study Mode"
 msgstr "Chế độ học tập"

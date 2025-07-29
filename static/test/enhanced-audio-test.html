@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Audio Modal Test</title>
+    <meta name="csrf-token" content="test-csrf-token">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Enhanced Audio Modal CSS -->
+    <link rel="stylesheet" href="../css/enhanced-audio-modal.css">
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #111827;
+            color: #f9fafb;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .test-card {
+            background: #1f2937;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid #374151;
+        }
+        
+        .test-button {
+            background: #6a6cff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 8px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .test-button:hover {
+            background: #5a5cff;
+        }
+        
+        .word-display {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #6a6cff;
+            margin-bottom: 16px;
+        }
+        
+        .test-info {
+            background: #374151;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .test-info h3 {
+            margin-top: 0;
+            color: #10b981;
+        }
+        
+        .test-scenario {
+            margin-bottom: 12px;
+        }
+        
+        .test-scenario strong {
+            color: #f59e0b;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Enhanced Audio Modal Test Page</h1>
+        
+        <div class="test-info">
+            <h3>Test Instructions</h3>
+            <p>This page allows you to test the Enhanced Audio Modal functionality with different scenarios:</p>
+            <div class="test-scenario">
+                <strong>Success Test:</strong> Shows modal with multiple audio options
+            </div>
+            <div class="test-scenario">
+                <strong>No Options Test:</strong> Shows modal with no audio options found
+            </div>
+            <div class="test-scenario">
+                <strong>Error Test:</strong> Shows modal with error state
+            </div>
+            <div class="test-scenario">
+                <strong>Loading Test:</strong> Shows modal loading state (stays loading)
+            </div>
+        </div>
+        
+        <div class="test-card">
+            <div class="word-display">example</div>
+            <p>Test the enhanced audio modal with different scenarios:</p>
+            
+            <button class="test-button" onclick="testSuccessScenario()">
+                <i class="fas fa-check-circle"></i> Test Success Scenario
+            </button>
+            
+            <button class="test-button" onclick="testNoOptionsScenario()">
+                <i class="fas fa-times-circle"></i> Test No Options
+            </button>
+            
+            <button class="test-button" onclick="testErrorScenario()">
+                <i class="fas fa-exclamation-triangle"></i> Test Error State
+            </button>
+            
+            <button class="test-button" onclick="testLoadingScenario()">
+                <i class="fas fa-spinner"></i> Test Loading State
+            </button>
+        </div>
+        
+        <div class="test-card">
+            <h3>Mobile Responsiveness Test</h3>
+            <p>Resize your browser window or use developer tools to test mobile responsiveness.</p>
+            <p>The modal should adapt to different screen sizes and provide touch-friendly controls.</p>
+        </div>
+    </div>
+
+    <!-- Mock global variables for testing -->
+    <script>
+        // Mock manual_texts for testing
+        window.manual_texts = {
+            select_audio_pronunciation: 'Select Audio Pronunciation for:',
+            current_audio: 'Current Audio',
+            no_current_audio: 'No current audio',
+            available_audio_options: 'Available Audio Options',
+            preview: 'Preview',
+            playing: 'Playing',
+            ready: 'Ready',
+            error: 'Error',
+            cancel: 'Cancel',
+            keep_current: 'Keep Current',
+            confirm_selection: 'Confirm Selection',
+            no_audio_options_found: 'No audio options found',
+            try_checking_spelling: 'Try checking the word spelling or search manually on Cambridge Dictionary',
+            fetching_audio_options: 'Fetching audio options...',
+            audio_selection_updated: 'Audio selection updated successfully!',
+            error_updating_audio: 'Error updating audio selection',
+            please_select_audio: 'Please select an audio option'
+        };
+        
+        // Mock showMessage function
+        window.showMessage = function(message, type) {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+            alert(`${type.toUpperCase()}: ${message}`);
+        };
+    </script>
+
+    <!-- Enhanced Audio Manager -->
+    <script src="../js/enhanced-audio-manager.js"></script>
+
+    <!-- Test Functions -->
+    <script>
+        // Wait for Enhanced Audio Manager to initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Override fetch for testing
+            const originalFetch = window.fetch;
+            
+            window.testFetch = function(url, options) {
+                const body = JSON.parse(options.body);
+                
+                if (url.includes('fetch-enhanced-audio')) {
+                    return Promise.resolve({
+                        json: () => Promise.resolve(window.mockResponse || {
+                            success: true,
+                            word: body.word,
+                            current_audio: 'https://example.com/current.mp3',
+                            audio_options: [
+                                {
+                                    url: 'https://example.com/us.mp3',
+                                    label: 'US pronunciation',
+                                    selector_source: 'audio1',
+                                    is_valid: true
+                                },
+                                {
+                                    url: 'https://example.com/uk.mp3',
+                                    label: 'UK pronunciation',
+                                    selector_source: 'audio2',
+                                    is_valid: true
+                                }
+                            ],
+                            total_found: 2
+                        })
+                    });
+                }
+                
+                if (url.includes('update-flashcard-audio')) {
+                    return Promise.resolve({
+                        json: () => Promise.resolve({
+                            success: true,
+                            card_id: body.card_id,
+                            audio_url: body.audio_url,
+                            word: 'example'
+                        })
+                    });
+                }
+                
+                return originalFetch(url, options);
+            };
+            
+            // Replace fetch with test version
+            window.fetch = window.testFetch;
+        });
+        
+        function testSuccessScenario() {
+            window.mockResponse = {
+                success: true,
+                word: 'example',
+                current_audio: 'https://example.com/current.mp3',
+                audio_options: [
+                    {
+                        url: 'https://example.com/us.mp3',
+                        label: 'US pronunciation',
+                        selector_source: 'audio1',
+                        is_valid: true
+                    },
+                    {
+                        url: 'https://example.com/uk.mp3',
+                        label: 'UK pronunciation',
+                        selector_source: 'audio2',
+                        is_valid: true
+                    }
+                ],
+                total_found: 2
+            };
+            
+            if (window.EnhancedAudioManager) {
+                window.EnhancedAudioManager.showAudioSelectionModal(1, 'example');
+            }
+        }
+        
+        function testNoOptionsScenario() {
+            window.mockResponse = {
+                success: true,
+                word: 'nonexistent',
+                current_audio: '',
+                audio_options: [],
+                total_found: 0
+            };
+            
+            if (window.EnhancedAudioManager) {
+                window.EnhancedAudioManager.showAudioSelectionModal(1, 'nonexistent');
+            }
+        }
+        
+        function testErrorScenario() {
+            window.mockResponse = {
+                success: false,
+                error: 'Network error: Unable to connect to Cambridge Dictionary'
+            };
+            
+            if (window.EnhancedAudioManager) {
+                window.EnhancedAudioManager.showAudioSelectionModal(1, 'error');
+            }
+        }
+        
+        function testLoadingScenario() {
+            if (window.EnhancedAudioManager) {
+                // Show modal and keep it in loading state
+                const manager = window.EnhancedAudioManager;
+                manager.currentCardId = 1;
+                manager.currentWord = 'loading';
+                
+                // Show modal
+                manager.modal.classList.add('show');
+                document.body.style.overflow = 'hidden';
+                
+                // Update modal title
+                const wordDisplay = manager.modal.querySelector('.word-display');
+                if (wordDisplay) {
+                    wordDisplay.textContent = 'loading';
+                }
+                
+                // Show loading state
+                manager.showLoadingState();
+            }
+        }
+    </script>
+</body>
+</html>

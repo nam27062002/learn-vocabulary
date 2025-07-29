@@ -1,0 +1,487 @@
+/**
+ * Enhanced Audio Manager
+ * Manages enhanced audio fetching, preview, and selection functionality
+ */
+
+class EnhancedAudioManager {
+    constructor() {
+        this.modal = null;
+        this.currentCardId = null;
+        this.currentWord = null;
+        this.audioOptions = [];
+        this.selectedAudioUrl = null;
+        this.currentAudio = null;
+        this.isInitialized = false;
+        
+        this.init();
+    }
+    
+    init() {
+        if (this.isInitialized) return;
+        
+        // Create modal HTML structure
+        this.createModalStructure();
+        
+        // Bind event listeners
+        this.bindEventListeners();
+        
+        this.isInitialized = true;
+        console.log('Enhanced Audio Manager initialized');
+    }
+    
+    createModalStructure() {
+        const modalHTML = `
+            <div id="enhanced-audio-modal" class="audio-modal">
+                <div class="audio-modal-overlay"></div>
+                <div class="audio-modal-content">
+                    <div class="audio-modal-header">
+                        <h3 class="audio-modal-title">
+                            ${window.manual_texts?.select_audio_pronunciation || 'Select Audio Pronunciation for:'} 
+                            <span class="word-display"></span>
+                        </h3>
+                        <button class="audio-modal-close" type="button">&times;</button>
+                    </div>
+                    <div class="audio-modal-body">
+                        <div class="current-audio-section">
+                            <div class="current-audio-title">
+                                <i class="fas fa-volume-up"></i>
+                                ${window.manual_texts?.current_audio || 'Current Audio'}
+                            </div>
+                            <div class="current-audio-content">
+                                <!-- Current audio will be inserted here -->
+                            </div>
+                        </div>
+                        <div class="audio-options-container">
+                            <div class="audio-options-title">
+                                <i class="fas fa-list"></i>
+                                ${window.manual_texts?.available_audio_options || 'Available Audio Options'}
+                            </div>
+                            <div class="audio-options-content">
+                                <!-- Audio options will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="audio-modal-footer">
+                        <button class="btn-cancel" type="button">
+                            ${window.manual_texts?.cancel || 'Cancel'}
+                        </button>
+                        <button class="btn-keep-current" type="button">
+                            ${window.manual_texts?.keep_current || 'Keep Current'}
+                        </button>
+                        <button class="btn-confirm-selection" type="button" disabled>
+                            ${window.manual_texts?.confirm_selection || 'Confirm Selection'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Insert modal into DOM
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        this.modal = document.getElementById('enhanced-audio-modal');
+    }
+    
+    bindEventListeners() {
+        if (!this.modal) return;
+        
+        // Close modal events
+        const closeBtn = this.modal.querySelector('.audio-modal-close');
+        const overlay = this.modal.querySelector('.audio-modal-overlay');
+        const cancelBtn = this.modal.querySelector('.btn-cancel');
+        
+        closeBtn?.addEventListener('click', () => this.closeModal());
+        overlay?.addEventListener('click', () => this.closeModal());
+        cancelBtn?.addEventListener('click', () => this.closeModal());
+        
+        // Footer button events
+        const keepCurrentBtn = this.modal.querySelector('.btn-keep-current');
+        const confirmBtn = this.modal.querySelector('.btn-confirm-selection');
+        
+        keepCurrentBtn?.addEventListener('click', () => this.closeModal());
+        confirmBtn?.addEventListener('click', () => this.confirmSelection());
+        
+        // Keyboard events
+        document.addEventListener('keydown', (e) => {
+            if (this.modal?.classList.contains('show') && e.key === 'Escape') {
+                this.closeModal();
+            }
+        });
+    }
+    
+    async showAudioSelectionModal(cardId, word) {
+        if (!this.modal) {
+            console.error('Modal not initialized');
+            return;
+        }
+        
+        this.currentCardId = cardId;
+        this.currentWord = word;
+        this.selectedAudioUrl = null;
+        
+        // Update modal title
+        const wordDisplay = this.modal.querySelector('.word-display');
+        if (wordDisplay) {
+            wordDisplay.textContent = word;
+        }
+        
+        // Show modal
+        this.modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        
+        // Show loading state
+        this.showLoadingState();
+        
+        try {
+            // Fetch audio options
+            const response = await this.fetchAudioOptions(cardId, word);
+            
+            if (response.success) {
+                this.audioOptions = response.audio_options || [];
+                this.renderCurrentAudio(response.current_audio);
+                this.renderAudioOptions(this.audioOptions);
+                
+                if (this.audioOptions.length === 0) {
+                    this.showNoOptionsState();
+                }
+            } else {
+                this.showErrorState(response.error || 'Failed to fetch audio options');
+            }
+        } catch (error) {
+            console.error('Error fetching audio options:', error);
+            this.showErrorState('Network error occurred while fetching audio options');
+        }
+    }
+    
+    async fetchAudioOptions(cardId, word) {
+        const response = await fetch('/api/fetch-enhanced-audio/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            },
+            body: JSON.stringify({
+                card_id: cardId,
+                word: word
+            })
+        });
+        
+        return await response.json();
+    }
+    
+    renderCurrentAudio(currentAudioUrl) {
+        const container = this.modal.querySelector('.current-audio-content');
+        if (!container) return;
+        
+        if (currentAudioUrl && currentAudioUrl.trim()) {
+            container.innerHTML = `
+                <div class="current-audio-item">
+                    <div class="current-audio-info">
+                        ${window.manual_texts?.current_audio || 'Current Audio'}
+                    </div>
+                    <button class="btn-preview" data-audio-url="${currentAudioUrl}">
+                        <i class="fas fa-play"></i> ${window.manual_texts?.preview || 'Preview'}
+                    </button>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div class="no-current-audio">
+                    ${window.manual_texts?.no_current_audio || 'No current audio'}
+                </div>
+            `;
+        }
+    }
+    
+    renderAudioOptions(options) {
+        const container = this.modal.querySelector('.audio-options-content');
+        if (!container) return;
+        
+        if (options.length === 0) {
+            this.showNoOptionsState();
+            return;
+        }
+        
+        const optionsHTML = options.map((option, index) => {
+            if (!option.is_valid) {
+                return `
+                    <div class="audio-option error">
+                        <div class="audio-option-header">
+                            <input type="radio" name="audio-selection" value="${option.url}" id="audio-${index}" disabled>
+                            <label for="audio-${index}" class="audio-label">${option.label}</label>
+                        </div>
+                        <div class="audio-controls">
+                            <div class="audio-status">
+                                <span class="status-indicator error"></span>
+                                <span class="status-text">${option.error_message || 'Error'}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="audio-option" data-audio-url="${option.url}">
+                    <div class="audio-option-header">
+                        <input type="radio" name="audio-selection" value="${option.url}" id="audio-${index}">
+                        <label for="audio-${index}" class="audio-label">${option.label}</label>
+                    </div>
+                    <div class="audio-controls">
+                        <button class="btn-preview" data-audio-url="${option.url}">
+                            <i class="fas fa-play"></i> ${window.manual_texts?.preview || 'Preview'}
+                        </button>
+                        <div class="audio-status">
+                            <span class="status-indicator ready"></span>
+                            <span class="status-text">${window.manual_texts?.ready || 'Ready'}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        container.innerHTML = optionsHTML;
+        
+        // Bind events for new elements
+        this.bindAudioOptionEvents();
+    }
+    
+    bindAudioOptionEvents() {
+        const container = this.modal.querySelector('.audio-options-content');
+        if (!container) return;
+        
+        // Preview button events
+        container.addEventListener('click', (e) => {
+            const previewBtn = e.target.closest('.btn-preview');
+            if (previewBtn) {
+                const audioUrl = previewBtn.dataset.audioUrl;
+                if (audioUrl) {
+                    this.previewAudio(audioUrl, previewBtn);
+                }
+            }
+        });
+        
+        // Radio button change events
+        container.addEventListener('change', (e) => {
+            if (e.target.type === 'radio') {
+                this.handleAudioSelection(e.target.value);
+                
+                // Update visual selection
+                container.querySelectorAll('.audio-option').forEach(option => {
+                    option.classList.remove('selected');
+                });
+                
+                const selectedOption = e.target.closest('.audio-option');
+                if (selectedOption) {
+                    selectedOption.classList.add('selected');
+                }
+            }
+        });
+    }
+    
+    previewAudio(audioUrl, buttonElement) {
+        // Stop current audio if playing
+        if (this.currentAudio) {
+            this.currentAudio.pause();
+            this.currentAudio = null;
+        }
+        
+        // Reset all preview buttons
+        this.modal.querySelectorAll('.btn-preview').forEach(btn => {
+            btn.classList.remove('playing');
+            btn.innerHTML = `<i class="fas fa-play"></i> ${window.manual_texts?.preview || 'Preview'}`;
+        });
+        
+        try {
+            this.currentAudio = new Audio(audioUrl);
+            
+            // Update button state
+            buttonElement.classList.add('playing');
+            buttonElement.innerHTML = `<i class="fas fa-pause"></i> ${window.manual_texts?.playing || 'Playing'}`;
+            
+            // Play audio
+            this.currentAudio.play().catch(error => {
+                console.error('Audio playback error:', error);
+                this.showAudioError(buttonElement, 'Playback failed');
+            });
+            
+            // Handle audio end
+            this.currentAudio.addEventListener('ended', () => {
+                buttonElement.classList.remove('playing');
+                buttonElement.innerHTML = `<i class="fas fa-play"></i> ${window.manual_texts?.preview || 'Preview'}`;
+                this.currentAudio = null;
+            });
+            
+        } catch (error) {
+            console.error('Error creating Audio object:', error);
+            this.showAudioError(buttonElement, 'Audio not supported');
+        }
+    }
+    
+    showAudioError(buttonElement, message) {
+        buttonElement.classList.remove('playing');
+        buttonElement.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${window.manual_texts?.error || 'Error'}`;
+        buttonElement.disabled = true;
+        
+        const statusText = buttonElement.parentElement?.querySelector('.status-text');
+        if (statusText) {
+            statusText.textContent = message;
+        }
+    }
+    
+    handleAudioSelection(audioUrl) {
+        this.selectedAudioUrl = audioUrl;
+        
+        // Enable confirm button
+        const confirmBtn = this.modal.querySelector('.btn-confirm-selection');
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+        }
+    }
+    
+    async confirmSelection() {
+        if (!this.selectedAudioUrl) {
+            this.showMessage(window.manual_texts?.please_select_audio || 'Please select an audio option', 'warning');
+            return;
+        }
+        
+        try {
+            const response = await this.updateFlashcardAudio(this.currentCardId, this.selectedAudioUrl);
+            
+            if (response.success) {
+                this.showMessage(
+                    window.manual_texts?.audio_selection_updated || 'Audio selection updated successfully!',
+                    'success'
+                );
+                
+                // Close modal and refresh UI
+                this.closeModal();
+                
+                // Trigger UI refresh if callback exists
+                if (window.updateCardDisplay) {
+                    window.updateCardDisplay(this.currentCardId, { audio_url: this.selectedAudioUrl });
+                }
+                
+                // Update audio statistics
+                if (window.updateAudioStats) {
+                    window.updateAudioStats();
+                }
+                
+            } else {
+                this.showMessage(
+                    response.error || window.manual_texts?.error_updating_audio || 'Error updating audio selection',
+                    'error'
+                );
+            }
+        } catch (error) {
+            console.error('Error updating flashcard audio:', error);
+            this.showMessage(
+                window.manual_texts?.error_updating_audio || 'Error updating audio selection',
+                'error'
+            );
+        }
+    }
+    
+    async updateFlashcardAudio(cardId, audioUrl) {
+        const response = await fetch('/api/update-flashcard-audio/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            },
+            body: JSON.stringify({
+                card_id: cardId,
+                audio_url: audioUrl
+            })
+        });
+        
+        return await response.json();
+    }
+    
+    showLoadingState() {
+        const container = this.modal.querySelector('.audio-options-content');
+        if (!container) return;
+        
+        container.innerHTML = `
+            <div class="audio-loading-state">
+                <div class="audio-loading-spinner">
+                    <i class="fas fa-spinner"></i>
+                </div>
+                <p class="audio-loading-text">
+                    ${window.manual_texts?.fetching_audio_options || 'Fetching audio options...'}
+                </p>
+            </div>
+        `;
+    }
+    
+    showNoOptionsState() {
+        const container = this.modal.querySelector('.audio-options-content');
+        if (!container) return;
+        
+        container.innerHTML = `
+            <div class="no-audio-options">
+                <div class="no-audio-icon">
+                    <i class="fas fa-volume-mute"></i>
+                </div>
+                <p class="no-audio-message">
+                    ${window.manual_texts?.no_audio_options_found || 'No audio options found'}
+                </p>
+                <p class="no-audio-suggestion">
+                    ${window.manual_texts?.try_checking_spelling || 'Try checking the word spelling or search manually on Cambridge Dictionary'}
+                </p>
+            </div>
+        `;
+    }
+    
+    showErrorState(errorMessage) {
+        const container = this.modal.querySelector('.audio-options-content');
+        if (!container) return;
+        
+        container.innerHTML = `
+            <div class="audio-error-state">
+                <div class="audio-error-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <p class="audio-error-message">
+                    ${window.manual_texts?.error || 'Error'}
+                </p>
+                <p class="audio-error-details">
+                    ${errorMessage}
+                </p>
+            </div>
+        `;
+    }
+    
+    closeModal() {
+        if (!this.modal) return;
+        
+        // Stop any playing audio
+        if (this.currentAudio) {
+            this.currentAudio.pause();
+            this.currentAudio = null;
+        }
+        
+        // Hide modal
+        this.modal.classList.remove('show');
+        document.body.style.overflow = '';
+        
+        // Reset state
+        this.currentCardId = null;
+        this.currentWord = null;
+        this.audioOptions = [];
+        this.selectedAudioUrl = null;
+    }
+    
+    showMessage(message, type = 'info') {
+        // Use existing message system if available
+        if (window.showMessage) {
+            window.showMessage(message, type);
+        } else {
+            // Fallback to console
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+    }
+}
+
+// Initialize Enhanced Audio Manager when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    window.EnhancedAudioManager = new EnhancedAudioManager();
+});

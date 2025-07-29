@@ -23,6 +23,8 @@ urlpatterns = [
     # Audio APIs
     path('api/fetch-missing-audio/', views.api_fetch_missing_audio, name='api_fetch_missing_audio'),
     path('api/fetch-audio-for-card/', views.api_fetch_audio_for_card, name='api_fetch_audio_for_card'),
+    path('api/fetch-enhanced-audio/', views.api_fetch_enhanced_audio, name='api_fetch_enhanced_audio'),
+    path('api/update-flashcard-audio/', views.api_update_flashcard_audio, name='api_update_flashcard_audio'),
     
     # Study APIs
     path('api/study/next-card/', views.api_next_card, name='api_next_card'),

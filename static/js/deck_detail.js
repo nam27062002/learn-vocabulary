@@ -160,6 +160,18 @@ document.addEventListener("DOMContentLoaded", function () {
       cancelEdit(cardContainer);
       return;
     }
+
+    // Handle enhanced audio button clicks
+    const enhancedAudioBtn = event.target.closest(".enhanced-audio-btn");
+    if (enhancedAudioBtn) {
+      const cardId = enhancedAudioBtn.dataset.cardId;
+      const word = enhancedAudioBtn.dataset.word;
+
+      if (cardId && word && window.EnhancedAudioManager) {
+        window.EnhancedAudioManager.showAudioSelectionModal(cardId, word);
+      }
+      return;
+    }
   });
 
   // Initial setup
@@ -176,6 +188,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Initialize dictionary links with fallback mechanism
   initializeDictionaryLinks();
+
+  // Make updateCardDisplay globally available for enhanced audio manager
+  window.updateCardDisplay = updateCardDisplay;
 
   // Keyboard navigation
   document.addEventListener("keydown", function (event) {
@@ -1524,4 +1539,70 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Initialize favorites when page loads
   initializeFavorites();
+
+  /**
+   * Update card display after audio selection
+   * Called by Enhanced Audio Manager after successful audio update
+   */
+  function updateCardDisplay(cardId, updatedData) {
+    const cardContainer = document.querySelector(`[data-card-id="${cardId}"]`);
+    if (!cardContainer) return;
+
+    const viewMode = cardContainer.querySelector('.card-view-mode');
+    if (!viewMode) return;
+
+    // Update audio URL if provided
+    if (updatedData.audio_url) {
+      // Update data attribute
+      viewMode.setAttribute('data-has-audio', 'true');
+
+      // Find or create audio button container
+      let audioContainer = viewMode.querySelector('.text-lg.text-gray-400.font-serif.italic.mb-4');
+
+      if (!audioContainer) {
+        // Create new audio container if it doesn't exist
+        audioContainer = document.createElement('div');
+        audioContainer.className = 'text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2';
+
+        // Insert after the word title
+        const wordTitle = viewMode.querySelector('.text-3xl.font-bold.mb-2');
+        const partOfSpeech = viewMode.querySelector('.text-lg.text-gray-400.mb-2.italic');
+
+        if (partOfSpeech) {
+          partOfSpeech.insertAdjacentElement('afterend', audioContainer);
+        } else if (wordTitle) {
+          wordTitle.insertAdjacentElement('afterend', audioContainer);
+        }
+      }
+
+      // Update audio container content
+      const phoneticSpan = audioContainer.querySelector('span:first-child');
+      const phoneticText = phoneticSpan ? phoneticSpan.textContent : '';
+
+      audioContainer.innerHTML = `
+        ${phoneticText ? `<span>${phoneticText}</span>` : `<span class="text-gray-500 text-sm">${window.manual_texts?.listen || 'Listen'}:</span>`}
+        <button
+          class="audio-icon-tailwind text-gray-500 hover:text-primary-color transition-colors duration-200"
+          data-audio-url="${updatedData.audio_url}"
+          title="${window.manual_texts?.listen || 'Listen'}"
+        >
+          <i class="fas fa-volume-up text-xl"></i>
+        </button>
+        <!-- Enhanced Audio Fetch Button -->
+        <button
+          class="enhanced-audio-btn text-gray-500 hover:text-blue-400 transition-colors duration-200 ml-2"
+          data-card-id="${cardId}"
+          data-word="${cardContainer.querySelector('.dictionary-word-link')?.textContent || ''}"
+          title="${window.manual_texts?.enhanced_audio_fetch || 'Get Multiple Pronunciations'}"
+        >
+          <i class="fas fa-search-plus text-lg"></i>
+        </button>
+      `;
+    }
+
+    // Update audio statistics
+    updateAudioStats();
+
+    console.log(`Updated card display for card ${cardId}`);
+  }
 });

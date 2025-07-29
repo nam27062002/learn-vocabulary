@@ -1749,6 +1749,144 @@ def api_fetch_audio_for_card(request):
                 'word': card.word
             })
 
+    except Exception as e:
+        logger.error(f"Unexpected error in api_fetch_audio_for_card: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': 'An unexpected error occurred'
+        }, status=500)
+
+
+@login_required
+@require_POST
+def api_fetch_enhanced_audio(request):
+    """API endpoint to fetch multiple audio options for a flashcard."""
+    try:
+        data = json.loads(request.body)
+        card_id = data.get('card_id')
+        word = data.get('word')
+
+        # Validate required parameters
+        if not card_id:
+            return JsonResponse({'success': False, 'error': 'Card ID is required'}, status=400)
+
+        if not word:
+            return JsonResponse({'success': False, 'error': 'Word is required'}, status=400)
+
+        # Get the flashcard and verify ownership
+        try:
+            card = Flashcard.objects.get(id=card_id, user=request.user)
+        except Flashcard.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Flashcard not found'}, status=404)
+
+        # Import enhanced audio service
+        from .audio_service import fetch_multiple_audio_options
+        import logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            # Fetch multiple audio options
+            audio_options = fetch_multiple_audio_options(word)
+
+            # Format response data
+            options_data = []
+            for option in audio_options:
+                options_data.append({
+                    'url': option.url,
+                    'label': option.label,
+                    'selector_source': option.selector_source,
+                    'is_valid': option.is_valid,
+                    'error_message': option.error_message
+                })
+
+            return JsonResponse({
+                'success': True,
+                'word': word,
+                'current_audio': card.audio_url or '',
+                'audio_options': options_data,
+                'total_found': len([opt for opt in audio_options if opt.is_valid])
+            })
+
+        except Exception as e:
+            logger.error(f"Error fetching enhanced audio for word '{word}': {e}")
+            return JsonResponse({
+                'success': False,
+                'error': f'Error fetching audio options: {str(e)}',
+                'word': word
+            })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        logger.error(f"Unexpected error in api_fetch_enhanced_audio: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': 'An unexpected error occurred'
+        }, status=500)
+
+
+@login_required
+@require_POST
+def api_update_flashcard_audio(request):
+    """API endpoint to update a flashcard's audio URL with selected option."""
+    try:
+        data = json.loads(request.body)
+        card_id = data.get('card_id')
+        audio_url = data.get('audio_url')
+
+        # Validate required parameters
+        if not card_id:
+            return JsonResponse({'success': False, 'error': 'Card ID is required'}, status=400)
+
+        if not audio_url:
+            return JsonResponse({'success': False, 'error': 'Audio URL is required'}, status=400)
+
+        # Get the flashcard and verify ownership
+        try:
+            card = Flashcard.objects.get(id=card_id, user=request.user)
+        except Flashcard.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Flashcard not found'}, status=404)
+
+        # Validate audio URL format
+        if not audio_url.startswith(('http://', 'https://')):
+            return JsonResponse({'success': False, 'error': 'Invalid audio URL format'}, status=400)
+
+        try:
+            # Update the flashcard's audio URL
+            card.audio_url = audio_url
+            card.save(update_fields=['audio_url'])
+
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Updated audio URL for flashcard {card_id}: {audio_url}")
+
+            return JsonResponse({
+                'success': True,
+                'card_id': card_id,
+                'audio_url': audio_url,
+                'word': card.word
+            })
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error updating flashcard audio for card {card_id}: {e}")
+            return JsonResponse({
+                'success': False,
+                'error': f'Error updating flashcard: {str(e)}'
+            })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Unexpected error in api_update_flashcard_audio: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': 'An unexpected error occurred'
+        }, status=500)
+
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
     except Exception as e:
