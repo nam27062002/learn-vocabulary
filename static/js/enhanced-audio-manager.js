@@ -430,10 +430,13 @@ class EnhancedAudioManager {
             console.log('Update response:', response);
 
             if (response.success) {
-                // Close modal first
-                this.closeModal();
+                // Store values before closing modal (which resets state)
+                const cardId = this.currentCardId;
+                const audioUrl = this.selectedAudioUrl;
 
-                // Show success notification using the existing showMessage function
+                console.log(`Success! Updating UI for card ${cardId} with audio: ${audioUrl}`);
+
+                // Show success notification FIRST (while modal is still open)
                 if (window.showMessage) {
                     window.showMessage(
                         window.manual_texts?.audio_selection_updated || 'Audio pronunciation updated successfully!',
@@ -447,10 +450,10 @@ class EnhancedAudioManager {
                     );
                 }
 
-                // Trigger UI refresh if callback exists
+                // Trigger UI refresh BEFORE closing modal
                 if (window.updateCardDisplayForAudio) {
-                    console.log('Calling updateCardDisplayForAudio...');
-                    window.updateCardDisplayForAudio(this.currentCardId, { audio_url: this.selectedAudioUrl });
+                    console.log(`Calling updateCardDisplayForAudio with cardId: ${cardId}, audioUrl: ${audioUrl}`);
+                    window.updateCardDisplayForAudio(cardId, { audio_url: audioUrl });
                 } else {
                     console.warn('updateCardDisplayForAudio function not available');
                 }
@@ -462,6 +465,9 @@ class EnhancedAudioManager {
                 } else {
                     console.warn('updateAudioStats function not available');
                 }
+
+                // Close modal LAST (after all updates are complete)
+                this.closeModal();
 
             } else {
                 console.error('API returned error:', response.error);

@@ -198,6 +198,9 @@ document.addEventListener("DOMContentLoaded", function () {
   // Make updateAudioStats globally available for enhanced audio manager
   window.updateAudioStats = updateAudioStats;
 
+  // Make showMessage globally available for enhanced audio manager
+  window.showMessage = showMessage;
+
   // Keyboard navigation
   document.addEventListener("keydown", function (event) {
     // Handle ESC key to exit edit mode
@@ -1586,12 +1589,20 @@ document.addEventListener("DOMContentLoaded", function () {
       // Update data attribute
       viewMode.setAttribute('data-has-audio', 'true');
 
-      // Find existing audio container - look for the container that has audio buttons
+      // Find existing audio container - try multiple selectors
       let audioContainer = viewMode.querySelector('.text-lg.text-gray-400.font-serif.italic.mb-4.flex.items-center.space-x-2');
 
       // If not found, look for phonetic container that might exist
       if (!audioContainer) {
         audioContainer = viewMode.querySelector('.text-lg.text-gray-400.font-serif.italic.mb-4');
+      }
+
+      // Also try to find any container that has audio buttons
+      if (!audioContainer) {
+        const existingAudioBtn = viewMode.querySelector('.audio-icon-tailwind');
+        if (existingAudioBtn) {
+          audioContainer = existingAudioBtn.closest('div');
+        }
       }
 
       if (!audioContainer) {
@@ -1631,7 +1642,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const word = wordElement ? wordElement.textContent : '';
 
       // Update audio container content
-      audioContainer.innerHTML = `
+      const newContent = `
         ${phoneticText ? `<span>${phoneticText}</span>` : `<span class="text-gray-500 text-sm">${window.manual_texts?.listen || 'Listen'}:</span>`}
         <button
           class="audio-icon-tailwind text-gray-500 hover:text-primary-color transition-colors duration-200"
@@ -1651,7 +1662,20 @@ document.addEventListener("DOMContentLoaded", function () {
         </button>
       `;
 
+      audioContainer.innerHTML = newContent;
+
       console.log('Audio container updated successfully');
+      console.log('New audio URL set:', updatedData.audio_url);
+      console.log('Audio container HTML:', audioContainer.outerHTML.substring(0, 200) + '...');
+
+      // Rebind audio button event handlers for the new audio button
+      const newAudioBtn = audioContainer.querySelector('.audio-icon-tailwind');
+      if (newAudioBtn && newAudioBtn.dataset.audioUrl) {
+        console.log('Rebinding audio button event handler');
+        // The audio button click handler should already be bound via event delegation
+        // But we can verify it has the correct data
+        console.log('New audio button data-audio-url:', newAudioBtn.dataset.audioUrl);
+      }
     }
 
     // Update audio statistics
