@@ -1829,58 +1829,80 @@ def api_fetch_enhanced_audio(request):
 @require_POST
 def api_update_flashcard_audio(request):
     """API endpoint to update a flashcard's audio URL with selected option."""
+    import logging
+    logger = logging.getLogger(__name__)
+
     try:
+        logger.info(f"Received audio update request from user: {request.user.email}")
+
         data = json.loads(request.body)
         card_id = data.get('card_id')
         audio_url = data.get('audio_url')
 
+        logger.info(f"Request data - card_id: {card_id}, audio_url: {audio_url}")
+
         # Validate required parameters
         if not card_id:
+            logger.warning("Missing card_id in request")
             return JsonResponse({'success': False, 'error': 'Card ID is required'}, status=400)
 
         if not audio_url:
+            logger.warning("Missing audio_url in request")
             return JsonResponse({'success': False, 'error': 'Audio URL is required'}, status=400)
 
         # Get the flashcard and verify ownership
         try:
             card = Flashcard.objects.get(id=card_id, user=request.user)
+            logger.info(f"Found flashcard: {card.word} (ID: {card.id})")
         except Flashcard.DoesNotExist:
+            logger.error(f"Flashcard not found or access denied - card_id: {card_id}, user: {request.user.email}")
             return JsonResponse({'success': False, 'error': 'Flashcard not found'}, status=404)
 
         # Validate audio URL format
         if not audio_url.startswith(('http://', 'https://')):
+            logger.warning(f"Invalid audio URL format: {audio_url}")
             return JsonResponse({'success': False, 'error': 'Invalid audio URL format'}, status=400)
 
         try:
+            # Store old audio URL for logging
+            old_audio_url = card.audio_url
+
             # Update the flashcard's audio URL
             card.audio_url = audio_url
             card.save(update_fields=['audio_url'])
 
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.info(f"Updated audio URL for flashcard {card_id}: {audio_url}")
+            # Verify the update was successful
+            card.refresh_from_db()
+            if card.audio_url == audio_url:
+                logger.info(f"Successfully updated audio URL for flashcard {card_id} (word: {card.word})")
+                logger.info(f"  Old URL: {old_audio_url}")
+                logger.info(f"  New URL: {audio_url}")
+            else:
+                logger.error(f"Database update failed - expected: {audio_url}, actual: {card.audio_url}")
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Database update verification failed'
+                })
 
             return JsonResponse({
                 'success': True,
                 'card_id': card_id,
                 'audio_url': audio_url,
-                'word': card.word
+                'word': card.word,
+                'old_audio_url': old_audio_url
             })
 
         except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.error(f"Error updating flashcard audio for card {card_id}: {e}")
+            logger.error(f"Database error updating flashcard audio for card {card_id}: {e}")
             return JsonResponse({
                 'success': False,
-                'error': f'Error updating flashcard: {str(e)}'
+                'error': f'Database error: {str(e)}'
             })
 
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON decode error: {e}")
         return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
         logger.error(f"Unexpected error in api_update_flashcard_audio: {e}")
         return JsonResponse({
             'success': False,

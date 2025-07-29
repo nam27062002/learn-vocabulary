@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Audio API Debug</title>
+    <meta name="csrf-token" content="test-csrf-token">
+    
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #111827;
+            color: #f9fafb;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .test-section {
+            background: #1f2937;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            border: 1px solid #374151;
+        }
+        
+        .test-button {
+            background: #6a6cff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin: 8px 8px 8px 0;
+            transition: background-color 0.2s ease;
+        }
+        
+        .test-button:hover {
+            background: #5a5cff;
+        }
+        
+        .test-button:disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+        }
+        
+        .log-output {
+            background: #000;
+            color: #00ff00;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 16px;
+        }
+        
+        .input-group {
+            margin-bottom: 16px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #d1d5db;
+            font-weight: 500;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            background: #374151;
+            color: #f9fafb;
+            font-size: 1rem;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-success { background: #10b981; }
+        .status-error { background: #ef4444; }
+        .status-warning { background: #f59e0b; }
+        .status-info { background: #3b82f6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Enhanced Audio API Debug Tool</h1>
+        
+        <div class="test-section">
+            <h2>API Endpoint Tests</h2>
+            <p>Test the enhanced audio API endpoints to debug database update issues.</p>
+            
+            <div class="input-group">
+                <label for="cardId">Card ID:</label>
+                <input type="number" id="cardId" value="265" placeholder="Enter flashcard ID">
+            </div>
+            
+            <div class="input-group">
+                <label for="audioUrl">Audio URL:</label>
+                <input type="url" id="audioUrl" value="https://test-audio-url.mp3" placeholder="Enter audio URL">
+            </div>
+            
+            <button class="test-button" onclick="testFetchEnhancedAudio()">
+                Test Fetch Enhanced Audio
+            </button>
+            
+            <button class="test-button" onclick="testUpdateFlashcardAudio()">
+                Test Update Flashcard Audio
+            </button>
+            
+            <button class="test-button" onclick="clearLog()">
+                Clear Log
+            </button>
+            
+            <div id="logOutput" class="log-output"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>Debug Information</h2>
+            <div id="debugInfo">
+                <p><span class="status-indicator status-info"></span>Page loaded successfully</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Logging utility
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logOutput = document.getElementById('logOutput');
+            const prefix = {
+                'info': '[INFO]',
+                'success': '[SUCCESS]',
+                'error': '[ERROR]',
+                'warning': '[WARNING]'
+            }[type] || '[INFO]';
+            
+            logOutput.textContent += `${timestamp} ${prefix} ${message}\n`;
+            logOutput.scrollTop = logOutput.scrollHeight;
+            
+            console.log(`${prefix} ${message}`);
+        }
+        
+        function clearLog() {
+            document.getElementById('logOutput').textContent = '';
+        }
+        
+        // Get CSRF token
+        function getCSRFToken() {
+            let token = document.querySelector('meta[name="csrf-token"]')?.content;
+            if (!token) {
+                token = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+            }
+            if (!token) {
+                token = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
+            }
+            return token;
+        }
+        
+        // Test fetch enhanced audio endpoint
+        async function testFetchEnhancedAudio() {
+            const cardId = document.getElementById('cardId').value;
+            
+            if (!cardId) {
+                log('Please enter a card ID', 'error');
+                return;
+            }
+            
+            log(`Testing fetch enhanced audio for card ID: ${cardId}`);
+            
+            try {
+                const csrfToken = getCSRFToken();
+                log(`CSRF Token: ${csrfToken ? 'Found' : 'Not found'}`, csrfToken ? 'success' : 'warning');
+                
+                const requestData = {
+                    card_id: parseInt(cardId),
+                    word: 'example'
+                };
+                
+                log(`Request data: ${JSON.stringify(requestData)}`);
+                
+                const response = await fetch('/api/fetch-enhanced-audio/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken || ''
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                log(`Response status: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log(`Response error: ${errorText}`, 'error');
+                    return;
+                }
+                
+                const responseData = await response.json();
+                log(`Response data: ${JSON.stringify(responseData, null, 2)}`, 'success');
+                
+            } catch (error) {
+                log(`Network error: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        }
+        
+        // Test update flashcard audio endpoint
+        async function testUpdateFlashcardAudio() {
+            const cardId = document.getElementById('cardId').value;
+            const audioUrl = document.getElementById('audioUrl').value;
+            
+            if (!cardId || !audioUrl) {
+                log('Please enter both card ID and audio URL', 'error');
+                return;
+            }
+            
+            log(`Testing update flashcard audio for card ID: ${cardId}`);
+            log(`New audio URL: ${audioUrl}`);
+            
+            try {
+                const csrfToken = getCSRFToken();
+                log(`CSRF Token: ${csrfToken ? 'Found' : 'Not found'}`, csrfToken ? 'success' : 'warning');
+                
+                const requestData = {
+                    card_id: parseInt(cardId),
+                    audio_url: audioUrl
+                };
+                
+                log(`Request data: ${JSON.stringify(requestData)}`);
+                
+                const response = await fetch('/api/update-flashcard-audio/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken || ''
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                log(`Response status: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log(`Response error: ${errorText}`, 'error');
+                    return;
+                }
+                
+                const responseData = await response.json();
+                log(`Response data: ${JSON.stringify(responseData, null, 2)}`, 'success');
+                
+                if (responseData.success) {
+                    log('✅ Database update successful!', 'success');
+                } else {
+                    log(`❌ Database update failed: ${responseData.error}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`Network error: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        }
+        
+        // Initialize debug info
+        document.addEventListener('DOMContentLoaded', function() {
+            const debugInfo = document.getElementById('debugInfo');
+            
+            // Check for CSRF token
+            const csrfToken = getCSRFToken();
+            const csrfStatus = csrfToken ? 'Found' : 'Not found';
+            const csrfClass = csrfToken ? 'status-success' : 'status-error';
+            
+            debugInfo.innerHTML += `<p><span class="status-indicator ${csrfClass}"></span>CSRF Token: ${csrfStatus}</p>`;
+            
+            // Check current URL
+            debugInfo.innerHTML += `<p><span class="status-indicator status-info"></span>Current URL: ${window.location.href}</p>`;
+            
+            // Check if we're on the right domain
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const domainClass = isLocalhost ? 'status-success' : 'status-warning';
+            debugInfo.innerHTML += `<p><span class="status-indicator ${domainClass}"></span>Domain: ${window.location.hostname}</p>`;
+            
+            log('Debug tool initialized');
+        });
+    </script>
+</body>
+</html>

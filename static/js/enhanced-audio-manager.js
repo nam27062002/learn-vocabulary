@@ -342,58 +342,116 @@ class EnhancedAudioManager {
             this.showMessage(window.manual_texts?.please_select_audio || 'Please select an audio option', 'warning');
             return;
         }
-        
+
+        // Disable confirm button to prevent double-clicks
+        const confirmBtn = this.modal.querySelector('.btn-confirm-selection');
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = window.manual_texts?.saving || 'Saving...';
+        }
+
         try {
+            console.log(`Updating flashcard ${this.currentCardId} with audio URL: ${this.selectedAudioUrl}`);
+
             const response = await this.updateFlashcardAudio(this.currentCardId, this.selectedAudioUrl);
-            
+
+            console.log('Update response:', response);
+
             if (response.success) {
                 this.showMessage(
                     window.manual_texts?.audio_selection_updated || 'Audio selection updated successfully!',
                     'success'
                 );
-                
-                // Close modal and refresh UI
+
+                // Close modal first
                 this.closeModal();
-                
+
                 // Trigger UI refresh if callback exists
-                if (window.updateCardDisplay) {
-                    window.updateCardDisplay(this.currentCardId, { audio_url: this.selectedAudioUrl });
+                if (window.updateCardDisplayForAudio) {
+                    console.log('Calling updateCardDisplayForAudio...');
+                    window.updateCardDisplayForAudio(this.currentCardId, { audio_url: this.selectedAudioUrl });
+                } else {
+                    console.warn('updateCardDisplayForAudio function not available');
                 }
-                
+
                 // Update audio statistics
                 if (window.updateAudioStats) {
+                    console.log('Updating audio stats...');
                     window.updateAudioStats();
+                } else {
+                    console.warn('updateAudioStats function not available');
                 }
-                
+
             } else {
+                console.error('API returned error:', response.error);
                 this.showMessage(
                     response.error || window.manual_texts?.error_updating_audio || 'Error updating audio selection',
                     'error'
                 );
+
+                // Re-enable button on error
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = window.manual_texts?.confirm_selection || 'Confirm Selection';
+                }
             }
         } catch (error) {
-            console.error('Error updating flashcard audio:', error);
+            console.error('Network error updating flashcard audio:', error);
             this.showMessage(
-                window.manual_texts?.error_updating_audio || 'Error updating audio selection',
+                window.manual_texts?.error_updating_audio || 'Network error occurred while updating audio selection',
                 'error'
             );
+
+            // Re-enable button on error
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = window.manual_texts?.confirm_selection || 'Confirm Selection';
+            }
         }
     }
     
     async updateFlashcardAudio(cardId, audioUrl) {
+        // Get CSRF token from multiple possible sources
+        let csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (!csrfToken) {
+            csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        }
+        if (!csrfToken) {
+            csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
+        }
+
+        console.log('CSRF Token found:', csrfToken ? 'Yes' : 'No');
+        console.log('Making API request to /api/update-flashcard-audio/');
+
+        const requestData = {
+            card_id: cardId,
+            audio_url: audioUrl
+        };
+
+        console.log('Request data:', requestData);
+
         const response = await fetch('/api/update-flashcard-audio/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                'X-CSRFToken': csrfToken || ''
             },
-            body: JSON.stringify({
-                card_id: cardId,
-                audio_url: audioUrl
-            })
+            body: JSON.stringify(requestData)
         });
-        
-        return await response.json();
+
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Response error text:', errorText);
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const responseData = await response.json();
+        console.log('Response data:', responseData);
+
+        return responseData;
     }
     
     showLoadingState() {

@@ -192,6 +192,9 @@ document.addEventListener("DOMContentLoaded", function () {
   // Make updateCardDisplay globally available for enhanced audio manager
   window.updateCardDisplay = updateCardDisplay;
 
+  // Make enhanced audio card display function globally available
+  window.updateCardDisplayForAudio = updateCardDisplayForAudio;
+
   // Keyboard navigation
   document.addEventListener("keydown", function (event) {
     // Handle ESC key to exit edit mode
@@ -1544,27 +1547,43 @@ document.addEventListener("DOMContentLoaded", function () {
    * Update card display after audio selection
    * Called by Enhanced Audio Manager after successful audio update
    */
-  function updateCardDisplay(cardId, updatedData) {
+  function updateCardDisplayForAudio(cardId, updatedData) {
+    console.log(`updateCardDisplayForAudio called with cardId: ${cardId}, updatedData:`, updatedData);
+
     const cardContainer = document.querySelector(`[data-card-id="${cardId}"]`);
-    if (!cardContainer) return;
+    if (!cardContainer) {
+      console.error(`Card container not found for cardId: ${cardId}`);
+      return;
+    }
 
     const viewMode = cardContainer.querySelector('.card-view-mode');
-    if (!viewMode) return;
+    if (!viewMode) {
+      console.error(`View mode not found for cardId: ${cardId}`);
+      return;
+    }
 
     // Update audio URL if provided
     if (updatedData.audio_url) {
+      console.log(`Updating audio URL to: ${updatedData.audio_url}`);
+
       // Update data attribute
       viewMode.setAttribute('data-has-audio', 'true');
 
-      // Find or create audio button container
-      let audioContainer = viewMode.querySelector('.text-lg.text-gray-400.font-serif.italic.mb-4');
+      // Find existing audio container - look for the container that has audio buttons
+      let audioContainer = viewMode.querySelector('.text-lg.text-gray-400.font-serif.italic.mb-4.flex.items-center.space-x-2');
+
+      // If not found, look for phonetic container that might exist
+      if (!audioContainer) {
+        audioContainer = viewMode.querySelector('.text-lg.text-gray-400.font-serif.italic.mb-4');
+      }
 
       if (!audioContainer) {
+        console.log('Creating new audio container');
         // Create new audio container if it doesn't exist
         audioContainer = document.createElement('div');
         audioContainer.className = 'text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2';
 
-        // Insert after the word title
+        // Insert after the word title or part of speech
         const wordTitle = viewMode.querySelector('.text-3xl.font-bold.mb-2');
         const partOfSpeech = viewMode.querySelector('.text-lg.text-gray-400.mb-2.italic');
 
@@ -1572,13 +1591,29 @@ document.addEventListener("DOMContentLoaded", function () {
           partOfSpeech.insertAdjacentElement('afterend', audioContainer);
         } else if (wordTitle) {
           wordTitle.insertAdjacentElement('afterend', audioContainer);
+        } else {
+          console.error('Could not find insertion point for audio container');
+          return;
         }
+      } else {
+        console.log('Found existing audio container, updating it');
+        // Ensure the container has the correct classes for flex layout
+        audioContainer.className = 'text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2';
       }
 
-      // Update audio container content
-      const phoneticSpan = audioContainer.querySelector('span:first-child');
-      const phoneticText = phoneticSpan ? phoneticSpan.textContent : '';
+      // Preserve existing phonetic text if it exists
+      const existingPhoneticSpan = audioContainer.querySelector('span:first-child');
+      let phoneticText = '';
 
+      if (existingPhoneticSpan && !existingPhoneticSpan.classList.contains('text-gray-500')) {
+        phoneticText = existingPhoneticSpan.textContent;
+      }
+
+      // Get word for enhanced audio button
+      const wordElement = cardContainer.querySelector('.dictionary-word-link');
+      const word = wordElement ? wordElement.textContent : '';
+
+      // Update audio container content
       audioContainer.innerHTML = `
         ${phoneticText ? `<span>${phoneticText}</span>` : `<span class="text-gray-500 text-sm">${window.manual_texts?.listen || 'Listen'}:</span>`}
         <button
@@ -1592,17 +1627,24 @@ document.addEventListener("DOMContentLoaded", function () {
         <button
           class="enhanced-audio-btn text-gray-500 hover:text-blue-400 transition-colors duration-200 ml-2"
           data-card-id="${cardId}"
-          data-word="${cardContainer.querySelector('.dictionary-word-link')?.textContent || ''}"
+          data-word="${word}"
           title="${window.manual_texts?.enhanced_audio_fetch || 'Get Multiple Pronunciations'}"
         >
           <i class="fas fa-search-plus text-lg"></i>
         </button>
       `;
+
+      console.log('Audio container updated successfully');
     }
 
     // Update audio statistics
-    updateAudioStats();
+    if (typeof updateAudioStats === 'function') {
+      updateAudioStats();
+      console.log('Audio statistics updated');
+    } else {
+      console.warn('updateAudioStats function not available');
+    }
 
-    console.log(`Updated card display for card ${cardId}`);
+    console.log(`Successfully updated card display for card ${cardId}`);
   }
 });
