@@ -134,7 +134,7 @@ def create_mo_file(messages, mo_file_path):
 def main():
     """Main function to compile all .po files in the locale directory."""
     
-    base_dir = Path(__file__).parent
+    base_dir = Path(__file__).parent.parent  # Go up one level from dev_tools
     locale_dir = base_dir / 'locale'
     
     if not locale_dir.exists():

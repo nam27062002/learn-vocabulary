@@ -7,6 +7,11 @@ This script checks all the components of the favorites feature.
 import os
 import django
 
+
+# Add the parent directory to Python path so we can import Django modules
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Setup Django environment
 # Setup Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'learn_english_project.settings')
 django.setup()

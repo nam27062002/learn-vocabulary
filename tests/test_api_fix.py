@@ -7,6 +7,11 @@ This script tests the fix for the 404 error in the study interface.
 import os
 import sys
 import django
+
+# Add the parent directory to Python path so we can import Django modules
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Setup Django environment
 from django.test import Client
 from django.contrib.auth.models import User
 from django.urls import reverse
