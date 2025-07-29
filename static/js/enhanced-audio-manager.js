@@ -185,7 +185,9 @@ class EnhancedAudioManager {
     renderCurrentAudio(currentAudioUrl) {
         const container = this.modal.querySelector('.current-audio-content');
         if (!container) return;
-        
+
+        console.log(`Rendering current audio: ${currentAudioUrl}`);
+
         if (currentAudioUrl && currentAudioUrl.trim()) {
             container.innerHTML = `
                 <div class="current-audio-item">
@@ -197,13 +199,18 @@ class EnhancedAudioManager {
                     </button>
                 </div>
             `;
+            console.log('Current audio preview button created with URL:', currentAudioUrl);
         } else {
             container.innerHTML = `
                 <div class="no-current-audio">
                     ${window.manual_texts?.no_current_audio || 'No current audio'}
                 </div>
             `;
+            console.log('No current audio available');
         }
+
+        // Rebind events after rendering new content
+        this.bindCurrentAudioEvents();
     }
     
     renderAudioOptions(options) {
@@ -264,6 +271,9 @@ class EnhancedAudioManager {
 
         // Remove any existing event listeners to prevent duplicates
         this.unbindAudioOptionEvents();
+
+        // Also bind events for current audio section
+        this.bindCurrentAudioEvents();
 
         // Click-to-select functionality for entire audio option containers
         this.audioOptionsClickHandler = (e) => {
@@ -332,7 +342,50 @@ class EnhancedAudioManager {
             this.audioOptionsChangeHandler = null;
         }
 
+        // Also clean up current audio events
+        this.unbindCurrentAudioEvents();
+
         console.log('Audio option event listeners cleaned up');
+    }
+
+    bindCurrentAudioEvents() {
+        const currentAudioContainer = this.modal.querySelector('.current-audio-content');
+        if (!currentAudioContainer) return;
+
+        // Remove existing event listener if it exists
+        if (this.currentAudioClickHandler) {
+            currentAudioContainer.removeEventListener('click', this.currentAudioClickHandler);
+        }
+
+        // Create event handler for current audio preview button
+        this.currentAudioClickHandler = (e) => {
+            const previewBtn = e.target.closest('.btn-preview');
+            if (previewBtn) {
+                const audioUrl = previewBtn.dataset.audioUrl;
+                if (audioUrl) {
+                    console.log(`Current audio preview clicked: ${audioUrl}`);
+                    this.previewAudio(audioUrl, previewBtn);
+                } else {
+                    console.warn('Current audio preview button has no audio URL');
+                }
+            }
+        };
+
+        // Attach event listener
+        currentAudioContainer.addEventListener('click', this.currentAudioClickHandler);
+        console.log('Current audio event listeners bound');
+    }
+
+    unbindCurrentAudioEvents() {
+        const currentAudioContainer = this.modal?.querySelector('.current-audio-content');
+        if (!currentAudioContainer) return;
+
+        // Remove existing event listener if it exists
+        if (this.currentAudioClickHandler) {
+            currentAudioContainer.removeEventListener('click', this.currentAudioClickHandler);
+            this.currentAudioClickHandler = null;
+            console.log('Current audio event listeners cleaned up');
+        }
     }
     
     previewAudio(audioUrl, buttonElement) {

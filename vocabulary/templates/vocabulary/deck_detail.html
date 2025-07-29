@@ -116,15 +116,39 @@
           class="card-view-mode word-item-tailwind p-6 bg-gray-900 rounded-lg shadow-lg w-full max-w-md mx-auto text-white flex flex-col items-start relative"
           data-has-audio="{% if card.audio_url %}true{% else %}false{% endif %}"
         >
-          <!-- Edit Button -->
-          <button
-            class="edit-card-btn absolute top-4 right-4 text-gray-400 hover:text-primary-color transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
-            title="{{ manual_texts.edit_card }}"
-          >
-            <i class="fas fa-edit text-lg"></i>
-          </button>
+          <!-- Card Action Buttons Group -->
+          <div class="absolute top-4 right-4 flex items-center gap-2">
+            <!-- Enhanced Audio Fetch Button -->
+            <button
+              class="enhanced-audio-btn card-action-btn text-gray-400 hover:text-blue-400 transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
+              data-card-id="{{ card.id }}"
+              data-word="{{ card.word }}"
+              title="{{ manual_texts.enhanced_audio_fetch|default:'Get Multiple Pronunciations' }}"
+            >
+              <i class="fas fa-search-plus text-lg"></i>
+            </button>
 
-          <div class="text-3xl font-bold mb-2 flex items-center gap-3">
+            <!-- Favorite Button -->
+            <button
+              class="favorite-btn card-action-btn text-gray-400 hover:text-red-400 transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
+              data-card-id="{{ card.id }}"
+              title="{{ manual_texts.toggle_favorite|default:'Toggle favorite' }}"
+              aria-label="{{ manual_texts.toggle_favorite|default:'Toggle favorite' }}"
+            >
+              <span class="favorite-icon text-lg">🤍</span>
+            </button>
+
+            <!-- Edit Button -->
+            <button
+              class="edit-card-btn card-action-btn text-gray-400 hover:text-primary-color transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
+              title="{{ manual_texts.edit_card }}"
+            >
+              <i class="fas fa-edit text-lg"></i>
+            </button>
+          </div>
+
+          <!-- Word Title (simplified without favorite button) -->
+          <div class="text-3xl font-bold mb-2">
             <a
               href="https://dictionary.cambridge.org/dictionary/english/{{ card.word }}"
               target="_blank"
@@ -132,23 +156,15 @@
               data-word="{{ card.word }}"
               >{{ card.word }}</a
             >
-            <button
-              class="favorite-btn text-2xl transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-900"
-              data-card-id="{{ card.id }}"
-              title="{{ manual_texts.toggle_favorite|default:'Toggle favorite' }}"
-              aria-label="{{ manual_texts.toggle_favorite|default:'Toggle favorite' }}"
-            >
-              <span class="favorite-icon">🤍</span>
-            </button>
           </div>
           {% if card.part_of_speech %}
           <div class="text-lg text-gray-400 mb-2 italic">
             ({{ card.part_of_speech }})
           </div>
-          {% endif %} {% if card.phonetic %}
-          <div
-            class="text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2"
-          >
+          {% endif %}
+
+          {% if card.phonetic %}
+          <div class="text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2">
             <span>{{ card.phonetic }}</span>
             {% if card.audio_url %}
             <button
@@ -159,39 +175,17 @@
               <i class="fas fa-volume-up text-xl"></i>
             </button>
             {% endif %}
-            <!-- Enhanced Audio Fetch Button -->
-            <button
-              class="enhanced-audio-btn text-gray-500 hover:text-blue-400 transition-colors duration-200 ml-2"
-              data-card-id="{{ card.id }}"
-              data-word="{{ card.word }}"
-              title="{{ manual_texts.enhanced_audio_fetch|default:'Get Multiple Pronunciations' }}"
-            >
-              <i class="fas fa-search-plus text-lg"></i>
-            </button>
           </div>
           {% elif card.audio_url %}
           <!-- Show audio button even without phonetic if audio is available -->
-          <div
-            class="text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2"
-          >
-            <span class="text-gray-500 text-sm"
-              >{{ manual_texts.listen }}:</span
-            >
+          <div class="text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2">
+            <span class="text-gray-500 text-sm">{{ manual_texts.listen }}:</span>
             <button
               class="audio-icon-tailwind text-gray-500 hover:text-primary-color transition-colors duration-200"
               data-audio-url="{{ card.audio_url }}"
               title="{{ manual_texts.listen }}"
             >
               <i class="fas fa-volume-up text-xl"></i>
-            </button>
-            <!-- Enhanced Audio Fetch Button -->
-            <button
-              class="enhanced-audio-btn text-gray-500 hover:text-blue-400 transition-colors duration-200 ml-2"
-              data-card-id="{{ card.id }}"
-              data-word="{{ card.word }}"
-              title="{{ manual_texts.enhanced_audio_fetch|default:'Get Multiple Pronunciations' }}"
-            >
-              <i class="fas fa-search-plus text-lg"></i>
             </button>
           </div>
           {% endif %} {% for def in card.definitions.all %}
@@ -376,6 +370,75 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/enhanced-audio-modal.css' %}">
+<style>
+  /* Card Action Buttons Group Styling */
+  .card-action-btn {
+    min-width: 40px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    position: relative;
+  }
+
+  .card-action-btn:hover {
+    border-color: rgba(107, 114, 128, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .card-action-btn:active {
+    transform: translateY(0);
+  }
+
+  /* Favorite button specific styling */
+  .favorite-btn.favorited {
+    color: #ef4444 !important;
+  }
+
+  .favorite-btn.favorited:hover {
+    color: #dc2626 !important;
+  }
+
+  /* Enhanced audio button specific styling */
+  .enhanced-audio-btn:hover {
+    color: #60a5fa !important;
+  }
+
+  /* Edit button specific styling */
+  .edit-card-btn:hover {
+    color: #6a6cff !important;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 640px) {
+    .card-action-btn {
+      min-width: 36px;
+      min-height: 36px;
+    }
+
+    .card-action-btn i {
+      font-size: 1rem;
+    }
+
+    .favorite-icon {
+      font-size: 1rem !important;
+    }
+  }
+
+  /* Button group container */
+  .card-view-mode .absolute.top-4.right-4 {
+    z-index: 10;
+  }
+
+  /* Ensure buttons don't overlap with content on small screens */
+  @media (max-width: 480px) {
+    .card-view-mode {
+      padding-top: 4rem !important;
+    }
+  }
+</style>
 {% endblock %}
 
 {% block extra_js %}

@@ -1641,7 +1641,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const wordElement = cardContainer.querySelector('.dictionary-word-link');
       const word = wordElement ? wordElement.textContent : '';
 
-      // Update audio container content
+      // Update audio container content (no enhanced audio button here since it's in the top button group)
       const newContent = `
         ${phoneticText ? `<span>${phoneticText}</span>` : `<span class="text-gray-500 text-sm">${window.manual_texts?.listen || 'Listen'}:</span>`}
         <button
@@ -1650,15 +1650,6 @@ document.addEventListener("DOMContentLoaded", function () {
           title="${window.manual_texts?.listen || 'Listen'}"
         >
           <i class="fas fa-volume-up text-xl"></i>
-        </button>
-        <!-- Enhanced Audio Fetch Button -->
-        <button
-          class="enhanced-audio-btn text-gray-500 hover:text-blue-400 transition-colors duration-200 ml-2"
-          data-card-id="${cardId}"
-          data-word="${word}"
-          title="${window.manual_texts?.enhanced_audio_fetch || 'Get Multiple Pronunciations'}"
-        >
-          <i class="fas fa-search-plus text-lg"></i>
         </button>
       `;
 
