@@ -247,28 +247,47 @@ class EnhancedAudioManager {
     bindAudioOptionEvents() {
         const container = this.modal.querySelector('.audio-options-content');
         if (!container) return;
-        
-        // Preview button events
+
+        // Click-to-select functionality for entire audio option containers
         container.addEventListener('click', (e) => {
             const previewBtn = e.target.closest('.btn-preview');
+            const audioOption = e.target.closest('.audio-option');
+
+            // Handle preview button clicks
             if (previewBtn) {
                 const audioUrl = previewBtn.dataset.audioUrl;
                 if (audioUrl) {
                     this.previewAudio(audioUrl, previewBtn);
                 }
+                return; // Don't trigger selection when clicking preview button
+            }
+
+            // Handle audio option container clicks (click-to-select)
+            if (audioOption && !audioOption.classList.contains('error')) {
+                const radioButton = audioOption.querySelector('input[type="radio"]');
+                if (radioButton && !radioButton.disabled) {
+                    // Select the radio button
+                    radioButton.checked = true;
+
+                    // Trigger the change event manually to ensure all handlers run
+                    const changeEvent = new Event('change', { bubbles: true });
+                    radioButton.dispatchEvent(changeEvent);
+
+                    console.log(`Audio option selected via container click: ${radioButton.value}`);
+                }
             }
         });
-        
+
         // Radio button change events
         container.addEventListener('change', (e) => {
             if (e.target.type === 'radio') {
                 this.handleAudioSelection(e.target.value);
-                
+
                 // Update visual selection
                 container.querySelectorAll('.audio-option').forEach(option => {
                     option.classList.remove('selected');
                 });
-                
+
                 const selectedOption = e.target.closest('.audio-option');
                 if (selectedOption) {
                     selectedOption.classList.add('selected');
@@ -339,7 +358,13 @@ class EnhancedAudioManager {
     
     async confirmSelection() {
         if (!this.selectedAudioUrl) {
-            this.showMessage(window.manual_texts?.please_select_audio || 'Please select an audio option', 'warning');
+            // Show validation error using the existing showMessage function
+            if (window.showMessage) {
+                window.showMessage(window.manual_texts?.please_select_audio || 'Please select an audio option', 'error');
+            } else {
+                // Fallback notification if showMessage is not available
+                this.showMessage(window.manual_texts?.please_select_audio || 'Please select an audio option', 'warning');
+            }
             return;
         }
 
@@ -358,13 +383,22 @@ class EnhancedAudioManager {
             console.log('Update response:', response);
 
             if (response.success) {
-                this.showMessage(
-                    window.manual_texts?.audio_selection_updated || 'Audio selection updated successfully!',
-                    'success'
-                );
-
                 // Close modal first
                 this.closeModal();
+
+                // Show success notification using the existing showMessage function
+                if (window.showMessage) {
+                    window.showMessage(
+                        window.manual_texts?.audio_selection_updated || 'Audio pronunciation updated successfully!',
+                        'success'
+                    );
+                } else {
+                    // Fallback notification if showMessage is not available
+                    this.showMessage(
+                        window.manual_texts?.audio_selection_updated || 'Audio pronunciation updated successfully!',
+                        'success'
+                    );
+                }
 
                 // Trigger UI refresh if callback exists
                 if (window.updateCardDisplayForAudio) {
@@ -384,10 +418,20 @@ class EnhancedAudioManager {
 
             } else {
                 console.error('API returned error:', response.error);
-                this.showMessage(
-                    response.error || window.manual_texts?.error_updating_audio || 'Error updating audio selection',
-                    'error'
-                );
+
+                // Show error notification using the existing showMessage function
+                if (window.showMessage) {
+                    window.showMessage(
+                        response.error || window.manual_texts?.error_updating_audio || 'Error updating audio selection',
+                        'error'
+                    );
+                } else {
+                    // Fallback notification if showMessage is not available
+                    this.showMessage(
+                        response.error || window.manual_texts?.error_updating_audio || 'Error updating audio selection',
+                        'error'
+                    );
+                }
 
                 // Re-enable button on error
                 if (confirmBtn) {
@@ -397,10 +441,20 @@ class EnhancedAudioManager {
             }
         } catch (error) {
             console.error('Network error updating flashcard audio:', error);
-            this.showMessage(
-                window.manual_texts?.error_updating_audio || 'Network error occurred while updating audio selection',
-                'error'
-            );
+
+            // Show error notification using the existing showMessage function
+            if (window.showMessage) {
+                window.showMessage(
+                    window.manual_texts?.error_updating_audio || 'Network error occurred while updating audio selection',
+                    'error'
+                );
+            } else {
+                // Fallback notification if showMessage is not available
+                this.showMessage(
+                    window.manual_texts?.error_updating_audio || 'Network error occurred while updating audio selection',
+                    'error'
+                );
+            }
 
             // Re-enable button on error
             if (confirmBtn) {

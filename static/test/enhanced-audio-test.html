@@ -122,6 +122,12 @@
         </div>
         
         <div class="test-card">
+            <h3>UX Improvements Test</h3>
+            <p><strong>Click-to-select:</strong> Click anywhere on an audio option container to select it (not just the radio button).</p>
+            <p><strong>Success notification:</strong> After confirming selection, you should see a success notification in the top-right corner.</p>
+        </div>
+
+        <div class="test-card">
             <h3>Mobile Responsiveness Test</h3>
             <p>Resize your browser window or use developer tools to test mobile responsiveness.</p>
             <p>The modal should adapt to different screen sizes and provide touch-friendly controls.</p>
@@ -151,10 +157,28 @@
             please_select_audio: 'Please select an audio option'
         };
         
-        // Mock showMessage function
+        // Mock showMessage function that matches the deck_detail.js implementation
         window.showMessage = function(message, type) {
             console.log(`[${type.toUpperCase()}] ${message}`);
-            alert(`${type.toUpperCase()}: ${message}`);
+
+            // Create message element that matches the existing notification system
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `fixed top-4 right-4 px-6 py-3 rounded-md text-white font-medium z-50 transition-all duration-300 ${
+                type === "success" ? "bg-green-600" : "bg-red-600"
+            }`;
+            messageDiv.textContent = message;
+
+            document.body.appendChild(messageDiv);
+
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                messageDiv.style.opacity = "0";
+                setTimeout(() => {
+                    if (messageDiv.parentNode) {
+                        messageDiv.parentNode.removeChild(messageDiv);
+                    }
+                }, 300);
+            }, 3000);
         };
     </script>
 

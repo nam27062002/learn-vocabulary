@@ -156,18 +156,36 @@
   border-radius: 8px;
   margin-bottom: 12px;
   padding: 16px;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.1s ease;
   cursor: pointer;
+  user-select: none; /* Prevent text selection when clicking */
 }
 
 .audio-option:hover {
   border-color: #6b7280;
   background: #3f4651;
+  transform: translateY(-1px);
+}
+
+.audio-option:active {
+  transform: translateY(0);
 }
 
 .audio-option.selected {
   border-color: #6a6cff;
   background: #2d3748;
+  box-shadow: 0 0 0 1px #6a6cff;
+}
+
+.audio-option.error {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.audio-option.error:hover {
+  transform: none;
+  border-color: #4b5563;
+  background: #374151;
 }
 
 .audio-option-header {
