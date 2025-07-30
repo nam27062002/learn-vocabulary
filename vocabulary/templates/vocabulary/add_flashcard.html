@@ -686,10 +686,10 @@
     <label for="deck-selector">{{ manual_texts.select_deck }}</label>
     <select id="deck-selector" name="deck">
       <option value="">{{ manual_texts.please_select_deck }}</option>
+      <option value="new_deck">{{ manual_texts.create_new_deck }}</option>
       {% for deck in decks %}
         <option value="{{ deck.id }}">{{ deck.name }}</option>
       {% endfor %}
-      <option value="new_deck">{{ manual_texts.create_new_deck }}</option>
     </select>
   </div>
 
@@ -890,6 +890,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const deckSelector = document.getElementById('deck-selector');
 
+    // Style the "Create new deck" option to make it more prominent
+    function styleCreateNewDeckOption() {
+        const createNewDeckOption = deckSelector.querySelector('option[value="new_deck"]');
+        if (createNewDeckOption) {
+            createNewDeckOption.style.fontWeight = 'bold';
+            createNewDeckOption.style.color = '#6a6cff';
+            // Add a visual indicator
+            if (!createNewDeckOption.textContent.includes('✨')) {
+                createNewDeckOption.textContent = '✨ ' + createNewDeckOption.textContent;
+            }
+        }
+    }
+
+    // Apply styling after DOM is ready
+    styleCreateNewDeckOption();
+
     // Quick Add elements
     const quickAddInput = document.getElementById('quick-add-input');
     const generateCardsBtn = document.getElementById('generate-cards-btn');
@@ -928,7 +944,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const data = await response.json();
                     if (data.success) {
                         const newOption = new Option(data.deck.name, data.deck.id, true, true);
-                        deckSelector.add(newOption, deckSelector.options[deckSelector.options.length - 1]);
+                        // Insert after the "Create new deck" option (which is now at index 1)
+                        deckSelector.add(newOption, deckSelector.options[2]);
                         Swal.fire({
                             icon: 'success',
                             title: 'Đã tạo!',
