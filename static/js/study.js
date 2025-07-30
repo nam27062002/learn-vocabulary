@@ -575,6 +575,9 @@
   // Study session timer variables
   let studyStartTime = null;
   let timerInterval = null;
+  let timerPaused = false;
+  let pausedTime = 0; // Total time spent paused
+  let pauseStartTime = null; // When the current pause started
 
   // Study session timer functions
   function startStudyTimer() {
@@ -620,16 +623,82 @@
     stopStudyTimer();
     studyStartTime = null;
 
-    // Reset display to 00:00
+    // Reset pause-related variables
+    timerPaused = false;
+    pausedTime = 0;
+    pauseStartTime = null;
+
+    // Remove paused CSS class and reset styling
+    if (timerDisplay) {
+      timerDisplay.classList.remove('paused');
+    }
+
+    // Reset display to 00:00 and clear any paused styling
     if (timerText) {
       timerText.textContent = "00:00";
+      timerText.style.color = '';
+      timerText.style.opacity = '';
     }
+  }
+
+  function pauseStudyTimer() {
+    if (!timerInterval || timerPaused) return;
+
+    console.log(`[DEBUG] Pausing study session timer`);
+
+    timerPaused = true;
+    pauseStartTime = Date.now();
+
+    // Clear the interval but keep studyStartTime
+    clearInterval(timerInterval);
+    timerInterval = null;
+
+    // Add paused CSS class for visual indication
+    if (timerDisplay) {
+      timerDisplay.classList.add('paused');
+    }
+
+    // Update visual indication
+    updateTimerDisplay();
+  }
+
+  function resumeStudyTimer() {
+    if (!studyStartTime || !timerPaused) return;
+
+    console.log(`[DEBUG] Resuming study session timer`);
+
+    // Add the paused duration to total paused time
+    if (pauseStartTime) {
+      pausedTime += Date.now() - pauseStartTime;
+      pauseStartTime = null;
+    }
+
+    timerPaused = false;
+
+    // Remove paused CSS class
+    if (timerDisplay) {
+      timerDisplay.classList.remove('paused');
+    }
+
+    // Restart the interval
+    timerInterval = setInterval(updateTimerDisplay, 1000);
+
+    // Update display immediately
+    updateTimerDisplay();
   }
 
   function updateTimerDisplay() {
     if (!studyStartTime || !timerText) return;
 
-    const elapsed = Date.now() - studyStartTime;
+    let elapsed;
+    if (timerPaused && pauseStartTime) {
+      // If currently paused, don't include the current pause time
+      elapsed = (pauseStartTime - studyStartTime) - pausedTime;
+    } else {
+      // Normal calculation, subtracting total paused time
+      elapsed = (Date.now() - studyStartTime) - pausedTime;
+    }
+
     const totalSeconds = Math.floor(elapsed / 1000);
 
     const hours = Math.floor(totalSeconds / 3600);
@@ -643,6 +712,22 @@
     } else {
       // Format as MM:SS for sessions under 1 hour
       timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // Add paused indicator if timer is paused
+    if (timerPaused) {
+      timeString += ' (Paused)';
+      // Change timer color to indicate paused state
+      if (timerText) {
+        timerText.style.color = '#f59e0b'; // Orange color for paused state
+        timerText.style.opacity = '0.8';
+      }
+    } else {
+      // Reset timer color for active state
+      if (timerText) {
+        timerText.style.color = ''; // Reset to default
+        timerText.style.opacity = '';
+      }
     }
 
     timerText.textContent = timeString;
@@ -2363,6 +2448,62 @@
   if (timerText) {
     timerText.textContent = "00:00";
   }
+
+  // =============================================
+  // AUTOMATIC TIMER PAUSE/RESUME FUNCTIONALITY
+  // =============================================
+
+  // Page Visibility API support check
+  let hidden, visibilityChange;
+  if (typeof document.hidden !== "undefined") {
+    hidden = "hidden";
+    visibilityChange = "visibilitychange";
+  } else if (typeof document.msHidden !== "undefined") {
+    hidden = "msHidden";
+    visibilityChange = "msvisibilitychange";
+  } else if (typeof document.webkitHidden !== "undefined") {
+    hidden = "webkitHidden";
+    visibilityChange = "webkitvisibilitychange";
+  }
+
+  // Handle page visibility changes (tab switching, minimizing browser)
+  function handleVisibilityChange() {
+    if (!studyStartTime) return; // Only handle if study session is active
+
+    if (document[hidden]) {
+      console.log(`[DEBUG] Page became hidden - pausing timer`);
+      pauseStudyTimer();
+    } else {
+      console.log(`[DEBUG] Page became visible - resuming timer`);
+      resumeStudyTimer();
+    }
+  }
+
+  // Handle window focus/blur events (switching to other applications)
+  function handleWindowBlur() {
+    if (!studyStartTime) return; // Only handle if study session is active
+
+    console.log(`[DEBUG] Window lost focus - pausing timer`);
+    pauseStudyTimer();
+  }
+
+  function handleWindowFocus() {
+    if (!studyStartTime) return; // Only handle if study session is active
+
+    console.log(`[DEBUG] Window gained focus - resuming timer`);
+    resumeStudyTimer();
+  }
+
+  // Add event listeners for automatic pause/resume
+  if (typeof visibilityChange !== "undefined") {
+    document.addEventListener(visibilityChange, handleVisibilityChange, false);
+    console.log(`[DEBUG] Added Page Visibility API listener for ${visibilityChange}`);
+  }
+
+  // Add window focus/blur listeners as fallback and additional coverage
+  window.addEventListener('blur', handleWindowBlur, false);
+  window.addEventListener('focus', handleWindowFocus, false);
+  console.log(`[DEBUG] Added window focus/blur listeners for timer pause/resume`);
 
   // Make functions globally available
   window.showReviewCompletionModal = showReviewCompletionModal;

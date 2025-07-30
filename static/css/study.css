@@ -650,6 +650,40 @@
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.5px;
+  transition: color 0.3s ease, opacity 0.3s ease;
+}
+
+/* Timer Paused State */
+.timer-display.paused {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  animation: pulse-paused 2s infinite;
+}
+
+.timer-display.paused i {
+  opacity: 0.7;
+}
+
+@keyframes pulse-paused {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Additional visual indicator for paused state */
+.timer-display.paused::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #f59e0b, #d97706);
+  border-radius: 10px;
+  z-index: -1;
+  opacity: 0.3;
 }
 
 .stats-display {
