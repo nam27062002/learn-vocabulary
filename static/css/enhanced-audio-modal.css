@@ -38,12 +38,15 @@
   background: #1f2937;
   border-radius: 12px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  max-width: 600px;
-  width: 90%;
-  max-height: 80vh;
+  max-width: 700px;
+  width: 95%;
+  max-height: 85vh;
+  min-height: 400px;
   overflow: hidden;
   transform: scale(0.9);
   transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .audio-modal.show .audio-modal-content {
@@ -58,6 +61,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 .audio-modal-title {
@@ -65,6 +69,11 @@
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0;
+  flex: 1;
+  margin-right: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .word-display {
@@ -91,8 +100,10 @@
 /* Modal Body */
 .audio-modal-body {
   padding: 24px;
-  max-height: calc(80vh - 140px);
+  flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0; /* Important for flex child to shrink */
 }
 
 /* Current Audio Section */
@@ -137,6 +148,12 @@
 /* Audio Options Container */
 .audio-options-container {
   margin-bottom: 20px;
+}
+
+.audio-options-content {
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .audio-options-title {
@@ -214,6 +231,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
+  min-height: 40px;
 }
 
 .btn-preview {
@@ -229,6 +248,9 @@
   align-items: center;
   gap: 6px;
   transition: background-color 0.2s ease, transform 0.1s ease;
+  min-width: 80px;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .btn-preview:hover {
@@ -373,16 +395,20 @@
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  flex-shrink: 0; /* Prevent footer from shrinking */
+  flex-wrap: wrap; /* Allow buttons to wrap on small screens */
 }
 
 .audio-modal-footer button {
-  padding: 10px 20px;
+  padding: 12px 24px;
   border-radius: 6px;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
+  min-width: 120px;
+  white-space: nowrap;
 }
 
 .btn-cancel {
@@ -426,9 +452,11 @@
 /* Mobile Styles */
 @media (max-width: 640px) {
   .audio-modal-content {
-    width: 95%;
-    max-height: 90vh;
-    margin: 20px;
+    width: 98%;
+    max-width: none;
+    max-height: 95vh;
+    margin: 10px;
+    min-height: 300px;
   }
 
   .audio-modal-header {
@@ -437,39 +465,50 @@
 
   .audio-modal-title {
     font-size: 1.1rem;
+    line-height: 1.3;
   }
 
   .audio-modal-body {
-    padding: 20px;
-    max-height: calc(90vh - 120px);
+    padding: 16px 20px;
   }
 
   .audio-modal-footer {
     padding: 16px 20px;
     flex-direction: column;
+    gap: 8px;
   }
 
   .audio-modal-footer button {
     width: 100%;
-    margin-bottom: 8px;
-  }
-
-  .audio-modal-footer button:last-child {
-    margin-bottom: 0;
+    min-width: auto;
+    margin: 0;
+    padding: 14px 20px;
   }
 
   .audio-controls {
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
+    gap: 10px;
   }
 
   .btn-preview {
     justify-content: center;
+    width: 100%;
+    min-width: auto;
   }
 
   .audio-status {
     justify-content: center;
+  }
+
+  .current-audio-item {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .current-audio-info {
+    text-align: center;
   }
 }
 
@@ -480,15 +519,20 @@
     height: 100%;
     max-height: 100vh;
     border-radius: 0;
+    margin: 0;
   }
 
   .audio-modal-header {
     padding: 12px 16px;
   }
 
+  .audio-modal-title {
+    font-size: 1rem;
+    line-height: 1.2;
+  }
+
   .audio-modal-body {
-    padding: 16px;
-    max-height: calc(100vh - 120px);
+    padding: 12px 16px;
   }
 
   .audio-modal-footer {
@@ -503,21 +547,27 @@
   .audio-loading-state,
   .no-audio-options,
   .audio-error-state {
-    padding: 30px 15px;
+    padding: 20px 12px;
   }
 
   .audio-loading-spinner,
   .no-audio-icon,
   .audio-error-icon {
-    font-size: 2.5rem;
+    font-size: 2rem;
+  }
+
+  .audio-modal-footer button {
+    padding: 16px 20px;
+    font-size: 1rem;
   }
 }
 
 /* Tablet Styles */
 @media (min-width: 641px) and (max-width: 1024px) {
   .audio-modal-content {
-    max-width: 500px;
-    width: 85%;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
   }
 
   .audio-controls {
@@ -525,17 +575,23 @@
     justify-content: space-between;
     align-items: center;
   }
+
+  .audio-modal-footer {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .audio-modal-footer button {
+    width: auto;
+    min-width: 120px;
+  }
 }
 
 /* Tablet landscape */
 @media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
   .audio-modal-content {
-    max-width: 700px;
-    max-height: 85vh;
-  }
-
-  .audio-modal-body {
-    max-height: calc(85vh - 140px);
+    max-width: 800px;
+    max-height: 90vh;
   }
 
   .audio-controls {
