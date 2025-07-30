@@ -15,7 +15,12 @@ def i18n_compatible_translations(request):
     Hybrid translation context processor that provides both Django i18n
     and legacy manual_texts for backward compatibility during migration.
     """
-    current_lang = translation.get_language()
+    # Get language from session first (for legacy system), then fall back to Django's i18n
+    current_lang = request.session.get('django_language', translation.get_language())
+
+    # If Django i18n is disabled, default to 'en'
+    if not current_lang:
+        current_lang = 'en'
 
     # Legacy translations for backward compatibility
     # These will be gradually removed as templates are migrated to use {% trans %}
@@ -112,6 +117,52 @@ def i18n_compatible_translations(request):
             'delete_card': 'Delete card',
             'part_of_speech': 'part of speech',
             'listen': 'Listen',
+
+            # Quick Add Words section
+            'quick_add_multiple_words': 'Quick Add Multiple Words',
+            'quick_add_placeholder': 'Enter multiple words separated by | (pipe character). Example: assistant|cry|usual|file|ban|ice|column|currently|prepare|acceptable',
+            'quick_add_info': 'Separate words with | (pipe) character. Each word will be automatically processed for spelling, definitions, and duplicates.',
+            'generate_cards': 'Generate Cards',
+            'processing_words': 'Processing words...',
+            'processing_word_individual': 'Processing "{word}" ({current}/{total})...',
+
+            # SweetAlert messages
+            'create_new_deck_title': 'Create New Deck',
+            'deck_name_label': 'Deck Name',
+            'deck_name_placeholder': 'Example: Day 1, IELTS Topic: Work...',
+            'deck_name_required': 'You need to enter a name for the deck!',
+            'cancel': 'Cancel',
+            'created': 'Created!',
+            'deck_created_success': 'Deck "{deck_name}" has been created successfully.',
+            'cannot_create_deck': 'Cannot create deck',
+            'unknown_error': 'Unknown error',
+
+            # Duplicate warnings
+            'duplicate_word_detected': 'Duplicate Word Detected',
+            'word_already_exists': 'The word "{word}" already exists in your vocabulary.',
+            'use_different_word': 'Please use a different word or modify the existing one.',
+
+            # Processing and validation messages
+            'no_words_found': 'No Words Found',
+            'enter_words_pipe': 'Please enter some words separated by | (pipe) character.',
+            'no_deck_selected': 'No Deck Selected',
+            'select_deck_before_adding': 'Please select a deck before adding words.',
+            'cannot_delete_only_card': 'Cannot delete the only card!',
+            'translating': 'Translating...',
+            'translation_not_available': 'Translation not available.',
+            'translation_error': 'Translation error.',
+
+            # Quick Add results
+            'quick_add_results': 'Quick Add Results',
+            'words_added_successfully': 'Successfully added {count} words: {words}',
+            'duplicate_words_skipped': 'Skipped {count} duplicate words: {words}',
+            'words_with_errors': 'Failed to process {count} words: {words}',
+            'no_words_processed': 'No words were processed. Please check your input.',
+
+            # Flashcard save success messages
+            'saved_successfully': 'Saved successfully!',
+            'words_added_to_collection': 'Words have been added to the collection: {words}',
+
             'correct_answer': 'Correct answer',
             # Console messages
             'console_welcome': '🎓 LearnEnglish App',
@@ -360,6 +411,52 @@ def i18n_compatible_translations(request):
             'delete_card': 'Xóa thẻ',
             'part_of_speech': 'từ loại',
             'listen': 'Nghe',
+
+            # Quick Add Words section
+            'quick_add_multiple_words': 'Thêm nhanh nhiều từ',
+            'quick_add_placeholder': 'Nhập nhiều từ cách nhau bằng ký tự | (pipe). Ví dụ: assistant|cry|usual|file|ban|ice|column|currently|prepare|acceptable',
+            'quick_add_info': 'Phân tách các từ bằng ký tự | (pipe). Mỗi từ sẽ được tự động xử lý về chính tả, định nghĩa và trùng lặp.',
+            'generate_cards': 'Tạo thẻ',
+            'processing_words': 'Đang xử lý từ...',
+            'processing_word_individual': 'Đang xử lý "{word}" ({current}/{total})...',
+
+            # SweetAlert messages
+            'create_new_deck_title': 'Tạo bộ thẻ mới',
+            'deck_name_label': 'Tên bộ thẻ',
+            'deck_name_placeholder': 'Ví dụ: Ngày 1, IELTS Topic: Work...',
+            'deck_name_required': 'Bạn cần nhập tên cho bộ thẻ!',
+            'cancel': 'Hủy',
+            'created': 'Đã tạo!',
+            'deck_created_success': 'Bộ thẻ "{deck_name}" đã được tạo thành công.',
+            'cannot_create_deck': 'Không thể tạo bộ thẻ',
+            'unknown_error': 'Lỗi không xác định',
+
+            # Duplicate warnings
+            'duplicate_word_detected': 'Phát hiện từ trùng lặp',
+            'word_already_exists': 'Từ "{word}" đã tồn tại trong từ vựng của bạn.',
+            'use_different_word': 'Vui lòng sử dụng từ khác hoặc chỉnh sửa từ hiện có.',
+
+            # Processing and validation messages
+            'no_words_found': 'Không tìm thấy từ nào',
+            'enter_words_pipe': 'Vui lòng nhập một số từ cách nhau bằng ký tự | (pipe).',
+            'no_deck_selected': 'Chưa chọn bộ thẻ',
+            'select_deck_before_adding': 'Vui lòng chọn một bộ thẻ trước khi thêm từ.',
+            'cannot_delete_only_card': 'Không thể xóa thẻ duy nhất!',
+            'translating': 'Đang dịch...',
+            'translation_not_available': 'Bản dịch không có sẵn.',
+            'translation_error': 'Lỗi dịch thuật.',
+
+            # Quick Add results
+            'quick_add_results': 'Kết quả thêm nhanh',
+            'words_added_successfully': 'Đã thêm thành công {count} từ: {words}',
+            'duplicate_words_skipped': 'Đã bỏ qua {count} từ trùng lặp: {words}',
+            'words_with_errors': 'Không thể xử lý {count} từ: {words}',
+            'no_words_processed': 'Không có từ nào được xử lý. Vui lòng kiểm tra đầu vào.',
+
+            # Flashcard save success messages
+            'saved_successfully': 'Đã lưu thành công!',
+            'words_added_to_collection': 'Các từ đã được thêm vào bộ sưu tập: {words}',
+
             'correct_answer': 'Đáp án',
             # Console messages
             'console_welcome': '🎓 Ứng dụng LearnEnglish',

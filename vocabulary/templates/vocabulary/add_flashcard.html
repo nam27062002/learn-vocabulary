@@ -697,27 +697,27 @@
   <div class="quick-add-section">
     <div class="quick-add-header">
       <span class="quick-add-icon">⚡</span>
-      <h3>Quick Add Multiple Words</h3>
+      <h3>{{ manual_texts.quick_add_multiple_words }}</h3>
     </div>
     <textarea
       id="quick-add-input"
       class="quick-add-input"
-      placeholder="Enter multiple words separated by | (pipe character). Example: assistant|cry|usual|file|ban|ice|column|currently|prepare|acceptable"
+      placeholder="{{ manual_texts.quick_add_placeholder }}"
       rows="3"></textarea>
     <div class="quick-add-controls">
       <div class="quick-add-info">
-        Separate words with | (pipe) character. Each word will be automatically processed for spelling, definitions, and duplicates.
+        {{ manual_texts.quick_add_info }}
       </div>
       <button id="generate-cards-btn" class="generate-cards-btn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
         </svg>
-        Generate Cards
+        {{ manual_texts.generate_cards }}
       </button>
     </div>
     <div id="processing-indicator" class="processing-indicator">
       <div class="spinner"></div>
-      <span id="processing-text">Processing words...</span>
+      <span id="processing-text">{{ manual_texts.processing_words }}</span>
     </div>
   </div>
 
@@ -915,20 +915,20 @@ document.addEventListener('DOMContentLoaded', function() {
     deckSelector.addEventListener('change', async function() {
         if (this.value === 'new_deck') {
             const { value: deckName } = await Swal.fire({
-                title: 'Tạo bộ thẻ mới',
+                title: '{{ manual_texts.create_new_deck_title }}',
                 input: 'text',
-                inputLabel: 'Tên bộ thẻ',
-                inputPlaceholder: 'Ví dụ: Ngày 1, IELTS Topic: Work...',
+                inputLabel: '{{ manual_texts.deck_name_label }}',
+                inputPlaceholder: '{{ manual_texts.deck_name_placeholder }}',
                 background: 'var(--background-light)',
                 color: 'var(--text-main)',
                 confirmButtonColor: 'var(--primary-color)',
                 inputValidator: (value) => {
                     if (!value) {
-                        return 'Bạn cần nhập tên cho bộ thẻ!'
+                        return '{{ manual_texts.deck_name_required }}'
                     }
                 },
                 showCancelButton: true,
-                cancelButtonText: 'Hủy'
+                cancelButtonText: '{{ manual_texts.cancel }}'
             });
 
             if (deckName) {
@@ -948,19 +948,19 @@ document.addEventListener('DOMContentLoaded', function() {
                         deckSelector.add(newOption, deckSelector.options[2]);
                         Swal.fire({
                             icon: 'success',
-                            title: 'Đã tạo!',
-                            text: `Bộ thẻ "${data.deck.name}" đã được tạo thành công.`,
+                            title: '{{ manual_texts.created }}',
+                            text: `{{ manual_texts.deck_created_success }}`.replace('{deck_name}', data.deck.name),
                             background: 'var(--background-light)',
                             color: 'var(--text-main)',
                             confirmButtonColor: 'var(--primary-color)'
                         });
                     } else {
-                        throw new Error(data.error || 'Lỗi không xác định');
+                        throw new Error(data.error || '{{ manual_texts.unknown_error }}');
                     }
                 } catch (error) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Không thể tạo bộ thẻ',
+                        title: '{{ manual_texts.cannot_create_deck }}',
                         text: error.message,
                         background: 'var(--background-light)',
                         color: 'var(--text-main)',
@@ -1022,9 +1022,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const warningItem = document.createElement("div");
         warningItem.className = "duplicate-warning-item";
         warningItem.innerHTML = `
-            <strong>⚠️ Duplicate Word Detected</strong><br>
-            The word "<strong>${word}</strong>" already exists in your vocabulary.<br>
-            Please use a different word or modify the existing one.
+            <strong>⚠️ {{ manual_texts.duplicate_word_detected }}</strong><br>
+            {{ manual_texts.word_already_exists }}`.replace('{word}', `<strong>${word}</strong>`) + `<br>
+            {{ manual_texts.use_different_word }}
         `;
         suggestionsList.appendChild(warningItem);
         suggestionsList.style.display = "block";
@@ -1251,8 +1251,8 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         // Show loading state
-        targetTextarea.value = "Đang dịch...";
-        
+        targetTextarea.value = "{{ manual_texts.translating }}";
+
         fetch(`${translateUrl}?text=${encodeURIComponent(text)}`)
         .then(res => {
             if (!res.ok) {
@@ -1264,12 +1264,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if(data.translated_text) {
                 targetTextarea.value = data.translated_text;
             } else {
-                targetTextarea.value = "Bản dịch không có sẵn.";
+                targetTextarea.value = "{{ manual_texts.translation_not_available }}";
             }
         })
         .catch(err => {
             console.error('Translation error:', err);
-            targetTextarea.value = "Lỗi dịch thuật.";
+            targetTextarea.value = "{{ manual_texts.translation_error }}";
         });
     }
 
@@ -1322,7 +1322,7 @@ document.addEventListener('DOMContentLoaded', function() {
             cardElement.remove();
             updateCardNumbers();
         } else {
-            alert("Không thể xóa thẻ duy nhất!");
+            alert("{{ manual_texts.cannot_delete_only_card }}");
         }
     }
 
@@ -1416,8 +1416,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!words || words.length === 0) {
             Swal.fire({
                 icon: 'warning',
-                title: 'No Words Found',
-                text: 'Please enter some words separated by | (pipe) character.',
+                title: '{{ manual_texts.no_words_found }}',
+                text: '{{ manual_texts.enter_words_pipe }}',
                 background: 'var(--background-light)',
                 color: 'var(--text-main)',
                 confirmButtonColor: 'var(--primary-color)'
@@ -1430,8 +1430,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!selectedDeckId || selectedDeckId === 'new_deck') {
             Swal.fire({
                 icon: 'warning',
-                title: 'No Deck Selected',
-                text: 'Please select a deck before adding words.',
+                title: '{{ manual_texts.no_deck_selected }}',
+                text: '{{ manual_texts.select_deck_before_adding }}',
                 background: 'var(--background-light)',
                 color: 'var(--text-main)',
                 confirmButtonColor: 'var(--primary-color)'
@@ -1439,12 +1439,12 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        showProcessingIndicator(true, 'Clearing existing cards...');
+        showProcessingIndicator(true, '{{ manual_texts.processing_words }}');
 
         // Clear all existing cards first, keeping one empty card as template
         clearAllCardsExceptFirst();
 
-        showProcessingIndicator(true, `Processing ${words.length} words...`);
+        showProcessingIndicator(true, `{{ manual_texts.processing_words }} (${words.length})`);
 
         const results = {
             successful: [],
@@ -1455,7 +1455,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             for (let i = 0; i < words.length; i++) {
                 const word = words[i];
-                showProcessingIndicator(true, `Processing "${word}" (${i + 1}/${words.length})...`);
+                showProcessingIndicator(true, `{{ manual_texts.processing_word_individual }}`.replace('{word}', word).replace('{current}', i + 1).replace('{total}', words.length));
 
                 try {
                     // Check for duplicates first
@@ -1575,27 +1575,27 @@ document.addEventListener('DOMContentLoaded', function() {
         let icon = 'success';
 
         if (results.successful.length > 0) {
-            message += `✅ Successfully added ${results.successful.length} words: ${results.successful.join(', ')}\n\n`;
+            message += `✅ {{ manual_texts.words_added_successfully }}`.replace('{count}', results.successful.length).replace('{words}', results.successful.join(', ')) + '\n\n';
         }
 
         if (results.duplicates.length > 0) {
-            message += `⚠️ Skipped ${results.duplicates.length} duplicate words: ${results.duplicates.join(', ')}\n\n`;
+            message += `⚠️ {{ manual_texts.duplicate_words_skipped }}`.replace('{count}', results.duplicates.length).replace('{words}', results.duplicates.join(', ')) + '\n\n';
             icon = results.successful.length > 0 ? 'warning' : 'warning';
         }
 
         if (results.errors.length > 0) {
-            message += `❌ Failed to process ${results.errors.length} words: ${results.errors.join(', ')}\n\n`;
+            message += `❌ {{ manual_texts.words_with_errors }}`.replace('{count}', results.errors.length).replace('{words}', results.errors.join(', ')) + '\n\n';
             icon = results.successful.length > 0 ? 'warning' : 'error';
         }
 
         if (results.successful.length === 0 && results.duplicates.length === 0 && results.errors.length === 0) {
-            message = 'No words were processed. Please check your input.';
+            message = '{{ manual_texts.no_words_processed }}';
             icon = 'warning';
         }
 
         Swal.fire({
             icon: icon,
-            title: 'Quick Add Results',
+            title: '{{ manual_texts.quick_add_results }}',
             html: message.replace(/\n/g, '<br>'),
             background: 'var(--background-light)',
             color: 'var(--text-main)',
@@ -1826,8 +1826,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     Swal.fire({
                         icon: 'success',
-                        title: 'Đã lưu thành công!',
-                        text: `Các từ đã được thêm vào bộ sưu tập: ${data.saved.join(', ')}`,
+                        title: '{{ manual_texts.saved_successfully }}',
+                        text: `{{ manual_texts.words_added_to_collection }}`.replace('{words}', data.saved.join(', ')),
                         background: 'var(--background-light)',
                         color: 'var(--text-main)',
                         confirmButtonColor: 'var(--primary-color)'
