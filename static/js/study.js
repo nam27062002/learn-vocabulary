@@ -845,17 +845,23 @@
     }
 
     // Hide and reset favorite button during question phase - it will be shown after answer submission
-    if (favoriteButton) {
-      favoriteButton.style.display = "none";
+    let currentFavoriteButton = favoriteButton;
+    if (!currentFavoriteButton || !document.contains(currentFavoriteButton)) {
+      console.log("[DEBUG] Favorite button reference is stale in renderQuestion, re-querying...");
+      currentFavoriteButton = document.getElementById("favoriteButton");
+    }
+
+    if (currentFavoriteButton) {
+      currentFavoriteButton.style.display = "none";
 
       // Reset favorite button to default state for new question
-      const favoriteIcon = favoriteButton.querySelector(".favorite-icon");
+      const favoriteIcon = currentFavoriteButton.querySelector(".favorite-icon");
       if (favoriteIcon) {
         favoriteIcon.textContent = "🤍"; // Default unfavorited state
       }
-      favoriteButton.classList.remove("favorited");
-      favoriteButton.title = "Add to favorites";
-      favoriteButton.removeAttribute("data-card-id");
+      currentFavoriteButton.classList.remove("favorited");
+      currentFavoriteButton.title = "Add to favorites";
+      currentFavoriteButton.removeAttribute("data-card-id");
 
       console.log(`[DEBUG] Favorite button reset to default state for new question`);
     }
@@ -1251,51 +1257,21 @@
       currentFavoriteButton.style.display = "block";
       currentFavoriteButton.setAttribute("data-card-id", currentQuestion.id);
 
-      // Load favorite status for this card
-      loadCardFavoriteStatus(currentQuestion.id);
-
-      // Remove any existing event listeners - with null check for parentNode
-      try {
-        if (currentFavoriteButton.parentNode) {
-          // Store current visual state before replacing
-          const currentIcon = currentFavoriteButton.querySelector(".favorite-icon")?.textContent;
-          const currentClasses = currentFavoriteButton.className;
-          const currentTitle = currentFavoriteButton.title;
-
-          const newFavoriteButton = currentFavoriteButton.cloneNode(true);
-          currentFavoriteButton.parentNode.replaceChild(newFavoriteButton, currentFavoriteButton);
-
-          // Restore visual state to the new button
-          const newIcon = newFavoriteButton.querySelector(".favorite-icon");
-          if (newIcon && currentIcon) {
-            newIcon.textContent = currentIcon;
-          }
-          newFavoriteButton.className = currentClasses;
-          newFavoriteButton.title = currentTitle;
-
-          // Add new event listener to the new button
-          newFavoriteButton.addEventListener("click", handleStudyFavoriteToggle);
-
-          console.log(`[DEBUG] Favorite button event listener updated successfully, state preserved`);
-        } else {
-          // If parentNode is null, just remove and re-add the event listener
-          console.warn(`[WARN] Favorite button has no parent, using alternative method`);
-
-          // Remove existing event listeners by cloning the element's attributes
-          currentFavoriteButton.removeEventListener("click", handleStudyFavoriteToggle);
-
-          // Add new event listener
-          currentFavoriteButton.addEventListener("click", handleStudyFavoriteToggle);
-
-          console.log(`[DEBUG] Favorite button event listener added directly`);
-        }
-      } catch (error) {
-        console.error(`[ERROR] Failed to update favorite button event listener:`, error);
-
-        // Fallback: just add the event listener without removing old ones
-        currentFavoriteButton.addEventListener("click", handleStudyFavoriteToggle);
-        console.log(`[DEBUG] Fallback: Added event listener without cleanup`);
+      // To prevent stale event listeners, clone and replace the button.
+      // This is safer than trying to remove specific listeners.
+      // It also avoids race conditions where the button's state is cloned before being updated.
+      let newFavoriteButton = currentFavoriteButton;
+      if (currentFavoriteButton.parentNode) {
+        newFavoriteButton = currentFavoriteButton.cloneNode(true);
+        currentFavoriteButton.parentNode.replaceChild(newFavoriteButton, currentFavoriteButton);
       }
+      
+      // Add the event listener to the new, clean button.
+      newFavoriteButton.addEventListener("click", handleStudyFavoriteToggle);
+
+      // Now, load the favorite status for the current card.
+      // This will fetch the status and update the new button's appearance.
+      loadCardFavoriteStatus(currentQuestion.id);
     } else {
       console.log(`[DEBUG] Favorite button setup skipped - button exists: ${!!currentFavoriteButton}, question ID: ${currentQuestion?.id}`);
     }
