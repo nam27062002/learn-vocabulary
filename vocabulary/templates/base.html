@@ -1,6 +1,6 @@
-{% load i18n %} {% load static %}
+{% load static %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE }}">
+  <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -236,35 +236,14 @@
                   aria-labelledby="language-menu-button"
                   tabindex="-1"
                 >
-                  <form action="/i18n/setlang/" method="post" class="lang-form">
-                    {% csrf_token %}
-                    <input
-                      name="next"
-                      type="hidden"
-                      value="{{ request.get_full_path }}"
-                      id="nav-next-input"
-                    />
-                    <button
-                      type="submit"
-                      name="language"
-                      value="en"
-                      class="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 {% if LANGUAGE_CODE == 'en' %}bg-gray-100 dark:bg-gray-600{% endif %}"
-                      role="menuitem"
-                      tabindex="-1"
-                    >
+                  <div class="py-1">
+                    <button type="button" data-lang="en" class="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
                       🇺🇸 English
                     </button>
-                    <button
-                      type="submit"
-                      name="language"
-                      value="vi"
-                      class="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 {% if LANGUAGE_CODE == 'vi' %}bg-gray-100 dark:bg-gray-600{% endif %}"
-                      role="menuitem"
-                      tabindex="-1"
-                    >
+                    <button type="button" data-lang="vi" class="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
                       🇻🇳 Tiếng Việt
                     </button>
-                  </form>
+                  </div>
                 </div>
               </div>
             </div>

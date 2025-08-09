@@ -56,7 +56,6 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.locale.LocaleMiddleware',  # Must be after SessionMiddleware and CommonMiddleware
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -77,10 +76,9 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'django.template.context_processors.i18n',  # Django i18n support
                 'vocabulary.context_processors.i18n_compatible_translations',  # Hybrid i18n system
                 # Required for allauth
-                'django.template.context_processors.request',
+                # request is already included above
             ],
         },
     },
@@ -119,40 +117,17 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
-
-LANGUAGE_CODE = 'en'  # Default language
-
-TIME_ZONE = 'Asia/Ho_Chi_Minh'  # Vietnam timezone
-
-# Temporarily disable Django's i18n system until .mo files are properly compiled
+# Internationalization disabled and simplified for localhost single-user setup
+LANGUAGE_CODE = 'en'
+TIME_ZONE = 'Asia/Ho_Chi_Minh'
 USE_I18N = False
 USE_L10N = True
 USE_TZ = True
 
-# Available languages
-LANGUAGES = [
-    ('en', 'English'),
-    ('vi', 'Tiếng Việt'),
-]
-
-# Directory where translation files are stored
-LOCALE_PATHS = [
-    BASE_DIR / 'locale',
-]
-
-# Session settings for language persistence
-SESSION_COOKIE_AGE = 60 * 60 * 24 * 30  # 30 days
+# Simplified session/cookie settings
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 30
 SESSION_SAVE_EVERY_REQUEST = True
-
-# Language settings
-LANGUAGE_SESSION_KEY = 'django_language'
-LANGUAGE_COOKIE_NAME = 'django_language'
-LANGUAGE_COOKIE_AGE = 60 * 60 * 24 * 30  # 30 days
-
-# CSRF settings to ensure cookies work properly
-CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
+CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = False
 CSRF_USE_SESSIONS = False
 

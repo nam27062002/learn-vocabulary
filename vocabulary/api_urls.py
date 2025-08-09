@@ -46,4 +46,7 @@ urlpatterns = [
     path('api/favorites/toggle/', views.api_toggle_favorite, name='api_toggle_favorite'),
     path('api/favorites/count/', views.api_get_favorites_count, name='api_get_favorites_count'),
     path('api/favorites/check/', views.api_check_favorite_status, name='api_check_favorite_status'),
+
+    # Language (manual language switch without Django i18n)
+    path('api/set-language/', views.api_set_language, name='api_set_language'),
 ]

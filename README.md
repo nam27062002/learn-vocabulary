@@ -17,12 +17,7 @@ python manage.py runserver
 
 ## 📚 Documentation
 
-Tất cả documentation chi tiết được tổ chức trong thư mục **[docs/](docs/)**:
-
-- **[📋 Documentation Index](docs/INDEX.md)** - Tổng quan tất cả tài liệu
-- **[🌐 Localization Rules](docs/LOCALIZATION_RULE.md)** - Quy tắc sử dụng localization
-- **[🎯 Study Features](docs/RANDOM_STUDY_FEATURE.md)** - Tính năng học tập
-- **[🔧 Bug Fixes](docs/DROPDOWN_FIX.md)** - Các sửa lỗi đã thực hiện
+Tài liệu chi tiết nằm trong **[docs/](docs/)**. Lưu ý: dự án đã loại bỏ i18n để tránh lỗi build khi bật tiếng Việt; giao diện dùng tiếng Anh mặc định.
 
 ## 🌟 Features
 

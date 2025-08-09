@@ -19,10 +19,8 @@ urlpatterns = [
     path('decks/', views.deck_list, name='deck_list'),
     path('decks/<int:deck_id>/', views.deck_detail, name='deck_detail'),
     path('favorites/', views.favorites_page, name='favorites'),
-    path('debug-study/', views.debug_study_template, name='debug_study'),
     path('statistics/', views.statistics_view, name='statistics'),
-    path('debug/language/', views.debug_language, name='debug_language'),
-    path('test/language/', views.language_test, name='language_test'),
     path('study/', views.study_page, name='study'),
     path('test-statistics/', views.test_statistics_view, name='test_statistics'),
+    path('debug-study/', views.debug_study_template, name='debug_study'),
 ]

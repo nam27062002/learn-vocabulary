@@ -1,12 +1,11 @@
 {% extends "account/base.html" %}
-{% load i18n %}
 {% load allauth %}
 
 {% block title %}
     {% if process == "connect" %}
-        {% blocktrans with provider.name as provider %}Connect {{ provider }}{% endblocktrans %}
+        Connect {{ provider.name }}
     {% else %}
-        {% blocktrans with provider.name as provider %}Sign In Via {{ provider }}{% endblocktrans %}
+        Sign In Via {{ provider.name }}
     {% endif %}
 {% endblock %}
 
@@ -27,17 +26,17 @@
 
                 {% if process == "connect" %}
                     <h2 class="text-3xl font-bold text-gray-900 mb-2">
-                        {% blocktrans with provider.name as provider %}Connect {{ provider }}{% endblocktrans %}
+                        Connect {{ provider.name }}
                     </h2>
                     <p class="text-gray-600 mb-6">
-                        {% blocktrans with provider.name as provider %}You are about to connect a new third-party account from {{ provider }}.{% endblocktrans %}
+                        You are about to connect a new third-party account from {{ provider.name }}.
                     </p>
                 {% else %}
                     <h2 class="text-3xl font-bold text-gray-900 mb-2">
-                        {% blocktrans with provider.name as provider %}Sign In Via {{ provider }}{% endblocktrans %}
+                        Sign In Via {{ provider.name }}
                     </h2>
                     <p class="text-gray-600 mb-6">
-                        {% blocktrans with provider.name as provider %}You are about to sign in using a third-party account from {{ provider }}.{% endblocktrans %}
+                        You are about to sign in using a third-party account from {{ provider.name }}.
                     </p>
                 {% endif %}
             </div>

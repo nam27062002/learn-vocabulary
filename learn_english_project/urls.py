@@ -18,24 +18,18 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.conf.urls.i18n import i18n_patterns
-from django.views.i18n import set_language, JavaScriptCatalog
+# i18n is disabled; no i18n URL imports
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('accounts/', include('allauth.urls')),  # Authentication URLs
-    path('i18n/', include('django.conf.urls.i18n')),  # Include i18n URLs (not affected by language prefix)
-    path('jsi18n/', JavaScriptCatalog.as_view(), name='javascript-catalog'),  # JavaScript i18n catalog
+    path('accounts/', include('allauth.urls')),
+    # No i18n URLs or JS catalog since i18n is disabled
 
-    # API endpoints - NO language prefix (return JSON, not localized HTML)
+    # API endpoints
     path('', include('vocabulary.api_urls')),
-]
-
-# Internationalized URLs - pages that need language prefixes
-urlpatterns += i18n_patterns(
+    # Page URLs without language prefixes
     path('', include('vocabulary.urls')),
-    prefix_default_language=True  # Always show language prefix to avoid confusion
-)
+]
 
 # Serve media and static files during development
 if settings.DEBUG:

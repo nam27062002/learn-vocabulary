@@ -65,30 +65,32 @@ document.addEventListener('DOMContentLoaded', function() {
     // ==========================================================================
     // Language Form Submission
     // ==========================================================================
-    const langForm = document.querySelector('.lang-form');
-    if (langForm) {
-        const langButtons = langForm.querySelectorAll('button');
-        langButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const nextInput = document.getElementById('nav-next-input');
-                if (nextInput) {
-                    const currentPath = window.location.pathname;
-                    const targetLang = this.value;
-                    let newPath = currentPath;
-
-                    // This logic might need adjustment depending on your URL structure
-                    if (currentPath.startsWith('/en/')) {
-                        newPath = currentPath.substring(3);
-                    } else if (currentPath.startsWith('/vi/')) {
-                        newPath = currentPath.substring(3);
+    // Language menu buttons (manual language switch without Django i18n)
+    const langMenu = document.getElementById('lang-menu');
+    if (langMenu) {
+        const langButtons = langMenu.querySelectorAll('button[data-lang]');
+        langButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.getAttribute('data-lang');
+                fetch('/api/set-language/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({ language: target })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.success) {
+                        // Close menu and reload to apply
+                        langMenu.classList.add('hidden');
+                        window.location.reload();
+                    } else {
+                        console.error('Set language failed:', data);
                     }
-                    // Ensure leading slash
-                    if (newPath.charAt(0) !== '/') {
-                        newPath = '/' + newPath;
-                    }
-
-                    nextInput.value = `/${targetLang}${newPath}`;
-                }
+                })
+                .catch(err => console.error('Set language error:', err));
             });
         });
     }

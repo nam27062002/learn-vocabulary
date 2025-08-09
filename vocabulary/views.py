@@ -1279,56 +1279,25 @@ def get_related_image(request):
             'error': str(e)
         })
 
-@require_GET
-def debug_language(request):
-    """Debug view to check current language settings"""
-    from django.utils import translation
-    
-    debug_info = {
-        'current_language': translation.get_language(),
-        'session_language': request.session.get('django_language', 'Not set'),
-        'accept_language': request.META.get('HTTP_ACCEPT_LANGUAGE', 'Not set'),
-        'language_from_request': translation.get_language_from_request(request),
-        'supported_languages': dict(settings.LANGUAGES),
-        'default_language': settings.LANGUAGE_CODE,
-    }
-    
-    return JsonResponse(debug_info)
+## Removed debug_language and language_test since i18n is disabled
 
-def language_test(request):
-    """Simple test view for language debugging"""
-    from django.utils import translation
-    
-    current_lang = translation.get_language()
-    
-    # Manual translations for testing
-    translations = {
-        'en': {
-            'title': 'Language Test',
-            'welcome': 'Welcome to LearnEnglish',
-            'add_words': 'Add New Words',
-            'flashcards': 'My Flashcards',
-            'navigation': 'Home | Flashcards | Add Word',
-            'back': 'Back to Dashboard'
-        },
-        'vi': {
-            'title': 'Test Ngôn Ngữ',
-            'welcome': 'Chào mừng đến với LearnEnglish',
-            'add_words': 'Thêm từ mới',
-            'flashcards': 'Thẻ từ vựng của tôi',
-            'navigation': 'Trang chủ | Thẻ từ vựng | Thêm từ',
-            'back': 'Về Bảng Điều Khiển'
-        }
-    }
-    
-    context = {
-        'current_language': current_lang,
-        'session_language': request.session.get('django_language', 'Not set'),
-        'all_session_data': dict(request.session),
-        'texts': translations.get(current_lang, translations['en']),
-    }
-    
-    return render(request, 'vocabulary/language_test.html', context)
+@require_POST
+def api_set_language(request):
+    """Set UI language in session for manual_texts system (en/vi)."""
+    try:
+        data = json.loads(request.body) if request.body else {}
+        lang = (data.get('language') or '').strip().lower()
+        if lang not in ('en', 'vi'):
+            return JsonResponse({'success': False, 'error': 'Invalid language'}, status=400)
+
+        # Persist choice in session so context processor uses it
+        request.session['django_language'] = lang
+        request.session.save()
+        return JsonResponse({'success': True, 'language': lang})
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
 def statistics_view(request):
