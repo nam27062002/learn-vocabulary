@@ -67,6 +67,7 @@
         text-decoration: none;
         color: var(--card-text-main);
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        position: relative;
     }
 
     .deck-card:hover {
@@ -456,6 +457,146 @@
             gap: 5px;
         }
     }
+
+    /* Delete button styles */
+    .deck-actions {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        display: flex;
+        gap: 8px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .deck-card:hover .deck-actions {
+        opacity: 1;
+    }
+
+    .delete-deck-btn {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 14px;
+        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+    }
+
+    .delete-deck-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);
+    }
+
+    .delete-deck-btn:active {
+        transform: scale(0.95);
+    }
+
+    /* Confirmation modal styles */
+    .confirmation-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .confirmation-modal.show {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        background: var(--card-background);
+        border-radius: 12px;
+        padding: 30px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        animation: slideIn 0.3s ease;
+    }
+
+    .modal-header {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .modal-header h3 {
+        color: #ef4444;
+        margin: 0;
+        font-size: 1.3em;
+    }
+
+    .modal-body {
+        text-align: center;
+        margin-bottom: 25px;
+        color: var(--text-main);
+        line-height: 1.5;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+    }
+
+    .modal-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 14px;
+        min-width: 80px;
+    }
+
+    .btn-cancel {
+        background: var(--card-border-color);
+        color: var(--text-main);
+    }
+
+    .btn-cancel:hover {
+        background: #6b7280;
+        color: white;
+    }
+
+    .btn-delete {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+    }
+
+    .btn-delete:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes slideIn {
+        from { 
+            opacity: 0;
+            transform: translateY(-20px) scale(0.9);
+        }
+        to { 
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
 </style>
 
 <div class="deck-list-page">
@@ -497,15 +638,24 @@
     {% if decks %}
         <div class="deck-grid">
             {% for deck in decks %}
-                <a href="{% url 'deck_detail' deck.id %}" class="deck-card">
-                    <div>
-                        <h2>{{ deck.name }}</h2>
-                    </div>
-                    <div class="deck-info">
-                        <span>{{ deck.card_count }} {{ manual_texts.cards_text }}</span>
-                        <span class="created-date">{{ deck.created_at|date:"d M Y" }}</span>
-                    </div>
-                </a>
+                <div class="deck-card-wrapper">
+                    <a href="{% url 'deck_detail' deck.id %}" class="deck-card">
+                        <div class="deck-actions">
+                            <button class="delete-deck-btn" 
+                                    onclick="event.preventDefault(); event.stopPropagation(); showDeleteConfirmation.call(this, {{ deck.id }}, '{{ deck.name|escapejs }}');"
+                                    title="Delete deck">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        <div>
+                            <h2>{{ deck.name }}</h2>
+                        </div>
+                        <div class="deck-info">
+                            <span>{{ deck.card_count }} {{ manual_texts.cards_text }}</span>
+                            <span class="created-date">{{ deck.created_at|date:"d M Y" }}</span>
+                        </div>
+                    </a>
+                </div>
             {% endfor %}
         </div>
     {% else %}
@@ -514,6 +664,23 @@
             <p>{{ manual_texts.get_started_by }} <a href="{% url 'add_flashcard' %}">{{ manual_texts.adding_flashcards }}</a>!</p>
         </div>
     {% endif %}
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteConfirmationModal" class="confirmation-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-exclamation-triangle"></i> Delete Deck</h3>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete the deck <strong id="deckNameToDelete"></strong>?</p>
+            <p><small>This action cannot be undone. All flashcards in this deck will also be deleted.</small></p>
+        </div>
+        <div class="modal-actions">
+            <button class="modal-btn btn-cancel" onclick="hideDeleteConfirmation()">Cancel</button>
+            <button class="modal-btn btn-delete" onclick="confirmDelete()">Delete</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -809,6 +976,170 @@ document.addEventListener('DOMContentLoaded', function() {
         e.stopPropagation();
     });
 });
+
+// Delete deck functionality
+let deckToDelete = null;
+let deckElementToRemove = null;
+
+function showDeleteConfirmation(deckId, deckName) {
+    deckToDelete = deckId;
+    // Store reference to the deck card wrapper element
+    // 'this' refers to the delete button that was clicked
+    deckElementToRemove = this.closest('.deck-card-wrapper');
+    
+    document.getElementById('deckNameToDelete').textContent = deckName;
+    document.getElementById('deleteConfirmationModal').classList.add('show');
+    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+}
+
+function hideDeleteConfirmation() {
+    document.getElementById('deleteConfirmationModal').classList.remove('show');
+    document.body.style.overflow = ''; // Restore scrolling
+    deckToDelete = null;
+    deckElementToRemove = null;
+}
+
+async function confirmDelete() {
+    if (!deckToDelete) return;
+
+    const deleteBtn = document.querySelector('.btn-delete');
+    const originalText = deleteBtn.textContent;
+    
+    try {
+        // Show loading state
+        deleteBtn.disabled = true;
+        deleteBtn.innerHTML = '<span class="loading-spinner"></span> Deleting...';
+
+        // Get CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                         document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                         '{{ csrf_token }}';
+
+        const response = await fetch(`/decks/${deckToDelete}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json',
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Hide modal
+            hideDeleteConfirmation();
+            
+            // Show success message
+            showSuccessMessage(data.message);
+            
+            // Remove the deck card from the DOM
+            if (deckElementToRemove) {
+                deckElementToRemove.style.animation = 'fadeOut 0.3s ease';
+                setTimeout(() => {
+                    deckElementToRemove.remove();
+                    
+                    // Check if no decks remain
+                    const remainingDecks = document.querySelectorAll('.deck-card-wrapper');
+                    if (remainingDecks.length === 0) {
+                        // Reload page to show "no decks" message
+                        window.location.reload();
+                    }
+                }, 300);
+            } else {
+                // If we can't find the specific card, just reload the page
+                window.location.reload();
+            }
+            
+        } else {
+            throw new Error(data.error || 'Failed to delete deck');
+        }
+
+    } catch (error) {
+        console.error('Delete deck error:', error);
+        showErrorMessage('Failed to delete deck: ' + error.message);
+        
+    } finally {
+        // Reset button state
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = originalText;
+    }
+}
+
+function showSuccessMessage(message) {
+    const messageDiv = document.createElement('div');
+    messageDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        z-index: 10000;
+        animation: slideInRight 0.3s ease;
+        font-weight: 500;
+    `;
+    messageDiv.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
+    document.body.appendChild(messageDiv);
+    
+    setTimeout(() => {
+        messageDiv.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => messageDiv.remove(), 300);
+    }, 3000);
+}
+
+function showErrorMessage(message) {
+    const messageDiv = document.createElement('div');
+    messageDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        z-index: 10000;
+        animation: slideInRight 0.3s ease;
+        font-weight: 500;
+    `;
+    messageDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${message}`;
+    document.body.appendChild(messageDiv);
+    
+    setTimeout(() => {
+        messageDiv.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => messageDiv.remove(), 300);
+    }, 5000);
+}
+
+// Close modal when clicking outside
+document.getElementById('deleteConfirmationModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideDeleteConfirmation();
+    }
+});
+
+// Add CSS for animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeOut {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(-10px); }
+    }
+    
+    @keyframes slideInRight {
+        from { opacity: 0; transform: translateX(100%); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+    
+    @keyframes slideOutRight {
+        from { opacity: 1; transform: translateX(0); }
+        to { opacity: 0; transform: translateX(100%); }
+    }
+`;
+document.head.appendChild(style);
 </script>
 
 {% endblock %}

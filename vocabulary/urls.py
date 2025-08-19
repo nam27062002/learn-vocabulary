@@ -18,6 +18,7 @@ urlpatterns = [
     path('word-details/', views.get_word_details_api, name='get_word_details_api'),
     path('decks/', views.deck_list, name='deck_list'),
     path('decks/<int:deck_id>/', views.deck_detail, name='deck_detail'),
+    path('decks/<int:deck_id>/delete/', views.delete_deck, name='delete_deck'),
     path('favorites/', views.favorites_page, name='favorites'),
     path('statistics/', views.statistics_view, name='statistics'),
     path('study/', views.study_page, name='study'),

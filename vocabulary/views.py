@@ -977,6 +977,41 @@ def deck_detail(request, deck_id):
 
 
 @login_required
+@require_POST
+def delete_deck(request, deck_id):
+    try:
+        deck = Deck.objects.get(id=deck_id, user=request.user)
+        deck_name = deck.name
+        deck.delete()
+        
+        # If it's an AJAX request, return JSON response
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True, 
+                'message': f'Deck "{deck_name}" has been deleted successfully.'
+            })
+        
+        # For regular form submission, redirect to deck list
+        return redirect('deck_list')
+        
+    except Deck.DoesNotExist:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': False, 
+                'error': 'Deck not found or you do not have permission to delete it.'
+            }, status=404)
+        return redirect('deck_list')
+        
+    except Exception as e:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': False, 
+                'error': f'Error deleting deck: {str(e)}'
+            }, status=500)
+        return redirect('deck_list')
+
+
+@login_required
 def flashcard_list(request):
     flashcards = Flashcard.objects.filter(user=request.user).order_by('-created_at')
     flashcard_defs = []
