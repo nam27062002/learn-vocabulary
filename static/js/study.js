@@ -2591,6 +2591,13 @@
         if (this.isRecording) return;
         
         this.clearPronunciationFeedback();
+        
+        // Clear live transcription from previous recording
+        const transcriptionEl = document.querySelector('.live-transcription');
+        if (transcriptionEl) {
+          transcriptionEl.remove();
+        }
+        
         this.recognizedText = null;
         this.pronunciationScore = null;
         this.audioChunks = [];
