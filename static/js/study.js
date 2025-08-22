@@ -852,6 +852,11 @@
     if (recordingControls) {
       recordingControls.style.display = 'none';
     }
+    
+    // Clear pronunciation feedback when moving to new card
+    if (typeof VoiceRecording !== 'undefined') {
+      VoiceRecording.clearRecording();
+    }
 
     // Hide and reset favorite button during question phase - it will be shown after answer submission
     let currentFavoriteButton = favoriteButton;
