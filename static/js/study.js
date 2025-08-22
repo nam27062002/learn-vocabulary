@@ -699,6 +699,9 @@
       elapsed = (Date.now() - studyStartTime) - pausedTime;
     }
 
+    // Ensure elapsed time is never negative
+    elapsed = Math.max(0, elapsed);
+
     const totalSeconds = Math.floor(elapsed / 1000);
 
     const hours = Math.floor(totalSeconds / 3600);
