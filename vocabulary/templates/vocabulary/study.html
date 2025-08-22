@@ -333,6 +333,14 @@
           <button id="audioButton" class="audio-button" style="display: none">
             <i class="fas fa-volume-up"></i>
           </button>
+          <div class="recording-controls" style="display: none;">
+            <button id="recordButton" class="record-button" title="{{ manual_texts.record_pronunciation|default:'Record your pronunciation' }}">
+              <i class="fas fa-microphone" id="recordIcon"></i>
+            </button>
+            <button id="playRecordingButton" class="play-recording-button" style="display: none;" title="{{ manual_texts.play_your_audio|default:'Play your audio' }}">
+              <i class="fas fa-play"></i>
+            </button>
+          </div>
           <button id="favoriteButton" class="favorite-button" style="display: none" title="{{ manual_texts.toggle_favorite|default:'Toggle favorite' }}">
             <span class="favorite-icon">🤍</span>
           </button>
@@ -395,7 +403,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/dictionary-utils.js' %}"></script>
 <script>
   const STUDY_CFG = {
     nextUrl: "{% url 'api_next_question' %}",

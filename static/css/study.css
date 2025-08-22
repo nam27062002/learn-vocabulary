@@ -1792,6 +1792,104 @@ div.input-row.hidden {
   }
 }
 
+/* Recording Controls */
+.recording-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+
+.record-button,
+.play-recording-button {
+  background: var(--gradient-primary);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-md);
+}
+
+.record-button:hover,
+.play-recording-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.record-button.recording {
+  background: var(--gradient-error);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* Pronunciation Feedback */
+.pronunciation-feedback {
+  margin-top: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  animation: slideIn 0.3s ease;
+}
+
+.pronunciation-feedback.feedback-excellent {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.pronunciation-feedback.feedback-good {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+}
+
+.pronunciation-feedback.feedback-okay {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+.pronunciation-feedback.feedback-poor {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+}
+
+.feedback-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.feedback-icon {
+  font-size: 1.5rem;
+}
+
+.feedback-text {
+  flex: 1;
+}
+
+.feedback-message {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.feedback-score {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .flashcard-correct {
   border-color: #10b981 !important; /* green-500 */
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);

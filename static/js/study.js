@@ -846,6 +846,12 @@
     if (audioButton) {
       audioButton.style.display = "none";
     }
+    
+    // Hide recording controls during question phase
+    const recordingControls = document.querySelector('.recording-controls');
+    if (recordingControls) {
+      recordingControls.style.display = 'none';
+    }
 
     // Hide and reset favorite button during question phase - it will be shown after answer submission
     let currentFavoriteButton = favoriteButton;
@@ -1302,6 +1308,13 @@
         const audio = new Audio(currentQuestion.audio_url);
         audio.play().catch((err) => console.log("Audio play failed:", err));
       };
+    }
+    
+    // Show recording controls after answer submission
+    const recordingControls = document.querySelector('.recording-controls');
+    if (recordingControls) {
+      recordingControls.style.display = 'flex';
+      VoiceRecording.clearRecording(); // Clear previous recording data
     }
 
     // Auto-play audio after revealing answer
@@ -2483,6 +2496,335 @@
   window.addEventListener('blur', handleWindowBlur, false);
   window.addEventListener('focus', handleWindowFocus, false);
   console.log(`[DEBUG] Added window focus/blur listeners for timer pause/resume`);
+
+  // Voice Recording System
+  const VoiceRecording = {
+    mediaRecorder: null,
+    audioChunks: [],
+    recordedAudioBlob: null,
+    recordedAudioUrl: null,
+    isRecording: false,
+    recognition: null,
+    recognizedText: null,
+    pronunciationScore: null,
+    
+    async init() {
+      try {
+        console.log("🎤 Initializing voice recording system...");
+        
+        if (!navigator.mediaDevices || !MediaRecorder) {
+          console.warn("⚠️ MediaRecorder not supported");
+          return false;
+        }
+        
+        this.initSpeechRecognition();
+        return true;
+      } catch (error) {
+        console.error("❌ Failed to initialize voice recording:", error);
+        return false;
+      }
+    },
+    
+    initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      
+      if (!SpeechRecognition) {
+        console.warn("⚠️ Speech Recognition not supported");
+        return;
+      }
+      
+      this.recognition = new SpeechRecognition();
+      this.recognition.continuous = false;
+      this.recognition.interimResults = false;
+      this.recognition.lang = 'en-US';
+      this.recognition.maxAlternatives = 1;
+      
+      this.recognition.onresult = (event) => {
+        const result = event.results[0];
+        if (result.isFinal) {
+          const transcript = result[0].transcript.toLowerCase().trim();
+          const confidence = result[0].confidence || 0.5;
+          
+          console.log("🎤 Recognized:", transcript, "Confidence:", confidence);
+          
+          this.recognizedText = transcript;
+          this.assessPronunciation(transcript, confidence);
+        }
+      };
+      
+      this.recognition.onerror = (event) => {
+        if (event.error === 'no-speech') {
+          console.log("ℹ️ No speech detected");
+          return;
+        }
+        console.error("❌ Speech Recognition Error:", event.error);
+      };
+      
+      this.recognition.onend = () => {
+        console.log("🎤 Speech Recognition ended");
+      };
+    },
+    
+    async startRecording() {
+      try {
+        if (this.isRecording) return;
+        
+        this.clearPronunciationFeedback();
+        this.recognizedText = null;
+        this.pronunciationScore = null;
+        this.audioChunks = [];
+        
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        this.mediaRecorder = new MediaRecorder(stream);
+        
+        this.mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            this.audioChunks.push(event.data);
+          }
+        };
+        
+        this.mediaRecorder.onstop = () => {
+          this.recordedAudioBlob = new Blob(this.audioChunks, { type: 'audio/wav' });
+          if (this.recordedAudioUrl) {
+            URL.revokeObjectURL(this.recordedAudioUrl);
+          }
+          this.recordedAudioUrl = URL.createObjectURL(this.recordedAudioBlob);
+          
+          const playBtn = document.getElementById('playRecordingButton');
+          if (playBtn) {
+            playBtn.style.display = 'block';
+          }
+          
+          stream.getTracks().forEach(track => track.stop());
+        };
+        
+        this.isRecording = true;
+        this.mediaRecorder.start();
+        
+        // Start speech recognition separately
+        if (this.recognition) {
+          this.recognition.start();
+        }
+        
+        // Update UI
+        const recordBtn = document.getElementById('recordButton');
+        const recordIcon = document.getElementById('recordIcon');
+        if (recordBtn && recordIcon) {
+          recordBtn.classList.add('recording');
+          recordIcon.className = 'fas fa-stop';
+          recordBtn.title = STUDY_CFG.labels.stop_recording || 'Stop recording';
+        }
+        
+        console.log("🔴 Recording started");
+        
+      } catch (error) {
+        console.error("❌ Failed to start recording:", error);
+        alert(STUDY_CFG.labels.microphone_error || 'Microphone access denied');
+        this.isRecording = false;
+      }
+    },
+    
+    stopRecording() {
+      if (!this.isRecording) return;
+      
+      this.isRecording = false;
+      
+      if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+        this.mediaRecorder.stop();
+      }
+      
+      if (this.recognition) {
+        try {
+          this.recognition.stop();
+        } catch (error) {
+          console.warn("⚠️ Could not stop speech recognition:", error);
+        }
+      }
+      
+      // Update UI
+      const recordBtn = document.getElementById('recordButton');
+      const recordIcon = document.getElementById('recordIcon');
+      if (recordBtn && recordIcon) {
+        recordBtn.classList.remove('recording');
+        recordIcon.className = 'fas fa-microphone';
+        recordBtn.title = STUDY_CFG.labels.record_pronunciation || 'Record pronunciation';
+      }
+      
+      console.log("⏹️ Recording stopped");
+    },
+    
+    playRecording() {
+      if (!this.recordedAudioUrl) {
+        console.warn("⚠️ No recorded audio available");
+        return;
+      }
+      
+      const audio = new Audio(this.recordedAudioUrl);
+      audio.play().then(() => {
+        console.log("🎤 Playing recorded audio");
+      }).catch(error => {
+        console.error("❌ Error playing audio:", error);
+      });
+    },
+    
+    assessPronunciation(recognizedText, confidence) {
+      if (!currentQuestion || !currentQuestion.word) {
+        console.warn("⚠️ No current question");
+        return;
+      }
+      
+      const expected = currentQuestion.word.toLowerCase().trim();
+      const spoken = recognizedText.toLowerCase().trim();
+      
+      const score = this.calculateSimilarityScore(expected, spoken, confidence);
+      this.pronunciationScore = score;
+      
+      this.showPronunciationFeedback(expected, spoken, score, confidence);
+      
+      console.log(`🎯 Pronunciation: ${expected} vs ${spoken}, Score: ${score}%`);
+    },
+    
+    calculateSimilarityScore(expected, spoken, confidence) {
+      if (expected === spoken) {
+        return Math.min(95 + (confidence * 5), 100);
+      }
+      
+      if (spoken.includes(expected) || expected.includes(spoken)) {
+        return Math.min(80 + (confidence * 15), 95);
+      }
+      
+      const distance = this.levenshteinDistance(expected, spoken);
+      const maxLength = Math.max(expected.length, spoken.length);
+      const similarity = (maxLength - distance) / maxLength;
+      
+      const baseScore = similarity * 70;
+      const confidenceBonus = confidence * 30;
+      
+      return Math.max(0, Math.min(100, baseScore + confidenceBonus));
+    },
+    
+    levenshteinDistance(str1, str2) {
+      const matrix = [];
+      
+      for (let i = 0; i <= str2.length; i++) {
+        matrix[i] = [i];
+      }
+      
+      for (let j = 0; j <= str1.length; j++) {
+        matrix[0][j] = j;
+      }
+      
+      for (let i = 1; i <= str2.length; i++) {
+        for (let j = 1; j <= str1.length; j++) {
+          if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+            matrix[i][j] = matrix[i - 1][j - 1];
+          } else {
+            matrix[i][j] = Math.min(
+              matrix[i - 1][j - 1] + 1,
+              matrix[i][j - 1] + 1,
+              matrix[i - 1][j] + 1
+            );
+          }
+        }
+      }
+      
+      return matrix[str2.length][str1.length];
+    },
+    
+    showPronunciationFeedback(expected, spoken, score, confidence) {
+      this.clearPronunciationFeedback();
+      
+      const feedbackEl = document.createElement('div');
+      feedbackEl.className = 'pronunciation-feedback';
+      
+      const recordingControls = document.querySelector('.recording-controls');
+      if (recordingControls && recordingControls.parentNode) {
+        recordingControls.parentNode.insertBefore(feedbackEl, recordingControls.nextSibling);
+      }
+      
+      let feedbackClass, feedbackIcon, feedbackMessage;
+      
+      if (score >= 85) {
+        feedbackClass = 'feedback-excellent';
+        feedbackIcon = '🎉';
+        feedbackMessage = 'Excellent pronunciation!';
+      } else if (score >= 70) {
+        feedbackClass = 'feedback-good';
+        feedbackIcon = '👍';
+        feedbackMessage = 'Good pronunciation!';
+      } else if (score >= 50) {
+        feedbackClass = 'feedback-okay';
+        feedbackIcon = '👌';
+        feedbackMessage = `Close! You said "${spoken}", expected "${expected}"`;
+      } else {
+        feedbackClass = 'feedback-poor';
+        feedbackIcon = '🔄';
+        feedbackMessage = `Try again! You said "${spoken}", expected "${expected}"`;
+      }
+      
+      feedbackEl.className = `pronunciation-feedback ${feedbackClass}`;
+      feedbackEl.innerHTML = `
+        <div class="feedback-content">
+          <span class="feedback-icon">${feedbackIcon}</span>
+          <div class="feedback-text">
+            <div class="feedback-message">${feedbackMessage}</div>
+            <div class="feedback-score">Score: ${Math.round(score)}%</div>
+          </div>
+        </div>
+      `;
+      
+      setTimeout(() => {
+        feedbackEl.style.opacity = '0.7';
+      }, 3000);
+    },
+    
+    clearPronunciationFeedback() {
+      const feedbackEl = document.querySelector('.pronunciation-feedback');
+      if (feedbackEl) {
+        feedbackEl.remove();
+      }
+    },
+    
+    clearRecording() {
+      const playBtn = document.getElementById('playRecordingButton');
+      if (playBtn) {
+        playBtn.style.display = 'none';
+      }
+      
+      if (this.recordedAudioUrl) {
+        URL.revokeObjectURL(this.recordedAudioUrl);
+        this.recordedAudioUrl = null;
+      }
+      this.recordedAudioBlob = null;
+      this.audioChunks = [];
+      this.clearPronunciationFeedback();
+      this.recognizedText = null;
+      this.pronunciationScore = null;
+    }
+  };
+
+  // Initialize Voice Recording
+  VoiceRecording.init().then(supported => {
+    const recordButton = document.getElementById('recordButton');
+    const playRecordingButton = document.getElementById('playRecordingButton');
+    
+    if (supported && recordButton) {
+      recordButton.addEventListener('click', () => {
+        if (VoiceRecording.isRecording) {
+          VoiceRecording.stopRecording();
+        } else {
+          VoiceRecording.startRecording();
+        }
+      });
+    }
+    
+    if (playRecordingButton) {
+      playRecordingButton.addEventListener('click', () => {
+        VoiceRecording.playRecording();
+      });
+    }
+  });
 
   // Make functions globally available
   window.showReviewCompletionModal = showReviewCompletionModal;
