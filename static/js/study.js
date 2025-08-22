@@ -2539,18 +2539,34 @@
       }
       
       this.recognition = new SpeechRecognition();
-      this.recognition.continuous = false;
-      this.recognition.interimResults = false;
+      this.recognition.continuous = true;
+      this.recognition.interimResults = true;
       this.recognition.lang = 'en-US';
       this.recognition.maxAlternatives = 1;
       
       this.recognition.onresult = (event) => {
-        const result = event.results[0];
-        if (result.isFinal) {
-          const transcript = result[0].transcript.toLowerCase().trim();
-          const confidence = result[0].confidence || 0.5;
+        let interimTranscript = '';
+        let finalTranscript = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+        
+        // Show live transcription
+        const currentTranscript = finalTranscript || interimTranscript;
+        this.showLiveTranscription(currentTranscript.toLowerCase().trim());
+        
+        // If we have final transcript, assess pronunciation
+        if (finalTranscript) {
+          const transcript = finalTranscript.toLowerCase().trim();
+          const confidence = event.results[event.results.length - 1][0].confidence || 0.5;
           
-          console.log("🎤 Recognized:", transcript, "Confidence:", confidence);
+          console.log("🎤 Final Recognition:", transcript, "Confidence:", confidence);
           
           this.recognizedText = transcript;
           this.assessPronunciation(transcript, confidence);
@@ -2673,6 +2689,54 @@
       });
     },
     
+    showLiveTranscription(transcript) {
+      if (!transcript || !currentQuestion || !currentQuestion.word) return;
+      
+      const expected = currentQuestion.word.toLowerCase().trim();
+      const spoken = transcript.toLowerCase().trim();
+      
+      // Check if current transcript matches expected word
+      const isCorrect = expected === spoken || spoken.includes(expected);
+      
+      // Create or update transcription display
+      let transcriptionEl = document.querySelector('.live-transcription');
+      if (!transcriptionEl) {
+        transcriptionEl = document.createElement('div');
+        transcriptionEl.className = 'live-transcription';
+        
+        const recordingControls = document.querySelector('.recording-controls');
+        if (recordingControls && recordingControls.parentNode) {
+          recordingControls.parentNode.insertBefore(transcriptionEl, recordingControls.nextSibling);
+        }
+      }
+      
+      // Style based on correctness
+      const bgColor = isCorrect ? '#10b981' : '#ef4444';
+      const textColor = 'white';
+      const icon = isCorrect ? '✅' : '❌';
+      
+      transcriptionEl.innerHTML = `
+        <div class="transcription-content">
+          <span class="transcription-icon">${icon}</span>
+          <span class="transcription-text">"${spoken}"</span>
+        </div>
+      `;
+      
+      transcriptionEl.style.cssText = `
+        background: ${bgColor};
+        color: ${textColor};
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin-top: 8px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        animation: fadeIn 0.2s ease;
+        display: block;
+      `;
+      
+      console.log(`🎯 Live transcription: "${spoken}" (${isCorrect ? 'CORRECT' : 'INCORRECT'})`);
+    },
+    
     assessPronunciation(recognizedText, confidence) {
       if (!currentQuestion || !currentQuestion.word) {
         console.warn("⚠️ No current question");
@@ -2748,30 +2812,24 @@
         recordingControls.parentNode.insertBefore(feedbackEl, recordingControls.nextSibling);
       }
       
-      let feedbackClass, feedbackIcon, feedbackMessage;
+      // Check if pronunciation is correct (exact match or very close)
+      const isCorrect = expected === spoken || score >= 80;
       
-      if (score >= 85) {
-        feedbackClass = 'feedback-excellent';
-        feedbackIcon = '🎉';
-        feedbackMessage = 'Excellent pronunciation!';
-      } else if (score >= 70) {
-        feedbackClass = 'feedback-good';
-        feedbackIcon = '👍';
-        feedbackMessage = 'Good pronunciation!';
-      } else if (score >= 50) {
-        feedbackClass = 'feedback-okay';
-        feedbackIcon = '👌';
-        feedbackMessage = `Close! You said "${spoken}", expected "${expected}"`;
+      let feedbackClass, wordColor, feedbackMessage;
+      
+      if (isCorrect) {
+        feedbackClass = 'feedback-correct';
+        wordColor = '#10b981'; // Green
+        feedbackMessage = `✅ Correct: "${spoken}"`;
       } else {
-        feedbackClass = 'feedback-poor';
-        feedbackIcon = '🔄';
-        feedbackMessage = `Try again! You said "${spoken}", expected "${expected}"`;
+        feedbackClass = 'feedback-incorrect';
+        wordColor = '#ef4444'; // Red  
+        feedbackMessage = `❌ You said: "${spoken}" (Expected: "${expected}")`;
       }
       
       feedbackEl.className = `pronunciation-feedback ${feedbackClass}`;
       feedbackEl.innerHTML = `
         <div class="feedback-content">
-          <span class="feedback-icon">${feedbackIcon}</span>
           <div class="feedback-text">
             <div class="feedback-message">${feedbackMessage}</div>
             <div class="feedback-score">Score: ${Math.round(score)}%</div>
@@ -2779,9 +2837,19 @@
         </div>
       `;
       
+      // Style the recognized word with appropriate color
+      feedbackEl.style.cssText = `
+        background: ${isCorrect ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #ef4444, #dc2626)'};
+        color: white;
+        margin-top: 12px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        animation: slideIn 0.3s ease;
+      `;
+      
       setTimeout(() => {
         feedbackEl.style.opacity = '0.7';
-      }, 3000);
+      }, 4000);
     },
     
     clearPronunciationFeedback() {
@@ -2804,6 +2872,13 @@
       this.recordedAudioBlob = null;
       this.audioChunks = [];
       this.clearPronunciationFeedback();
+      
+      // Clear live transcription
+      const transcriptionEl = document.querySelector('.live-transcription');
+      if (transcriptionEl) {
+        transcriptionEl.remove();
+      }
+      
       this.recognizedText = null;
       this.pronunciationScore = null;
     }
