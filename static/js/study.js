@@ -857,6 +857,12 @@
     if (typeof VoiceRecording !== 'undefined') {
       VoiceRecording.clearRecording();
     }
+    
+    // Clear detailed input feedback from previous question
+    const previousFeedback = document.querySelector('.detailed-input-feedback');
+    if (previousFeedback) {
+      previousFeedback.remove();
+    }
 
     // Hide and reset favorite button during question phase - it will be shown after answer submission
     let currentFavoriteButton = favoriteButton;
@@ -1003,9 +1009,9 @@
 
       btn.addEventListener("click", () => {
         if (!btn.disabled) {
-          const correct =
-            inp.value.trim().toLowerCase() === q.answer.toLowerCase();
-          submitAnswer(correct);
+          const userAnswer = inp.value.trim();
+          const correct = userAnswer.toLowerCase() === q.answer.toLowerCase();
+          submitAnswer(correct, userAnswer, q.answer);
         }
       });
 
@@ -1063,9 +1069,9 @@
 
       btn.addEventListener("click", () => {
         if (!btn.disabled) {
-          const correct =
-            inp.value.trim().toLowerCase() === q.answer.toLowerCase();
-          submitAnswer(correct);
+          const userAnswer = inp.value.trim();
+          const correct = userAnswer.toLowerCase() === q.answer.toLowerCase();
+          submitAnswer(correct, userAnswer, q.answer);
         }
       });
 
@@ -1093,10 +1099,12 @@
     }
   }
 
-  function submitAnswer(correct) {
+  function submitAnswer(correct, userAnswer = null, expectedAnswer = null) {
     console.log(`[DEBUG] ========== SUBMIT ANSWER DEBUG START ==========`);
     console.log(`[DEBUG] Question Type: ${currentQuestion?.type}`);
     console.log(`[DEBUG] Answer Correct: ${correct}`);
+    console.log(`[DEBUG] User Answer: ${userAnswer}`);
+    console.log(`[DEBUG] Expected Answer: ${expectedAnswer}`);
     console.log(`[DEBUG] Current Question:`, currentQuestion);
 
     // Debug DOM elements state
@@ -1173,6 +1181,12 @@
       incorrectCnt++;
     }
     updateStats();
+
+    // Show detailed feedback for input modes
+    if ((currentQuestion.type === "type" || currentQuestion.type === "dictation") && 
+        userAnswer !== null && expectedAnswer !== null) {
+      showDetailedInputFeedback(correct, userAnswer, expectedAnswer);
+    }
 
     // Remove feedbackMsg text
     if (feedbackMsg) {
@@ -2501,6 +2515,321 @@
   window.addEventListener('blur', handleWindowBlur, false);
   window.addEventListener('focus', handleWindowFocus, false);
   console.log(`[DEBUG] Added window focus/blur listeners for timer pause/resume`);
+
+  // Detailed Input Feedback System
+  function showDetailedInputFeedback(correct, userAnswer, expectedAnswer) {
+    console.log(`[DEBUG] Showing detailed feedback: correct=${correct}, user="${userAnswer}", expected="${expectedAnswer}"`);
+    
+    // Create feedback container
+    const feedbackContainer = document.createElement('div');
+    feedbackContainer.className = 'detailed-input-feedback';
+    
+    // Position it to the left of cardBox
+    const cardBox = document.getElementById('cardBox');
+    if (cardBox && cardBox.parentNode) {
+      // Insert before cardBox (so it appears to the left)
+      cardBox.parentNode.insertBefore(feedbackContainer, cardBox);
+    } else {
+      // Fallback: insert in study area
+      const studyArea = document.getElementById('studyArea');
+      if (studyArea) {
+        studyArea.appendChild(feedbackContainer);
+      }
+    }
+    
+    if (correct) {
+      // Correct answer feedback
+      feedbackContainer.innerHTML = `
+        <div class="feedback-content correct">
+          <div class="feedback-header">
+            <span class="feedback-icon">✅</span>
+            <span class="feedback-title">Correct!</span>
+            <button class="close-feedback-btn" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+          </div>
+          <div class="answer-display">
+            <span class="user-answer correct">"${userAnswer}"</span>
+          </div>
+        </div>
+      `;
+    } else {
+      // Incorrect answer - show detailed comparison
+      const comparisonHtml = generateLetterComparison(userAnswer, expectedAnswer);
+      
+      feedbackContainer.innerHTML = `
+        <div class="feedback-content incorrect">
+          <div class="feedback-header">
+            <span class="feedback-icon">❌</span>
+            <span class="feedback-title">Incorrect</span>
+            <button class="close-feedback-btn" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
+          </div>
+          <div class="answer-comparison">
+            <div class="answer-row">
+              <span class="answer-label">Your answer:</span>
+              <span class="user-answer incorrect">"${userAnswer}"</span>
+            </div>
+            <div class="answer-row">
+              <span class="answer-label">Correct answer:</span>
+              <span class="expected-answer">"${expectedAnswer}"</span>
+            </div>
+            <div class="letter-comparison">
+              <span class="comparison-label">Letter by letter:</span>
+              <div class="comparison-display">${comparisonHtml}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Apply styles - position it as a sidebar
+    feedbackContainer.style.cssText = `
+      position: fixed;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 320px;
+      max-height: 70vh;
+      overflow-y: auto;
+      background: ${correct ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #ef4444, #dc2626)'};
+      color: white;
+      padding: 20px;
+      border-radius: 16px;
+      font-size: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      animation: slideInFromLeft 0.4s ease;
+    `;
+    
+    // Auto-hide after some time with fade out
+    setTimeout(() => {
+      feedbackContainer.style.transition = 'opacity 1s ease';
+      feedbackContainer.style.opacity = '0.6';
+    }, 8000);
+    
+    // Auto-remove after longer time
+    setTimeout(() => {
+      if (feedbackContainer.parentNode) {
+        feedbackContainer.style.transition = 'all 0.5s ease';
+        feedbackContainer.style.opacity = '0';
+        feedbackContainer.style.transform = 'translateX(-100%) translateY(-50%)';
+        setTimeout(() => {
+          if (feedbackContainer.parentNode) {
+            feedbackContainer.remove();
+          }
+        }, 500);
+      }
+    }, 15000);
+    
+    // Inject CSS if not already present
+    if (!document.getElementById('detailed-input-feedback-styles')) {
+      const style = document.createElement('style');
+      style.id = 'detailed-input-feedback-styles';
+      style.textContent = `
+        .detailed-input-feedback .feedback-content {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        
+        .detailed-input-feedback .feedback-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          font-weight: 600;
+          font-size: 16px;
+        }
+        
+        .detailed-input-feedback .close-feedback-btn {
+          background: rgba(255, 255, 255, 0.2);
+          border: none;
+          color: white;
+          font-size: 20px;
+          font-weight: bold;
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background-color 0.2s;
+        }
+        
+        .detailed-input-feedback .close-feedback-btn:hover {
+          background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .detailed-input-feedback .feedback-icon {
+          font-size: 18px;
+        }
+        
+        .detailed-input-feedback .answer-comparison {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        
+        .detailed-input-feedback .answer-row {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        
+        .detailed-input-feedback .answer-label {
+          font-size: 12px;
+          opacity: 0.9;
+          font-weight: 500;
+        }
+        
+        .detailed-input-feedback .user-answer,
+        .detailed-input-feedback .expected-answer {
+          font-family: 'Courier New', monospace;
+          font-size: 16px;
+          font-weight: 600;
+          padding: 6px 12px;
+          border-radius: 6px;
+          background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .detailed-input-feedback .letter-comparison {
+          margin-top: 8px;
+        }
+        
+        .detailed-input-feedback .comparison-label {
+          font-size: 12px;
+          opacity: 0.9;
+          font-weight: 500;
+          display: block;
+          margin-bottom: 6px;
+        }
+        
+        .detailed-input-feedback .comparison-display {
+          font-family: 'Courier New', monospace;
+          font-size: 16px;
+          font-weight: 600;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 2px;
+          padding: 8px;
+          background-color: rgba(255, 255, 255, 0.1);
+          border-radius: 6px;
+        }
+        
+        .detailed-input-feedback .char-comparison {
+          padding: 4px 6px;
+          border-radius: 4px;
+          font-weight: 600;
+          min-width: 16px;
+          text-align: center;
+        }
+        
+        .detailed-input-feedback .char-correct {
+          background-color: rgba(16, 185, 129, 0.3);
+          color: #d1fae5;
+        }
+        
+        .detailed-input-feedback .char-wrong {
+          background-color: rgba(239, 68, 68, 0.4);
+          color: #fecaca;
+          font-size: 14px;
+        }
+        
+        .detailed-input-feedback .char-missing {
+          background-color: rgba(245, 158, 11, 0.4);
+          color: #fef3c7;
+          text-decoration: underline;
+        }
+        
+        .detailed-input-feedback .char-extra {
+          background-color: rgba(168, 85, 247, 0.4);
+          color: #e9d5ff;
+          text-decoration: line-through;
+        }
+        
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes slideInFromLeft {
+          from {
+            opacity: 0;
+            transform: translateX(-100%) translateY(-50%);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0) translateY(-50%);
+          }
+        }
+        
+        /* Responsive design for mobile */
+        @media (max-width: 768px) {
+          .detailed-input-feedback {
+            position: fixed !important;
+            left: 10px !important;
+            right: 10px !important;
+            top: 20px !important;
+            transform: none !important;
+            width: auto !important;
+            max-width: calc(100vw - 20px) !important;
+          }
+        }
+        
+        /* Ensure it doesn't interfere with small screens */
+        @media (max-width: 1200px) {
+          .detailed-input-feedback {
+            width: 280px !important;
+            left: 10px !important;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+  
+  function generateLetterComparison(userAnswer, expectedAnswer) {
+    const user = userAnswer.toLowerCase();
+    const expected = expectedAnswer.toLowerCase();
+    const maxLength = Math.max(user.length, expected.length);
+    
+    let comparisonHtml = '';
+    
+    for (let i = 0; i < maxLength; i++) {
+      const userChar = user[i] || '';
+      const expectedChar = expected[i] || '';
+      
+      let charClass = '';
+      let displayChar = '';
+      
+      if (i >= user.length) {
+        // Missing character
+        charClass = 'char-missing';
+        displayChar = expectedChar;
+      } else if (i >= expected.length) {
+        // Extra character
+        charClass = 'char-extra';
+        displayChar = userChar;
+      } else if (userChar === expectedChar) {
+        // Correct character
+        charClass = 'char-correct';
+        displayChar = userChar;
+      } else {
+        // Wrong character
+        charClass = 'char-wrong';
+        displayChar = `${userChar}→${expectedChar}`;
+      }
+      
+      comparisonHtml += `<span class="char-comparison ${charClass}">${displayChar || ' '}</span>`;
+    }
+    
+    return comparisonHtml;
+  }
 
   // Voice Recording System
   const VoiceRecording = {
