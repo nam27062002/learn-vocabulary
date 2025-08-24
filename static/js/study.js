@@ -2535,8 +2535,11 @@
       
       if (!SpeechRecognition) {
         console.warn("⚠️ Speech Recognition not supported");
+        this.showErrorFeedback('Speech recognition is not supported in this browser');
         return;
       }
+      
+      try {
       
       this.recognition = new SpeechRecognition();
       this.recognition.continuous = true;
@@ -2574,16 +2577,38 @@
       };
       
       this.recognition.onerror = (event) => {
+        console.error("❌ Speech Recognition Error:", event.error);
+        
+        // Handle different error types and provide feedback
         if (event.error === 'no-speech') {
           console.log("ℹ️ No speech detected");
-          return;
+          this.showNoSpeechFeedback();
+        } else if (event.error === 'not-allowed') {
+          alert('Microphone permission is required for pronunciation checking');
+        } else if (event.error === 'network') {
+          this.showErrorFeedback('Network error - please check your internet connection');
+        } else {
+          this.showErrorFeedback(`Speech recognition error: ${event.error}`);
         }
-        console.error("❌ Speech Recognition Error:", event.error);
       };
       
       this.recognition.onend = () => {
         console.log("🎤 Speech Recognition ended");
+        
+        // If we haven't gotten any transcript yet, provide feedback
+        if (!this.recognizedText && this.isRecording) {
+          setTimeout(() => {
+            if (!this.recognizedText) {
+              this.showNoSpeechFeedback();
+            }
+          }, 500); // Wait 500ms for any delayed results
+        }
       };
+      
+      } catch (error) {
+        console.error("❌ Failed to initialize Speech Recognition:", error);
+        this.showErrorFeedback('Failed to initialize speech recognition');
+      }
     },
     
     async startRecording() {
@@ -2678,6 +2703,13 @@
         recordIcon.className = 'fas fa-microphone';
         recordBtn.title = STUDY_CFG.labels.record_pronunciation || 'Record pronunciation';
       }
+      
+      // Set a timeout to check if we got any transcript
+      setTimeout(() => {
+        if (!this.recognizedText) {
+          this.showNoSpeechFeedback();
+        }
+      }, 1000); // Give 1 second for speech recognition to process
       
       console.log("⏹️ Recording stopped");
     },
@@ -2864,6 +2896,73 @@
       if (feedbackEl) {
         feedbackEl.remove();
       }
+    },
+    
+    showNoSpeechFeedback() {
+      this.clearPronunciationFeedback();
+      
+      const feedbackEl = document.createElement('div');
+      feedbackEl.className = 'pronunciation-feedback feedback-warning';
+      
+      const recordingControls = document.querySelector('.recording-controls');
+      if (recordingControls && recordingControls.parentNode) {
+        recordingControls.parentNode.insertBefore(feedbackEl, recordingControls.nextSibling);
+      }
+      
+      feedbackEl.innerHTML = `
+        <div class="feedback-content">
+          <div class="feedback-text">
+            <div class="feedback-message">🤐 No speech detected</div>
+            <div class="feedback-score">Try speaking louder or closer to microphone</div>
+          </div>
+        </div>
+      `;
+      
+      feedbackEl.style.cssText = `
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+        margin-top: 12px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        animation: slideIn 0.3s ease;
+      `;
+      
+      setTimeout(() => {
+        feedbackEl.style.opacity = '0.7';
+      }, 4000);
+    },
+    
+    showErrorFeedback(message) {
+      this.clearPronunciationFeedback();
+      
+      const feedbackEl = document.createElement('div');
+      feedbackEl.className = 'pronunciation-feedback feedback-error';
+      
+      const recordingControls = document.querySelector('.recording-controls');
+      if (recordingControls && recordingControls.parentNode) {
+        recordingControls.parentNode.insertBefore(feedbackEl, recordingControls.nextSibling);
+      }
+      
+      feedbackEl.innerHTML = `
+        <div class="feedback-content">
+          <div class="feedback-text">
+            <div class="feedback-message">❌ ${message}</div>
+          </div>
+        </div>
+      `;
+      
+      feedbackEl.style.cssText = `
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+        margin-top: 12px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        animation: slideIn 0.3s ease;
+      `;
+      
+      setTimeout(() => {
+        feedbackEl.style.opacity = '0.7';
+      }, 5000);
     },
     
     clearRecording() {
