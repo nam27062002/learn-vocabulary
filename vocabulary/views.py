@@ -36,6 +36,11 @@ SPACED_REPETITION_CONFIG = {
 }
 import random
 from .statistics_utils import create_study_session, record_answer, end_study_session
+from .cache_utils import (
+    FlashcardCache, StudySessionCache, StatisticsCache, DeckCache, APICache,
+    CacheKeys, generate_cache_key, hash_query_params, cache_result
+)
+from django.core.cache import cache
 
 # Helper function to filter semantically similar distractors
 def _filter_semantic_distractors(correct_word, candidates):
@@ -74,11 +79,40 @@ def _filter_semantic_distractors(correct_word, candidates):
 
     return filtered
 
+def _build_difficulty_groups_cached(user, deck_ids, today):
+    """Build and return difficulty groups for caching."""
+    # Base queryset
+    qs = Flashcard.objects.filter(user=user)
+    if deck_ids:
+        qs = qs.filter(deck_id__in=deck_ids)
+
+    # Reset daily counters if needed
+    qs.filter(last_seen_date__lt=today).update(times_seen_today=0)
+
+    # Apply daily limit filter
+    available_cards = qs.filter(times_seen_today__lt=SPACED_REPETITION_CONFIG['MAX_DAILY_REVIEWS'])
+    
+    if not available_cards.exists():
+        # If all cards hit daily limit, relax the constraint
+        available_cards = qs.filter(times_seen_today__lt=SPACED_REPETITION_CONFIG['MAX_DAILY_REVIEWS'] + 2)
+
+    # Create difficulty-based priority groups - return card IDs for caching
+    difficulty_groups = {
+        'again': list(available_cards.filter(difficulty_score=0.0).values_list('id', flat=True)),
+        'hard': list(available_cards.filter(difficulty_score=0.33).values_list('id', flat=True)),
+        'good': list(available_cards.filter(difficulty_score=0.67).values_list('id', flat=True)),
+        'easy': list(available_cards.filter(difficulty_score=1.0).values_list('id', flat=True)),
+        'new': list(available_cards.filter(difficulty_score__isnull=True).values_list('id', flat=True))
+    }
+    
+    return difficulty_groups
+
 # Difficulty-based card selection algorithm (replaces SM-2)
 def _get_next_card_enhanced(user, deck_ids=None):
     """
     Difficulty-based card selection algorithm that prioritizes cards based on their difficulty levels.
     Shows harder cards more frequently than easier ones while maintaining variety.
+    Uses Redis caching for better performance.
 
     Difficulty Levels (stored in difficulty_score field):
     - 0.0 (Again): Highest difficulty - 40% selection weight
@@ -92,32 +126,27 @@ def _get_next_card_enhanced(user, deck_ids=None):
     import random
 
     today = datetime.now().date()
-
-    # Base queryset
-    qs = Flashcard.objects.filter(user=user)
-    if deck_ids:
-        qs = qs.filter(deck_id__in=deck_ids)
-
-    # Reset daily counters if needed
-    qs.filter(last_seen_date__lt=today).update(times_seen_today=0)
-
-    # Apply daily limit filter
-    available_cards = qs.filter(times_seen_today__lt=SPACED_REPETITION_CONFIG['MAX_DAILY_REVIEWS'])
-
-    if not available_cards.exists():
-        # If all cards hit daily limit, relax the constraint
-        available_cards = qs.filter(times_seen_today__lt=SPACED_REPETITION_CONFIG['MAX_DAILY_REVIEWS'] + 2)
-        if not available_cards.exists():
-            return qs.order_by(Random()).first()  # Last resort
-
-    # Create difficulty-based priority groups
-    difficulty_groups = {
-        'again': available_cards.filter(difficulty_score=0.0),      # Again (highest priority)
-        'hard': available_cards.filter(difficulty_score=0.33),      # Hard
-        'good': available_cards.filter(difficulty_score=0.67),      # Good
-        'easy': available_cards.filter(difficulty_score=1.0),       # Easy (lowest priority)
-        'new': available_cards.filter(difficulty_score__isnull=True)  # New cards (never reviewed)
-    }
+    
+    # Try to get cached difficulty groups first
+    cache_params = {'deck_ids': sorted(deck_ids) if deck_ids else [], 'date': today.isoformat()}
+    cached_cards = StudySessionCache.get_next_card_pool(user.id, cache_params)
+    
+    if cached_cards is not None:
+        # Use cached difficulty groups (contains card IDs)
+        difficulty_groups = cached_cards
+    else:
+        # Build difficulty groups and cache them
+        difficulty_groups = _build_difficulty_groups_cached(user, deck_ids, today)
+        StudySessionCache.set_next_card_pool(user.id, cache_params, difficulty_groups)
+    
+    # Check if we have any cards available
+    total_available = sum(len(group) for group in difficulty_groups.values())
+    if total_available == 0:
+        # Fallback: get any card from user's collection
+        qs = Flashcard.objects.filter(user=user)
+        if deck_ids:
+            qs = qs.filter(deck_id__in=deck_ids)
+        return qs.order_by(Random()).first()
 
     # Define selection weights (higher = more likely to be selected)
     selection_weights = [
@@ -128,28 +157,32 @@ def _get_next_card_enhanced(user, deck_ids=None):
         ('new', 35),    # 35% chance for new cards (high priority for learning)
     ]
 
-    # Build weighted selection pool
+    # Build weighted selection pool using cached card IDs
     weighted_pool = []
     for difficulty_level, weight in selection_weights:
-        cards = difficulty_groups[difficulty_level]
-        if cards.exists():
+        card_ids = difficulty_groups[difficulty_level]
+        if card_ids:  # Check if list has card IDs
             # Add this difficulty level to the pool with its weight
             for _ in range(weight):
                 weighted_pool.append(difficulty_level)
 
     if not weighted_pool:
-        # No cards available, return any card
-        return available_cards.order_by(Random()).first()
+        # No cards available in any difficulty group
+        return None
 
     # Randomly select a difficulty level based on weights
     selected_difficulty = random.choice(weighted_pool)
-    selected_group = difficulty_groups[selected_difficulty]
+    selected_card_ids = difficulty_groups[selected_difficulty]
 
     print(f"CARD SELECTION: Selected difficulty '{selected_difficulty}' from {len(weighted_pool)} weighted options", file=sys.stderr)
-    print(f"CARD SELECTION: Available cards in '{selected_difficulty}': {selected_group.count()}", file=sys.stderr)
+    print(f"CARD SELECTION: Available cards in '{selected_difficulty}': {len(selected_card_ids)}", file=sys.stderr)
 
     # Return a random card from the selected difficulty group
-    return selected_group.order_by(Random()).first()
+    if selected_card_ids:
+        card_id = random.choice(selected_card_ids)
+        return Flashcard.objects.filter(id=card_id, user=user).first()
+    
+    return None
 
 # Helper to update tracking when card is shown
 def _update_card_shown_tracking(card):
@@ -236,6 +269,27 @@ def api_next_question(request):
 
     # Convert seen_card_ids to integers
     seen_card_ids = [int(cid) for cid in seen_card_ids if cid.isdigit()]
+    
+    # Create cache key for this API request
+    cache_params = {
+        'deck_ids': sorted(deck_ids) if deck_ids else [],
+        'study_mode': study_mode,
+        'word_count': word_count,
+        'seen_count': len(seen_card_ids)
+    }
+    params_hash = hash_query_params(cache_params)
+    api_cache_key = generate_cache_key(
+        CacheKeys.API_NEXT_QUESTION, 
+        user_id=request.user.id, 
+        mode=study_mode,
+        hash=params_hash
+    )
+    
+    # Try to get from cache first (only for consistent queries)
+    if len(seen_card_ids) < 5:  # Cache early requests only
+        cached_response = APICache.get_api_response(api_cache_key)
+        if cached_response is not None:
+            return JsonResponse(cached_response)
 
     # Get or create current study session
     current_session = request.session.get('current_study_session_id')
@@ -428,6 +482,10 @@ def api_next_question(request):
         payload['question']['type'] = 'type'
         payload['question']['answer'] = card.word
 
+    # Cache the response for early study session requests
+    if len(seen_card_ids) < 5:  # Cache early requests only
+        APICache.cache_api_response(api_cache_key, payload, timeout=120)  # 2 minutes cache
+    
     return JsonResponse(payload)
 
 
@@ -614,6 +672,17 @@ def api_statistics_data(request):
         period_days = int(period)
     except ValueError:
         period_days = 30
+    
+    # Check cache first
+    stats_cache_key = generate_cache_key(
+        CacheKeys.API_USER_STATS, 
+        user_id=request.user.id, 
+        period=period_days
+    )
+    
+    cached_stats = APICache.get_api_response(stats_cache_key)
+    if cached_stats is not None:
+        return JsonResponse(cached_stats)
 
     # Get comprehensive statistics summary
     stats_summary = get_user_statistics_summary(request.user, period_days)
@@ -654,11 +723,16 @@ def api_statistics_data(request):
 
         current_date += timedelta(days=1)
 
-    return JsonResponse({
+    response_data = {
         'success': True,
         'stats_summary': stats_summary,
         'chart_data': chart_data,
-    })
+    }
+    
+    # Cache the response for 10 minutes
+    APICache.cache_api_response(stats_cache_key, response_data, timeout=600)
+    
+    return JsonResponse(response_data)
 
 
 @login_required

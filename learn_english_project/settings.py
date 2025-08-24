@@ -196,6 +196,63 @@ EMAIL_USE_LOCALTIME = True
 DEFAULT_FROM_EMAIL = 'Learn Vocabulary <nam27062002@gmail.com>'
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
+# Redis Cache Configuration with Fallback
+try:
+    # Try Redis first
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': 'redis://127.0.0.1:6379/1',
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'PARSER_CLASS': 'redis.connection.HiredisParser',
+                'CONNECTION_POOL_KWARGS': {
+                    'max_connections': 50,
+                    'health_check_interval': 30,
+                },
+                'IGNORE_EXCEPTIONS': True,  # Don't break on Redis connection issues
+            },
+            'KEY_PREFIX': 'learnenglish',
+            'TIMEOUT': 300,  # Default timeout 5 minutes
+        }
+    }
+    
+    # Test Redis connection
+    import redis
+    r = redis.Redis(host='127.0.0.1', port=6379, db=1)
+    r.ping()
+    print("Redis server connected successfully")
+    
+except Exception as e:
+    print(f"Redis not available, falling back to database cache: {e}")
+    # Fallback to database cache if Redis is not available
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'cache_table',
+            'TIMEOUT': 300,
+            'OPTIONS': {
+                'MAX_ENTRIES': 1000,
+                'CULL_FREQUENCY': 3,
+            }
+        }
+    }
+
+# Cache timeouts for different data types (in seconds)
+CACHE_TIMEOUTS = {
+    'flashcard_list': 60 * 10,     # 10 minutes
+    'study_session': 60 * 5,       # 5 minutes  
+    'user_statistics': 60 * 30,    # 30 minutes
+    'deck_info': 60 * 15,          # 15 minutes
+    'api_response': 60 * 2,        # 2 minutes
+    'incorrect_words': 60 * 5,     # 5 minutes
+    'favorites': 60 * 10,          # 10 minutes
+}
+
+# Session storage using Redis
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
+
 # For development/testing, uncomment this line to use console backend:
 # EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 

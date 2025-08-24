@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python manage.py sqlmigrate:*)"
+      "Bash(python manage.py sqlmigrate:*)",
+      "Bash(pip install:*)",
+      "Bash(python manage.py:*)",
+      "Bash(timeout 10 python manage.py runserver:*)",
+      "Bash(python:*)",
+      "Bash(set DJANGO_SETTINGS_MODULE=learn_english_project.settings)"
     ],
     "deny": [],
     "ask": []
