@@ -6,7 +6,13 @@
       "Bash(python manage.py:*)",
       "Bash(timeout 10 python manage.py runserver:*)",
       "Bash(python:*)",
-      "Bash(set DJANGO_SETTINGS_MODULE=learn_english_project.settings)"
+      "Bash(set DJANGO_SETTINGS_MODULE=learn_english_project.settings)",
+      "mcp__serena__get_symbols_overview",
+      "mcp__serena__activate_project",
+      "mcp__serena__check_onboarding_performed",
+      "mcp__serena__onboarding",
+      "mcp__serena__list_dir",
+      "mcp__serena__find_symbol"
     ],
     "deny": [],
     "ask": []
