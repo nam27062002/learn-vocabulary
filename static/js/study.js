@@ -755,6 +755,8 @@
         document.querySelectorAll('input[name="deck_ids"]:checked')
       ).map((cb) => cb.value);
       selectedDeckIds.forEach((id) => params.append("deck_ids[]", id));
+      // Also send seen cards to prevent repetition in deck study mode
+      seenCardIds.forEach((id) => params.append("seen_card_ids[]", id));
     }
 
     fetch(`${STUDY_CFG.nextUrl}?${params.toString()}`, {
@@ -777,6 +779,12 @@
               getNextQuestion(); // Restart the loop
               return;
             }
+          } else if (currentStudyMode === "decks") {
+            // For normal deck study, reset seen cards and continue infinitely
+            console.log("All cards in selected decks have been studied. Restarting cycle...");
+            seenCardIds = []; // Reset seen cards to start over
+            getNextQuestion(); // Restart the cycle
+            return;
           } else {
             noCardMsg.className = "no-cards-message show";
             studyArea.className = "study-area";
@@ -784,12 +792,11 @@
           }
         }
 
-        // Add card ID to seen list for random mode and review mode
-        if (
-          (currentStudyMode === "random" || currentStudyMode === "review") &&
-          data.question.id
-        ) {
+        // Add card ID to seen list for all study modes to prevent repetition
+        if (data.question.id) {
+          // Add card to seen list for all study modes to prevent repetition
           seenCardIds.push(data.question.id);
+          console.log(`Added card ${data.question.id} to seen list. Total seen: ${seenCardIds.length}`);
         }
 
         renderQuestion(data.question);

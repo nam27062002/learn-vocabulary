@@ -79,12 +79,16 @@ def _filter_semantic_distractors(correct_word, candidates):
 
     return filtered
 
-def _build_difficulty_groups_cached(user, deck_ids, today):
+def _build_difficulty_groups_cached(user, deck_ids, today, seen_card_ids=None):
     """Build and return difficulty groups for caching."""
     # Base queryset
     qs = Flashcard.objects.filter(user=user)
     if deck_ids:
         qs = qs.filter(deck_id__in=deck_ids)
+    
+    # Exclude seen cards in current session
+    if seen_card_ids:
+        qs = qs.exclude(id__in=seen_card_ids)
 
     # Reset daily counters if needed
     qs.filter(last_seen_date__lt=today).update(times_seen_today=0)
@@ -108,7 +112,7 @@ def _build_difficulty_groups_cached(user, deck_ids, today):
     return difficulty_groups
 
 # Difficulty-based card selection algorithm (replaces SM-2)
-def _get_next_card_enhanced(user, deck_ids=None):
+def _get_next_card_enhanced(user, deck_ids=None, seen_card_ids=None):
     """
     Difficulty-based card selection algorithm that prioritizes cards based on their difficulty levels.
     Shows harder cards more frequently than easier ones while maintaining variety.
@@ -127,17 +131,24 @@ def _get_next_card_enhanced(user, deck_ids=None):
 
     today = datetime.now().date()
     
-    # Try to get cached difficulty groups first
-    cache_params = {'deck_ids': sorted(deck_ids) if deck_ids else [], 'date': today.isoformat()}
-    cached_cards = StudySessionCache.get_next_card_pool(user.id, cache_params)
-    
-    if cached_cards is not None:
-        # Use cached difficulty groups (contains card IDs)
-        difficulty_groups = cached_cards
+    # For normal deck study, we need to exclude seen cards to prevent repetition
+    # Don't use cache when seen_card_ids is provided to ensure fresh results
+    if seen_card_ids:
+        print(f"CARD SELECTION: Excluding {len(seen_card_ids)} seen cards: {seen_card_ids}", file=sys.stderr)
+        # Build fresh difficulty groups excluding seen cards
+        difficulty_groups = _build_difficulty_groups_cached(user, deck_ids, today, seen_card_ids)
     else:
-        # Build difficulty groups and cache them
-        difficulty_groups = _build_difficulty_groups_cached(user, deck_ids, today)
-        StudySessionCache.set_next_card_pool(user.id, cache_params, difficulty_groups)
+        # Try to get cached difficulty groups first
+        cache_params = {'deck_ids': sorted(deck_ids) if deck_ids else [], 'date': today.isoformat()}
+        cached_cards = StudySessionCache.get_next_card_pool(user.id, cache_params)
+        
+        if cached_cards is not None:
+            # Use cached difficulty groups (contains card IDs)
+            difficulty_groups = cached_cards
+        else:
+            # Build difficulty groups and cache them
+            difficulty_groups = _build_difficulty_groups_cached(user, deck_ids, today)
+            StudySessionCache.set_next_card_pool(user.id, cache_params, difficulty_groups)
     
     # Check if we have any cards available
     total_available = sum(len(group) for group in difficulty_groups.values())
@@ -146,6 +157,9 @@ def _get_next_card_enhanced(user, deck_ids=None):
         qs = Flashcard.objects.filter(user=user)
         if deck_ids:
             qs = qs.filter(deck_id__in=deck_ids)
+        # Exclude seen cards even in fallback
+        if seen_card_ids:
+            qs = qs.exclude(id__in=seen_card_ids)
         return qs.order_by(Random()).first()
 
     # Define selection weights (higher = more likely to be selected)
@@ -269,6 +283,8 @@ def api_next_question(request):
 
     # Convert seen_card_ids to integers
     seen_card_ids = [int(cid) for cid in seen_card_ids if cid.isdigit()]
+    
+    print(f"API_NEXT_QUESTION DEBUG: study_mode={study_mode}, deck_ids={deck_ids}, seen_card_ids={seen_card_ids}", file=sys.stderr)
     
     # Create cache key for this API request
     cache_params = {
@@ -410,9 +426,16 @@ def api_next_question(request):
         _update_card_shown_tracking(card)
     else:
         # Normal study mode: use enhanced card selection algorithm
-        card = _get_next_card_enhanced(request.user, deck_ids)
+        card = _get_next_card_enhanced(request.user, deck_ids, seen_card_ids)
         if not card:
-            return JsonResponse({'done': True})
+            # For normal deck study, if no cards available with exclusions,
+            # try again without exclusions to allow infinite studying
+            if study_mode == 'decks' and seen_card_ids:
+                print(f"No cards available with exclusions, retrying without exclusions for infinite study", file=sys.stderr)
+                card = _get_next_card_enhanced(request.user, deck_ids, None)
+            
+            if not card:
+                return JsonResponse({'done': True})
 
     # Check if card has audio for dictation mode
     has_audio = card.audio_url and card.audio_url.strip()
@@ -1532,9 +1555,13 @@ def study_page(request):
 @require_GET
 def api_next_card(request):
     deck_ids = request.GET.getlist('deck_ids[]')
+    seen_card_ids = request.GET.getlist('seen_card_ids[]')
+    
+    # Convert seen_card_ids to integers
+    seen_card_ids = [int(cid) for cid in seen_card_ids if cid.isdigit()]
 
     # Use enhanced card selection algorithm
-    card = _get_next_card_enhanced(request.user, deck_ids)
+    card = _get_next_card_enhanced(request.user, deck_ids, seen_card_ids)
     if not card:
         return JsonResponse({'done': True})
 
