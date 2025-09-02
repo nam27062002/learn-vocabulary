@@ -318,6 +318,23 @@ def i18n_compatible_translations(request):
             'review_completed_title': 'Congratulations!',
             'review_completed_message': 'You have successfully reviewed all incorrect words!',
             'continue_studying': 'Continue Studying',
+            
+            # Additional messages for add flashcard page
+            'processing_error': 'Processing Error',
+            'processing_error_message': 'An error occurred while processing the words. Please try again.',
+            'duplicate_words_detected': 'Duplicate Words Detected',
+            'duplicate_words_message_html': 'The following words already exist in your vocabulary:<br>{words}<br><br>Please remove or modify these words before saving.',
+            'empty_input': 'Empty Input',
+            'replace_existing_cards': 'Replace Existing Cards?',
+            'replace_cards_confirmation_html': 'This will <strong>clear all current cards</strong> and replace them with {count} new cards.<br><br>Are you sure you want to continue?',
+            'select_deck_before_saving': 'Please select or create a deck before saving.',
+            'no_data_title': 'No Data',
+            'enter_at_least_one_word': 'Please enter at least one vocabulary word.',
+            'error_title': 'Error!',
+            'error_occurred_message': 'An error occurred: {error}',
+            'connection_error_title': 'Connection Error',
+            'connection_error_message': 'Could not send request to server: {error}',
+            'yes_replace_all': 'Yes, Replace All',
         },
         'vi': {
             'learn_english': 'Học Tiếng Anh',
@@ -612,6 +629,23 @@ def i18n_compatible_translations(request):
             'review_completed_title': 'Chúc mừng!',
             'review_completed_message': 'Bạn đã ôn tập thành công tất cả các từ sai!',
             'continue_studying': 'Tiếp tục học',
+            
+            # Additional messages for add flashcard page
+            'processing_error': 'Lỗi xử lý',
+            'processing_error_message': 'Đã xảy ra lỗi khi xử lý các từ. Vui lòng thử lại.',
+            'duplicate_words_detected': 'Phát hiện từ trùng lặp',
+            'duplicate_words_message_html': 'Các từ sau đây đã tồn tại trong từ vựng của bạn:<br>{words}<br><br>Vui lòng xóa hoặc chỉnh sửa các từ này trước khi lưu.',
+            'empty_input': 'Đầu vào trống',
+            'replace_existing_cards': 'Thay thế thẻ hiện tại?',
+            'replace_cards_confirmation_html': 'Điều này sẽ <strong>xóa tất cả thẻ hiện tại</strong> và thay thế bằng {count} thẻ mới.<br><br>Bạn có chắc chắn muốn tiếp tục?',
+            'select_deck_before_saving': 'Vui lòng chọn hoặc tạo một bộ thẻ trước khi lưu.',
+            'no_data_title': 'Chưa có dữ liệu',
+            'enter_at_least_one_word': 'Vui lòng nhập ít nhất một từ vựng.',
+            'error_title': 'Lỗi!',
+            'error_occurred_message': 'Đã có lỗi xảy ra: {error}',
+            'connection_error_title': 'Lỗi kết nối',
+            'connection_error_message': 'Không thể gửi yêu cầu đến máy chủ: {error}',
+            'yes_replace_all': 'Có, thay thế tất cả',
         }
     }
     

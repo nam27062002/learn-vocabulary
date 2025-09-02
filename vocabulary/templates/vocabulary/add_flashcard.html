@@ -1307,7 +1307,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .filter((word, index, arr) => arr.indexOf(word.toLowerCase()) === arr.findIndex(w => w.toLowerCase() === word.toLowerCase())); // Remove case-insensitive duplicates
     }
 
-    function showProcessingIndicator(show, text = 'Processing words...') {
+    function showProcessingIndicator(show, text = '{{ manual_texts.processing_words }}') {
         if (show) {
             processingText.textContent = text;
             processingIndicator.classList.add('active');
@@ -1470,8 +1470,8 @@ document.addEventListener('DOMContentLoaded', function() {
             showProcessingIndicator(false);
             Swal.fire({
                 icon: 'error',
-                title: 'Processing Error',
-                text: 'An error occurred while processing the words. Please try again.',
+                title: '{{ manual_texts.processing_error }}',
+                text: '{{ manual_texts.processing_error_message }}',
                 background: 'var(--background-light)',
                 color: 'var(--text-main)',
                 confirmButtonColor: 'var(--primary-color)'
@@ -1652,8 +1652,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!input) {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Empty Input',
-                    text: 'Please enter some words separated by | (pipe) character.',
+                    title: '{{ manual_texts.empty_input }}',
+                    text: '{{ manual_texts.enter_words_pipe }}',
                     background: 'var(--background-light)',
                     color: 'var(--text-main)',
                     confirmButtonColor: 'var(--primary-color)'
@@ -1674,11 +1674,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Show confirmation dialog
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Replace Existing Cards?',
-                    html: `This will <strong>clear all current cards</strong> and replace them with ${words.length} new cards.<br><br>Are you sure you want to continue?`,
+                    title: '{{ manual_texts.replace_existing_cards }}',
+                    html: `{{ manual_texts.replace_cards_confirmation_html }}`.replace('{count}', words.length),
                     showCancelButton: true,
-                    confirmButtonText: 'Yes, Replace All',
-                    cancelButtonText: 'Cancel',
+                    confirmButtonText: '{{ manual_texts.yes_replace_all }}',
+                    cancelButtonText: '{{ manual_texts.cancel }}',
                     confirmButtonColor: 'var(--primary-color)',
                     cancelButtonColor: '#6c757d',
                     background: 'var(--background-light)',
@@ -1721,8 +1721,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!selectedDeckId || selectedDeckId === 'new_deck') {
                  Swal.fire({
                     icon: 'warning',
-                    title: 'Chưa chọn bộ thẻ',
-                    text: 'Vui lòng chọn hoặc tạo một bộ thẻ trước khi lưu.',
+                    title: '{{ manual_texts.no_deck_selected }}',
+                    text: '{{ manual_texts.select_deck_before_saving }}',
                     background: 'var(--background-light)',
                     color: 'var(--text-main)',
                     confirmButtonColor: 'var(--primary-color)'
@@ -1736,8 +1736,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 const duplicateWords = Array.from(duplicateInputs).map(input => input.value.trim()).filter(word => word);
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Duplicate Words Detected',
-                    html: `The following words already exist in your vocabulary:<br><strong>${duplicateWords.join(', ')}</strong><br><br>Please remove or modify these words before saving.`,
+                    title: '{{ manual_texts.duplicate_words_detected }}',
+                    html: `{{ manual_texts.duplicate_words_message_html }}`.replace('{words}', `<strong>${duplicateWords.join(', ')}</strong>`),
                     background: 'var(--background-light)',
                     color: 'var(--text-main)',
                     confirmButtonColor: 'var(--primary-color)'
@@ -1773,8 +1773,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!hasData) {
                 Swal.fire({
                     icon: 'warning',
-                    title: 'Chưa có dữ liệu',
-                    text: 'Vui lòng nhập ít nhất một từ vựng.',
+                    title: '{{ manual_texts.no_data_title }}',
+                    text: '{{ manual_texts.enter_at_least_one_word }}',
                     background: 'var(--background-light)',
                     color: 'var(--text-main)',
                     confirmButtonColor: 'var(--primary-color)'
@@ -1823,8 +1823,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Lỗi!',
-                        text: `Đã có lỗi xảy ra: ${data.error || "Unknown error"}`,
+                        title: '{{ manual_texts.error_title }}',
+                        text: `{{ manual_texts.error_occurred_message }}`.replace('{error}', data.error || '{{ manual_texts.unknown_error }}'),
                         background: 'var(--background-light)',
                         color: 'var(--text-main)',
                         confirmButtonColor: 'var(--primary-color)'
@@ -1834,8 +1834,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(err => {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Lỗi kết nối',
-                    text: `Không thể gửi yêu cầu đến máy chủ: ${err}`,
+                    title: '{{ manual_texts.connection_error_title }}',
+                    text: `{{ manual_texts.connection_error_message }}`.replace('{error}', err),
                     background: 'var(--background-light)',
                     color: 'var(--text-main)',
                     confirmButtonColor: 'var(--primary-color)'
