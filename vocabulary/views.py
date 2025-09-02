@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from .models import Flashcard, Definition, Deck, StudySession, StudySessionAnswer, IncorrectWordReview, FavoriteFlashcard # Import Deck model
 from django.conf import settings # Import settings
-from .api_services import get_word_suggestions_from_datamuse, check_word_spelling_with_languagetool # Import new service functions
+from .api_services import get_word_suggestions_from_datamuse # Import new service functions
 from .word_details_service import get_word_details # Import the new service function
 from googletrans import Translator
 import requests
@@ -908,25 +908,6 @@ def suggest_words(request):
 
     return JsonResponse(suggestions, safe=False)
 
-@login_required
-def check_word_spelling(request):
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Yêu cầu phải là POST.'}, status=405)
-
-    word = request.POST.get('word', '').strip()
-
-    if not word:
-        return JsonResponse({'error': 'Tham số "word" bị thiếu hoặc rỗng.'}, status=400)
-
-    if settings.ENABLE_DEBUG:
-        print(f"[DEBUG] check_word_spelling called with word: {word}")
-
-    is_correct = check_word_spelling_with_languagetool(word)
-
-    if settings.ENABLE_DEBUG:
-        print(f"[DEBUG] Is word '{word}' correct? {is_correct}")
-
-    return JsonResponse({'is_correct': is_correct})
 
 @login_required
 def get_word_details_api(request):
