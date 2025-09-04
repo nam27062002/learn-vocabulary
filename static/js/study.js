@@ -31,6 +31,33 @@
   const timerDisplay = document.getElementById("timerDisplay");
   const timerText = document.getElementById("timerText");
 
+  // Function to abbreviate part of speech
+  function abbreviatePartOfSpeech(partOfSpeech) {
+    if (!partOfSpeech) return '';
+    
+    const abbreviations = {
+      'noun': 'n',
+      'verb': 'v',
+      'adjective': 'adj',
+      'adverb': 'adv',
+      'pronoun': 'pron',
+      'preposition': 'prep',
+      'conjunction': 'conj',
+      'interjection': 'interj',
+      'determiner': 'det',
+      'auxiliary': 'aux',
+      'modal': 'modal',
+      'article': 'art',
+      'numeral': 'num',
+      'participle': 'part',
+      'gerund': 'ger',
+      'infinitive': 'inf'
+    };
+    
+    const lower = partOfSpeech.toLowerCase();
+    return abbreviations[lower] || partOfSpeech;
+  }
+
   // Audio feedback system
   const AudioFeedback = {
     correctSound: null,
@@ -926,6 +953,7 @@
       // Multiple choice mode - show definitions in the main word area
       if (cardWordEl && q.definitions && q.definitions.length > 0) {
         let defsText = "";
+        
         q.definitions.forEach((def) => {
           if (def.english_definition) {
             defsText += `<div class="definition-item"><strong>${STUDY_CFG.labels.english_label}</strong> ${def.english_definition}</div>`;
@@ -1247,6 +1275,19 @@
         // Wrap in strong tag and set as innerHTML
         const strongElement = document.createElement("strong");
         strongElement.appendChild(wordLink);
+        
+        // Add part of speech if available
+        if (currentQuestion.part_of_speech) {
+          const posSpan = document.createElement("span");
+          const abbreviatedPos = abbreviatePartOfSpeech(currentQuestion.part_of_speech);
+          posSpan.textContent = ` (${abbreviatedPos})`;
+          posSpan.style.fontStyle = "italic";
+          posSpan.style.color = "var(--primary-color)";
+          posSpan.style.fontWeight = "normal";
+          posSpan.style.fontSize = "0.7em";
+          strongElement.appendChild(posSpan);
+        }
+        
         cardWordEl.innerHTML = "";
         cardWordEl.appendChild(strongElement);
 
@@ -1262,7 +1303,15 @@
         const cambridgeUrl = `https://dictionary.cambridge.org/dictionary/english/${encodeURIComponent(
           currentQuestion.word
         )}`;
-        cardWordEl.innerHTML = `<a href="${cambridgeUrl}" target="_blank" class="word-link"><strong>${currentQuestion.word}</strong></a>`;
+        
+        // Create word with part of speech
+        let wordDisplay = currentQuestion.word;
+        if (currentQuestion.part_of_speech) {
+          const abbreviatedPos = abbreviatePartOfSpeech(currentQuestion.part_of_speech);
+          wordDisplay += ` <span style="font-style: italic; color: var(--primary-color); font-weight: normal; font-size: 0.7em;">(${abbreviatedPos})</span>`;
+        }
+        
+        cardWordEl.innerHTML = `<a href="${cambridgeUrl}" target="_blank" class="word-link"><strong>${wordDisplay}</strong></a>`;
         console.log(
           "Clickable word created (fallback):",
           currentQuestion.word,
@@ -1320,6 +1369,7 @@
     // Show definitions in the definitions area
     if (cardDefsEl && currentQuestion.definitions) {
       let defsText = "";
+      
       currentQuestion.definitions.forEach((def) => {
         if (def.english_definition) {
           defsText += `${def.english_definition}\n`;

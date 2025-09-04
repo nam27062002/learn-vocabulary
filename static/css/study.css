@@ -1379,6 +1379,15 @@
   font-weight: 600;
 }
 
+.definition-item.part-of-speech {
+  font-size: 1.1rem;
+  color: var(--primary-color);
+  margin: 5px 0 15px 0;
+  padding: 4px 0;
+  font-style: italic;
+  opacity: 0.9;
+}
+
 .audio-button {
   background: var(--gradient-success);
   color: white;
