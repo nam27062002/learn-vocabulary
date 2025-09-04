@@ -118,6 +118,27 @@
       opacity: 0.6;
     }
 
+    /* Validation border styles */
+    .flashcard-section.valid {
+      border: 2px solid #4ade80;
+      box-shadow: 0 4px 15px rgba(74, 222, 128, 0.2);
+    }
+
+    .flashcard-section.invalid {
+      border: 2px solid #f87171;
+      box-shadow: 0 4px 15px rgba(248, 113, 113, 0.2);
+    }
+
+    .flashcard-section.valid:hover {
+      border-color: #22c55e;
+      box-shadow: 0 8px 25px rgba(34, 197, 94, 0.25);
+    }
+
+    .flashcard-section.invalid:hover {
+      border-color: #ef4444;
+      box-shadow: 0 8px 25px rgba(239, 68, 68, 0.25);
+    }
+
     .flashcard-header {
       display: flex;
       justify-content: space-between;
@@ -785,7 +806,7 @@
             <!-- Phonetic -->
             <div class="input-field">
               <label for="phonetic1">{{ manual_texts.phonetic_label }}</label>
-              <input type="text" id="phonetic1" name="phonetic1" class="phonetic-input" placeholder="{{ manual_texts.phonetic_placeholder }}" readonly style="background-color: #1f1f3a; color: #a0a0b8; cursor: not-allowed;" />
+              <input type="text" id="phonetic1" name="phonetic1" class="phonetic-input" placeholder="{{ manual_texts.phonetic_placeholder }}" />
             </div>
 
             <!-- English Definition -->
@@ -947,7 +968,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         Swal.fire({
                             icon: 'success',
                             title: '{{ manual_texts.created }}',
-                            text: `{{ manual_texts.deck_created_success }}`.replace('{deck_name}', data.deck.name),
+                            text: `{{ manual_texts.deck_created_success|safe }}`.replace('{deck_name}', data.deck.name),
                             background: 'var(--background-light)',
                             color: 'var(--text-main)',
                             confirmButtonColor: 'var(--primary-color)'
@@ -1144,6 +1165,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     definitionSuggestions.style.display = 'none';
                     // No need to re-translate, as the core term hasn't changed.
                     // The initial translation is sufficient.
+                    // Validate card after selecting definition
+                    validateCard(card);
                 });
                 definitionSuggestions.appendChild(item);
             });
@@ -1171,6 +1194,9 @@ document.addEventListener('DOMContentLoaded', function() {
             definitionTextarea.value = '';
             vietnameseTextarea.value = '';
         }
+        
+        // Validate card after updating UI
+        validateCard(card);
     }
     
     function resetCardUI(card) {
@@ -1225,6 +1251,9 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 targetTextarea.value = "{{ manual_texts.translation_not_available }}";
             }
+            // Validate card after translation completes
+            const card = targetTextarea.closest('.flashcard-section');
+            if (card) validateCard(card);
         })
         .catch(err => {
             console.error('Translation error:', err);
@@ -1414,7 +1443,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             for (let i = 0; i < words.length; i++) {
                 const word = words[i];
-                showProcessingIndicator(true, `{{ manual_texts.processing_word_individual }}`.replace('{word}', word).replace('{current}', i + 1).replace('{total}', words.length));
+                showProcessingIndicator(true, `{{ manual_texts.processing_word_individual|safe }}`.replace('{word}', word).replace('{current}', i + 1).replace('{total}', words.length));
 
                 try {
                     // Check for duplicates first
@@ -1565,6 +1594,37 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // =============================================
+    // CARD VALIDATION
+    // =============================================
+    
+    function validateCard(card) {
+        const termInput = card.querySelector('.term-input');
+        const phoneticInput = card.querySelector('.phonetic-input');
+        const englishDefTextarea = card.querySelector('.definition-textarea');
+        const vietnameseDefTextarea = card.querySelector('.vietnamese-textarea');
+        
+        // Check if all 4 required fields have non-empty values
+        const term = termInput?.value?.trim() || '';
+        const phonetic = phoneticInput?.value?.trim() || '';
+        const englishDef = englishDefTextarea?.value?.trim() || '';
+        const vietnameseDef = vietnameseDefTextarea?.value?.trim() || '';
+        
+        const isValid = term && phonetic && englishDef && vietnameseDef;
+        
+        // Remove existing validation classes
+        card.classList.remove('valid', 'invalid');
+        
+        // Add appropriate validation class
+        if (isValid) {
+            card.classList.add('valid');
+        } else {
+            card.classList.add('invalid');
+        }
+        
+        return isValid;
+    }
+
+    // =============================================
     // INITIALIZATION
     // =============================================
 
@@ -1635,6 +1695,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 deleteImgBtn.style.display = 'none';
             });
         }
+        
+        // Add validation event listeners to all required fields
+        const phoneticInput = card.querySelector('.phonetic-input');
+        const englishDefTextarea = card.querySelector('.definition-textarea');
+        const vietnameseDefTextarea = card.querySelector('.vietnamese-textarea');
+        
+        // Validate on input for all required fields
+        [termInput, phoneticInput, englishDefTextarea, vietnameseDefTextarea].forEach(input => {
+            if (input) {
+                input.addEventListener('input', () => {
+                    validateCard(card);
+                });
+                // Also validate on blur to catch any missed cases
+                input.addEventListener('blur', () => {
+                    validateCard(card);
+                });
+            }
+        });
+        
+        // Initial validation when card is initialized
+        validateCard(card);
     }
     
     // Initialize the first card

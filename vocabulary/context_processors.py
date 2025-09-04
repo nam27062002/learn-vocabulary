@@ -126,12 +126,19 @@ def i18n_compatible_translations(request):
             'processing_words': 'Processing words...',
             'processing_word_individual': 'Processing "{word}" ({current}/{total})...',
 
+            # Study deck selection
+            'search_decks': 'Search decks...',
+            'select_all': 'Select All',
+            'deselect_all': 'Deselect All',
+            'decks_selected': 'decks selected',
+
             # SweetAlert messages
             'create_new_deck_title': 'Create New Deck',
             'deck_name_label': 'Deck Name',
             'deck_name_placeholder': 'Example: Day 1, IELTS Topic: Work...',
             'deck_name_required': 'You need to enter a name for the deck!',
             'cancel': 'Cancel',
+            'confirm': 'Confirm',
             'created': 'Created!',
             'deck_created_success': 'Deck "{deck_name}" has been created successfully.',
             'cannot_create_deck': 'Cannot create deck',
@@ -437,12 +444,19 @@ def i18n_compatible_translations(request):
             'processing_words': 'Đang xử lý từ...',
             'processing_word_individual': 'Đang xử lý "{word}" ({current}/{total})...',
 
+            # Study deck selection
+            'search_decks': 'Tìm kiếm bộ thẻ...',
+            'select_all': 'Chọn tất cả',
+            'deselect_all': 'Bỏ chọn tất cả',
+            'decks_selected': 'bộ thẻ đã chọn',
+
             # SweetAlert messages
             'create_new_deck_title': 'Tạo bộ thẻ mới',
             'deck_name_label': 'Tên bộ thẻ',
             'deck_name_placeholder': 'Ví dụ: Ngày 1, IELTS Topic: Work...',
             'deck_name_required': 'Bạn cần nhập tên cho bộ thẻ!',
             'cancel': 'Hủy',
+            'confirm': 'Xác nhận',
             'created': 'Đã tạo!',
             'deck_created_success': 'Bộ thẻ "{deck_name}" đã được tạo thành công.',
             'cannot_create_deck': 'Không thể tạo bộ thẻ',

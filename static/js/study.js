@@ -804,6 +804,12 @@
   }
 
   function renderQuestion(q) {
+    // Auto-stop any active recording when switching to new card
+    if (typeof VoiceRecording !== 'undefined' && VoiceRecording.isRecording) {
+      console.log("🛑 Auto-stopping recording for new card");
+      VoiceRecording.stopRecording();
+    }
+    
     // Reset border feedback NGAY LẬP TỨC
     const flashcardContainer = document.getElementById("cardBox");
     if (flashcardContainer) {
@@ -2002,51 +2008,347 @@
     });
   }
 
-  // Initialize deck dropdown functionality
-  const deckDropdownToggle = document.getElementById("deckDropdownToggle");
-  const deckDropdown = document.getElementById("deckDropdown");
-  const deckCheckboxes = document.querySelectorAll('input[name="deck_ids"]');
+  // Initialize deck selector popup functionality
+  const deckModal = document.getElementById("deckSelectorModal");
+  const openDeckSelector = document.getElementById("openDeckSelector");
+  const closeDeckModal = document.getElementById("closeDeckModal");
+  const cancelDeckSelection = document.getElementById("cancelDeckSelection");
+  const confirmDeckSelection = document.getElementById("confirmDeckSelection");
+  const selectedDecksPreview = document.getElementById("selectedDecksPreview");
+  
+  const deckGrid = document.getElementById("deckGrid");
+  const deckSearchInput = document.getElementById("deckSearchInput");
+  const selectAllDecks = document.getElementById("selectAllDecks");
+  const deselectAllDecks = document.getElementById("deselectAllDecks");
+  const selectedCount = document.getElementById("selectedCount");
+  const deckCheckboxes = document.querySelectorAll('.deck-checkbox');
+  const deckCards = document.querySelectorAll('.deck-card');
 
-  function updateSelectedDecksText() {
-    const selectedDecks = Array.from(deckCheckboxes).filter((cb) => cb.checked);
-    const selectedDecksText = document.getElementById("selectedDecksText");
+  let tempSelectedDecks = []; // Store temporary selections
+  let lastClickedDeckIndex = -1; // Track last clicked deck for range selection
 
-    if (selectedDecks.length === 0) {
-      selectedDecksText.textContent =
-        STUDY_CFG.labels.no_decks_selected || "No decks selected";
-    } else if (selectedDecks.length === 1) {
-      selectedDecksText.textContent =
-        selectedDecks[0].nextElementSibling.textContent;
-    } else {
-      selectedDecksText.textContent = `${selectedDecks.length} decks selected`;
+  // Update selected count and card styling
+  function updateDeckSelection() {
+    const selectedDecks = Array.from(deckCheckboxes).filter(cb => cb.checked);
+    const count = selectedDecks.length;
+    
+    if (selectedCount) {
+      selectedCount.textContent = count;
     }
-  }
-
-  if (deckDropdownToggle && deckDropdown) {
-    deckDropdownToggle.addEventListener("click", (e) => {
-      e.stopPropagation();
-      deckDropdown.classList.toggle("show");
-      deckDropdownToggle.classList.toggle("active");
+    
+    // Update card styling
+    deckCards.forEach(card => {
+      const checkbox = card.querySelector('.deck-checkbox');
+      if (checkbox && checkbox.checked) {
+        card.classList.add('selected');
+      } else {
+        card.classList.remove('selected');
+      }
     });
   }
 
-  deckCheckboxes.forEach((checkbox) => {
-    checkbox.addEventListener("change", updateSelectedDecksText);
-  });
+  // Update preview text in main button
+  function updatePreviewText() {
+    const selectedDecks = Array.from(deckCheckboxes).filter(cb => cb.checked);
+    const count = selectedDecks.length;
+    
+    if (count === 0) {
+      selectedDecksPreview.textContent = STUDY_CFG.labels.no_decks_selected || "No decks selected";
+    } else if (count === 1) {
+      const deckName = selectedDecks[0].closest('.deck-card').querySelector('.deck-name').textContent;
+      selectedDecksPreview.textContent = deckName;
+    } else {
+      selectedDecksPreview.textContent = `${count} decks selected`;
+    }
+  }
 
-  // Close dropdown if clicked outside
-  document.addEventListener("click", (event) => {
-    if (
-      deckDropdown &&
-      !deckDropdown.contains(event.target) &&
-      !deckDropdownToggle.contains(event.target)
-    ) {
-      deckDropdown.classList.remove("show");
-      deckDropdownToggle.classList.remove("active");
+  // Search/filter functionality
+  function filterDecks(searchTerm) {
+    const term = searchTerm.toLowerCase().trim();
+    deckCards.forEach(card => {
+      const deckName = card.dataset.deckName || '';
+      if (deckName.includes(term)) {
+        card.style.display = 'block';
+      } else {
+        card.style.display = 'none';
+      }
+    });
+  }
+
+  // Get visible deck cards (not hidden by filter)
+  function getVisibleDeckCards() {
+    return Array.from(deckCards).filter(card => 
+      card.style.display !== 'none' && 
+      getComputedStyle(card).display !== 'none'
+    );
+  }
+
+  // Handle range selection with Ctrl+Click
+  function handleRangeSelection(clickedIndex, isCtrlHeld) {
+    console.log('handleRangeSelection called:', { clickedIndex, isCtrlHeld, lastClickedDeckIndex });
+    
+    if (!isCtrlHeld || lastClickedDeckIndex === -1) {
+      lastClickedDeckIndex = clickedIndex;
+      return;
+    }
+
+    const visibleCards = getVisibleDeckCards();
+    console.log('visibleCards:', visibleCards.length);
+    
+    const startIndex = Math.min(lastClickedDeckIndex, clickedIndex);
+    const endIndex = Math.max(lastClickedDeckIndex, clickedIndex);
+    console.log('Range:', { startIndex, endIndex });
+    
+    // Determine the selection state - toggle based on the clicked card's CURRENT state
+    const clickedCard = visibleCards[clickedIndex];
+    const clickedCheckbox = clickedCard.querySelector('.deck-checkbox');
+    const targetState = !clickedCheckbox.checked; // Toggle the clicked card's state
+    
+    console.log('Target state:', targetState);
+
+    // Apply the same state to all cards in the range
+    for (let i = startIndex; i <= endIndex; i++) {
+      const card = visibleCards[i];
+      if (card) {
+        const checkbox = card.querySelector('.deck-checkbox');
+        if (checkbox) {
+          checkbox.checked = targetState;
+          console.log(`Set card ${i} to:`, targetState);
+        }
+      }
+    }
+
+    updateDeckSelection();
+    lastClickedDeckIndex = clickedIndex;
+  }
+
+  // Save current selections as temporary
+  function saveTempSelections() {
+    tempSelectedDecks = Array.from(deckCheckboxes)
+      .filter(cb => cb.checked)
+      .map(cb => cb.value);
+  }
+
+  // Restore temporary selections
+  function restoreTempSelections() {
+    deckCheckboxes.forEach(checkbox => {
+      checkbox.checked = tempSelectedDecks.includes(checkbox.value);
+    });
+    updateDeckSelection();
+  }
+
+  // Apply selections permanently
+  function applySelections() {
+    saveTempSelections();
+    updatePreviewText();
+  }
+
+  // Open modal
+  function openModal() {
+    saveTempSelections(); // Save current state
+    deckModal.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    
+    // Focus search input
+    setTimeout(() => {
+      if (deckSearchInput) deckSearchInput.focus();
+    }, 100);
+  }
+
+  // Close modal
+  function closeModal() {
+    deckModal.classList.remove('show');
+    document.body.style.overflow = '';
+    restoreTempSelections(); // Restore previous state
+    
+    // Clear search
+    if (deckSearchInput) {
+      deckSearchInput.value = '';
+      filterDecks('');
+    }
+  }
+
+  // Confirm selections
+  function confirmSelections() {
+    applySelections();
+    deckModal.classList.remove('show');
+    document.body.style.overflow = '';
+    
+    // Clear search
+    if (deckSearchInput) {
+      deckSearchInput.value = '';
+      filterDecks('');
+    }
+  }
+
+  // Event listeners
+  if (openDeckSelector) {
+    openDeckSelector.addEventListener('click', openModal);
+  }
+
+  if (closeDeckModal) {
+    closeDeckModal.addEventListener('click', closeModal);
+  }
+
+  if (cancelDeckSelection) {
+    cancelDeckSelection.addEventListener('click', closeModal);
+  }
+
+  if (confirmDeckSelection) {
+    confirmDeckSelection.addEventListener('click', confirmSelections);
+  }
+
+  // Close modal when clicking outside
+  if (deckModal) {
+    deckModal.addEventListener('click', (e) => {
+      if (e.target === deckModal) {
+        closeModal();
+      }
+    });
+  }
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (deckModal && deckModal.classList.contains('show')) {
+      if (e.key === 'Escape') {
+        closeModal();
+      } else if (e.key === 'Enter' && e.ctrlKey) {
+        confirmSelections();
+      }
     }
   });
 
-  updateSelectedDecksText(); // Initial update
+  if (deckSearchInput) {
+    deckSearchInput.addEventListener('input', (e) => {
+      filterDecks(e.target.value);
+      lastClickedDeckIndex = -1; // Reset range selection when filtering
+    });
+  }
+
+  if (selectAllDecks) {
+    selectAllDecks.addEventListener('click', () => {
+      deckCheckboxes.forEach(checkbox => {
+        const card = checkbox.closest('.deck-card');
+        if (card && card.style.display !== 'none') {
+          checkbox.checked = true;
+        }
+      });
+      lastClickedDeckIndex = -1; // Reset range selection
+      updateDeckSelection();
+    });
+  }
+
+  if (deselectAllDecks) {
+    deselectAllDecks.addEventListener('click', () => {
+      deckCheckboxes.forEach(checkbox => {
+        checkbox.checked = false;
+      });
+      lastClickedDeckIndex = -1; // Reset range selection
+      updateDeckSelection();
+    });
+  }
+
+  // Visual feedback for range selection
+  function updateRangeHover(hoveredIndex, isCtrlHeld) {
+    // Clear all previous range hover classes
+    deckCards.forEach(card => card.classList.remove('range-hover'));
+    
+    if (!isCtrlHeld || lastClickedDeckIndex === -1 || hoveredIndex === -1) {
+      return;
+    }
+
+    const visibleCards = getVisibleDeckCards();
+    const startIndex = Math.min(lastClickedDeckIndex, hoveredIndex);
+    const endIndex = Math.max(lastClickedDeckIndex, hoveredIndex);
+    
+    // Add range hover class to cards in range
+    for (let i = startIndex; i <= endIndex; i++) {
+      const card = visibleCards[i];
+      if (card) {
+        card.classList.add('range-hover');
+      }
+    }
+  }
+
+  // Deck card click handling with Ctrl+Click support
+  deckCards.forEach((card, index) => {
+    card.addEventListener('click', (e) => {
+      e.preventDefault();
+      const checkbox = card.querySelector('.deck-checkbox');
+      if (!checkbox) return;
+
+      const isCtrlHeld = e.ctrlKey;
+      const visibleCards = getVisibleDeckCards();
+      const visibleIndex = visibleCards.indexOf(card);
+      
+      console.log('Card clicked:', { 
+        cardIndex: index, 
+        visibleIndex, 
+        isCtrlHeld, 
+        lastClickedDeckIndex,
+        cardText: card.querySelector('.deck-name')?.textContent 
+      });
+
+      if (visibleIndex === -1) {
+        console.log('Card is not visible, returning');
+        return; // Card is not visible
+      }
+
+      if (isCtrlHeld && lastClickedDeckIndex !== -1) {
+        console.log('Calling handleRangeSelection');
+        // Handle range selection
+        handleRangeSelection(visibleIndex, true);
+      } else {
+        console.log('Normal single click');
+        // Normal single click
+        checkbox.checked = !checkbox.checked;
+        lastClickedDeckIndex = visibleIndex;
+        updateDeckSelection();
+      }
+    });
+
+    // Add hover effects for range selection preview
+    card.addEventListener('mouseenter', (e) => {
+      const visibleCards = getVisibleDeckCards();
+      const visibleIndex = visibleCards.indexOf(card);
+      updateRangeHover(visibleIndex, e.ctrlKey);
+    });
+
+    card.addEventListener('mouseleave', () => {
+      card.classList.remove('range-hover');
+    });
+  });
+
+  // Listen for ctrl key changes to update hover effects
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Control' && deckModal && deckModal.classList.contains('show')) {
+      const hoveredCard = document.querySelector('.deck-card:hover');
+      if (hoveredCard) {
+        const visibleCards = getVisibleDeckCards();
+        const visibleIndex = visibleCards.indexOf(hoveredCard);
+        updateRangeHover(visibleIndex, true);
+      }
+    }
+  });
+
+  document.addEventListener('keyup', (e) => {
+    if (e.key === 'Control') {
+      // Clear all range hover effects
+      deckCards.forEach(card => card.classList.remove('range-hover'));
+    }
+  });
+
+  // Checkbox change events - prevent this from interfering with our click handling
+  deckCheckboxes.forEach((checkbox, index) => {
+    checkbox.addEventListener('change', (e) => {
+      console.log('Checkbox changed:', { index, checked: e.target.checked });
+      updateDeckSelection();
+    });
+  });
+
+  // Initial updates
+  updateDeckSelection();
+  updatePreviewText();
 
   // Function to end study session
   function endStudySession() {
@@ -2845,6 +3147,7 @@
     recordedAudioBlob: null,
     recordedAudioUrl: null,
     isRecording: false,
+    recordingTimeout: null, // Timeout for 4-second limit
     recognition: null,
     recognizedText: null,
     pronunciationScore: null,
@@ -2996,6 +3299,14 @@
           this.recognition.start();
         }
         
+        // Set 4-second timeout to auto-stop recording
+        this.recordingTimeout = setTimeout(() => {
+          if (this.isRecording) {
+            console.log("⏰ Recording auto-stopped after 4 seconds");
+            this.stopRecording();
+          }
+        }, 4000);
+        
         // Update UI
         const recordBtn = document.getElementById('recordButton');
         const recordIcon = document.getElementById('recordIcon');
@@ -3018,6 +3329,12 @@
       if (!this.isRecording) return;
       
       this.isRecording = false;
+      
+      // Clear the recording timeout if it exists
+      if (this.recordingTimeout) {
+        clearTimeout(this.recordingTimeout);
+        this.recordingTimeout = null;
+      }
       
       if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
         this.mediaRecorder.stop();
