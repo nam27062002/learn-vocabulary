@@ -34,7 +34,6 @@ SPACED_REPETITION_CONFIG = {
         'new': 35,    # New cards (never reviewed) - 35% selection weight
     }
 }
-import random
 from .statistics_utils import create_study_session, record_answer, end_study_session
 from .cache_utils import (
     FlashcardCache, StudySessionCache, StatisticsCache, DeckCache, APICache,
@@ -127,7 +126,6 @@ def _get_next_card_enhanced(user, deck_ids=None, seen_card_ids=None):
     from django.db.models import Case, When, FloatField, Q
     from django.db.models.functions import Random
     from datetime import datetime
-    import random
 
     today = datetime.now().date()
     
@@ -185,7 +183,8 @@ def _get_next_card_enhanced(user, deck_ids=None, seen_card_ids=None):
         return None
 
     # Randomly select a difficulty level based on weights
-    selected_difficulty = random.choice(weighted_pool)
+    import random as _rnd_local
+    selected_difficulty = _rnd_local.choice(weighted_pool)
     selected_card_ids = difficulty_groups[selected_difficulty]
 
     print(f"CARD SELECTION: Selected difficulty '{selected_difficulty}' from {len(weighted_pool)} weighted options", file=sys.stderr)
@@ -193,7 +192,7 @@ def _get_next_card_enhanced(user, deck_ids=None, seen_card_ids=None):
 
     # Return a random card from the selected difficulty group
     if selected_card_ids:
-        card_id = random.choice(selected_card_ids)
+        card_id = _rnd_local.choice(selected_card_ids)
         return Flashcard.objects.filter(id=card_id, user=user).first()
     
     return None
@@ -337,27 +336,43 @@ def api_next_question(request):
 
     if study_mode == 'random':
         # Random study mode: select random words from entire vocabulary
-        available_cards = Flashcard.objects.filter(user=request.user).exclude(id__in=seen_card_ids)
+        # Use caching for user's flashcards in random mode
+        cache_key = f"user_{request.user.id}_all_flashcards"
+        all_cards_data = cache.get(cache_key)
+        if all_cards_data is None:
+            all_cards_data = list(Flashcard.objects.filter(user=request.user).select_related('deck').prefetch_related('definitions'))
+            cache.set(cache_key, all_cards_data, 600)  # Cache for 10 minutes
+        
+        # Filter out seen cards
+        available_cards = [card for card in all_cards_data if card.id not in seen_card_ids]
 
-        if not available_cards.exists():
+        if not available_cards:
             return JsonResponse({'done': True})
 
-        # Get random card
-        card = available_cards.order_by('?').first()
+        # Use random.choice instead of database order_by('?')
+        card = _rnd.choice(available_cards)
 
         # Update tracking fields when card is shown
         _update_card_shown_tracking(card)
     elif study_mode == 'favorites':
         # Favorites study mode: select from user's favorite flashcards
-        favorite_cards = FavoriteFlashcard.objects.filter(
-            user=request.user
-        ).select_related('flashcard').exclude(flashcard_id__in=seen_card_ids)
+        # Use caching for favorite cards
+        cache_key = f"user_{request.user.id}_favorites"
+        favorite_cards_data = cache.get(cache_key)
+        if favorite_cards_data is None:
+            favorite_cards_data = list(FavoriteFlashcard.objects.filter(
+                user=request.user
+            ).select_related('flashcard').prefetch_related('flashcard__definitions'))
+            cache.set(cache_key, favorite_cards_data, 300)  # Cache for 5 minutes
+        
+        # Filter out seen cards
+        favorite_cards = [fc for fc in favorite_cards_data if fc.flashcard_id not in seen_card_ids]
 
-        if not favorite_cards.exists():
+        if not favorite_cards:
             return JsonResponse({'done': True, 'message': 'No favorite cards available'})
 
         # Get random favorite card
-        favorite_card = favorite_cards.order_by('?').first()
+        favorite_card = _rnd.choice(favorite_cards)
         card = favorite_card.flashcard
 
         # Update tracking fields when card is shown
@@ -382,21 +397,26 @@ def api_next_question(request):
             })
 
         # Get incorrect words excluding those already seen in this session
-        incorrect_words = IncorrectWordReview.objects.filter(
-            user=request.user,
-            is_resolved=False
-        ).exclude(flashcard_id__in=seen_card_ids).select_related('flashcard')
-
-        if not incorrect_words.exists():
-            # If no more unseen incorrect words, loop back to all incorrect words
-            print("Looping back to start of review session", file=sys.stderr)
-            incorrect_words = IncorrectWordReview.objects.filter(
+        # Use caching for incorrect words
+        cache_key = f"user_{request.user.id}_incorrect_words"
+        incorrect_words_data = cache.get(cache_key)
+        if incorrect_words_data is None:
+            incorrect_words_data = list(IncorrectWordReview.objects.filter(
                 user=request.user,
                 is_resolved=False
-            ).select_related('flashcard')
+            ).select_related('flashcard').prefetch_related('flashcard__definitions'))
+            cache.set(cache_key, incorrect_words_data, 300)  # Cache for 5 minutes
+        
+        # Filter out seen cards
+        incorrect_words = [iw for iw in incorrect_words_data if iw.flashcard_id not in seen_card_ids]
+
+        if not incorrect_words:
+            # If no more unseen incorrect words, loop back to all incorrect words
+            print("Looping back to start of review session", file=sys.stderr)
+            incorrect_words = incorrect_words_data
 
             # Double-check that we still have words (this should not happen due to check above)
-            if not incorrect_words.exists():
+            if not incorrect_words:
                 print("No incorrect words found in loop-back - session complete!", file=sys.stderr)
                 return JsonResponse({
                     'done': True,
@@ -405,7 +425,7 @@ def api_next_question(request):
                 })
 
         # Get a random incorrect word
-        incorrect_word = incorrect_words.order_by('?').first()
+        incorrect_word = _rnd.choice(incorrect_words)
 
         if not incorrect_word:
             print("No incorrect word found - this should not happen!", file=sys.stderr)
@@ -478,11 +498,19 @@ def api_next_question(request):
 
     if mode == 'mc':
         # Build 3 distractors from ALL user's words (not just selected decks)
-        distractors = Flashcard.objects.filter(user=request.user).exclude(id=card.id)
+        # Use cached data for distractors to avoid additional DB query
+        cache_key = f"user_{request.user.id}_flashcards_distractors"
+        distractor_words = cache.get(cache_key)
+        if distractor_words is None:
+            distractor_words = list(Flashcard.objects.filter(user=request.user).values_list('word', flat=True))
+            cache.set(cache_key, distractor_words, 600)  # Cache for 10 minutes
+        
+        # Filter out the current card's word
+        distractors = [word for word in distractor_words if word != card.word]
 
         # Get more candidates to improve semantic filtering
-        distractor_candidates = list(distractors.values_list('word', flat=True)[:50])
-        random.shuffle(distractor_candidates)
+        distractor_candidates = distractors[:50] if len(distractors) >= 50 else distractors
+        _rnd.shuffle(distractor_candidates)
 
         # Filter out semantically similar words to improve question quality
         filtered_distractors = _filter_semantic_distractors(card.word, distractor_candidates)
@@ -495,7 +523,7 @@ def api_next_question(request):
             final_distractors.extend(remaining_candidates[:3-len(final_distractors)])
 
         options = [card.word] + final_distractors[:3]
-        random.shuffle(options)
+        _rnd.shuffle(options)
         payload['question']['options'] = options
         payload['question']['type'] = 'mc'
     elif mode == 'dictation':
@@ -830,11 +858,23 @@ def test_statistics_view(request):
 @login_required
 def dashboard(request):
     # Thống kê cơ bản cho user hiện tại
-    user_flashcards = Flashcard.objects.filter(user=request.user)
-    total_cards = user_flashcards.count()
-    recent_cards = user_flashcards.filter(
-        created_at__gte=datetime.now() - timedelta(days=7)
-    ).count()
+    # Use caching for dashboard statistics
+    cache_key = f"user_{request.user.id}_dashboard_basic_stats"
+    basic_stats = cache.get(cache_key)
+    if basic_stats is None:
+        user_flashcards = Flashcard.objects.filter(user=request.user)
+        total_cards = user_flashcards.count()
+        recent_cards = user_flashcards.filter(
+            created_at__gte=datetime.now() - timedelta(days=7)
+        ).count()
+        basic_stats = {
+            'total_cards': total_cards,
+            'recent_cards': recent_cards
+        }
+        cache.set(cache_key, basic_stats, 300)  # Cache for 5 minutes
+    else:
+        total_cards = basic_stats['total_cards']
+        recent_cards = basic_stats['recent_cards']
     
     # Tính progress percentage (dựa trên target 50 cards/tuần)
     weekly_target = 50

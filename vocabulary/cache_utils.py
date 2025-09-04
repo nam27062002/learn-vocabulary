@@ -22,6 +22,9 @@ CACHE_TIMEOUTS = getattr(settings, 'CACHE_TIMEOUTS', {
     'api_response': 120,       # 2 minutes
     'incorrect_words': 300,    # 5 minutes
     'favorites': 600,          # 10 minutes
+    'dashboard_stats': 300,    # 5 minutes
+    'user_words': 600,         # 10 minutes
+    'distractors': 600,        # 10 minutes
 })
 
 class CacheKeys:
@@ -241,6 +244,17 @@ def clear_user_cache(user_id: int):
 def clear_all_cache():
     """Clear all cached data (use with caution)."""
     cache.clear()
+
+def invalidate_user_study_cache(user_id: int):
+    """Invalidate study-related cache when flashcards are modified."""
+    cache_keys_to_invalidate = [
+        f"user_{user_id}_all_flashcards",
+        f"user_{user_id}_flashcards_distractors", 
+        f"user_{user_id}_dashboard_basic_stats",
+        f"user_{user_id}_favorites",
+        f"user_{user_id}_incorrect_words"
+    ]
+    cache.delete_many(cache_keys_to_invalidate)
 
 def get_cache_stats():
     """Get cache statistics (if Redis is available)."""

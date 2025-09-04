@@ -14,6 +14,10 @@ class Deck(models.Model):
     class Meta:
         ordering = ['-created_at']
         unique_together = ['user', 'name']
+        indexes = [
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['user', 'name']),
+        ]
 
 class Flashcard(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='flashcards')
@@ -91,6 +95,16 @@ class Flashcard(models.Model):
     class Meta:
         ordering = ['word']
         unique_together = ['user', 'word']  # Một user không thể có từ trùng lặp
+        indexes = [
+            models.Index(fields=['user', 'word']),
+            models.Index(fields=['user', 'deck']),
+            models.Index(fields=['user', 'last_seen_date']),
+            models.Index(fields=['user', 'difficulty_score']),
+            models.Index(fields=['user', 'times_seen_today']),
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['difficulty_score', 'times_seen_today']),
+            models.Index(fields=['last_seen_date', 'times_seen_today']),
+        ]
 
 class Definition(models.Model):
     flashcard = models.ForeignKey(Flashcard, related_name='definitions', on_delete=models.CASCADE)
@@ -98,6 +112,11 @@ class Definition(models.Model):
     vietnamese_definition = models.TextField()
     definition_synonyms = models.TextField(blank=True, null=True, help_text="Comma-separated list of synonyms for this definition")
     definition_antonyms = models.TextField(blank=True, null=True, help_text="Comma-separated list of antonyms for this definition")
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['flashcard']),
+        ]
 
     def __str__(self):
         return f"{self.flashcard.word} - {self.english_definition[:50]}..."
