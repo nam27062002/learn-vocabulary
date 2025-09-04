@@ -31,6 +31,12 @@
   const timerDisplay = document.getElementById("timerDisplay");
   const timerText = document.getElementById("timerText");
 
+  // Progress bar elements
+  const progressContainer = document.getElementById("progressContainer");
+  const progressText = document.getElementById("progressText");
+  const progressPercentage = document.getElementById("progressPercentage");
+  const progressBarFill = document.getElementById("progressBarFill");
+
   // Function to abbreviate part of speech
   function abbreviatePartOfSpeech(partOfSpeech) {
     if (!partOfSpeech) return '';
@@ -56,6 +62,58 @@
     
     const lower = partOfSpeech.toLowerCase();
     return abbreviations[lower] || partOfSpeech;
+  }
+
+  // Progress bar functions
+  function initializeProgressBar(total) {
+    totalQuestions = total;
+    currentQuestionNumber = 0;
+    answeredQuestions = 0;
+    
+    if (progressContainer && total > 0) {
+      progressContainer.style.display = "block";
+      updateProgressDisplay();
+    } else if (progressContainer) {
+      progressContainer.style.display = "none";
+    }
+  }
+
+  function updateProgressBar() {
+    answeredQuestions++;
+    updateProgressDisplay();
+  }
+
+  function updateProgressDisplay() {
+    if (!progressText || !progressPercentage || !progressBarFill) return;
+    
+    const percentage = totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0;
+    const progressStr = totalQuestions > 0 ? `${answeredQuestions}/${totalQuestions}` : "0/0";
+    
+    // Update text elements
+    progressText.textContent = `Progress: ${progressStr}`;
+    progressPercentage.textContent = `${percentage}%`;
+    
+    // Update progress bar fill
+    progressBarFill.style.width = `${percentage}%`;
+    
+    // Add completion animation when 100%
+    if (percentage >= 100) {
+      progressBarFill.style.background = "linear-gradient(90deg, #10b981, #059669)";
+      setTimeout(() => {
+        if (progressBarFill) {
+          progressBarFill.style.background = "linear-gradient(90deg, var(--primary-color), #8b5cf6)";
+        }
+      }, 2000);
+    }
+  }
+
+  function resetProgressBar() {
+    if (progressContainer) {
+      progressContainer.style.display = "none";
+    }
+    totalQuestions = 0;
+    currentQuestionNumber = 0;
+    answeredQuestions = 0;
   }
 
   // Audio feedback system
@@ -598,6 +656,11 @@
 
   let currentQuestion = null;
   let questionStartTime = null;
+
+  // Progress tracking variables
+  let totalQuestions = 0;
+  let currentQuestionNumber = 0;
+  let answeredQuestions = 0;
 
   // Study session timer variables
   let studyStartTime = null;
@@ -1517,6 +1580,9 @@
       })
       .then((data) => {
         if (data.success) {
+          // Update progress bar
+          updateProgressBar();
+          
           // Reset submission flag and proceed to next question
           window.submittingGrade = false;
           getNextQuestion();
@@ -1877,6 +1943,14 @@
 
         // Store selected deck IDs
         deckIds = selectedDeckIds;
+        
+        // Calculate total cards for progress bar
+        const totalCards = selectedDeckIds.reduce((total, deckId) => {
+          const deckCard = document.querySelector(`input[value="${deckId}"]`)?.closest('.deck-card');
+          const countText = deckCard?.querySelector('.deck-count')?.textContent || '0';
+          return total + parseInt(countText.match(/\d+/) || [0])[0];
+        }, 0);
+        initializeProgressBar(totalCards);
       } else if (currentStudyMode === "review") {
         // Check if there are incorrect words to review
         if (
@@ -1928,6 +2002,9 @@
       incorrectCnt = 0;
       seenCardIds = [];
       updateStats();
+      
+      // Initialize progress bar for random study
+      initializeProgressBar(wordCount);
 
       // Hide all selection areas and show study area
       const studyModeSection = document.querySelector(".study-mode-section");
@@ -1998,6 +2075,9 @@
   // Back button handling
   if (backBtn) {
     backBtn.addEventListener("click", () => {
+      // Reset progress bar
+      resetProgressBar();
+      
       // Hide study area
       studyArea.style.display = "none";
 

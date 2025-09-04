@@ -317,6 +317,19 @@
       </div>
     </div>
 
+    <!-- Progress Bar -->
+    <div id="progressContainer" class="progress-container" style="display: none;">
+      <div class="progress-info">
+        <span id="progressText" class="progress-text">{{ manual_texts.progress|default:'Progress' }}: 0/0</span>
+        <span id="progressPercentage" class="progress-percentage">0%</span>
+      </div>
+      <div class="progress-bar-wrapper">
+        <div class="progress-bar">
+          <div id="progressBarFill" class="progress-bar-fill"></div>
+        </div>
+      </div>
+    </div>
+
     <div id="cardBox" class="flashcard-container">
       <div class="card-header">
         <div class="word-section">
