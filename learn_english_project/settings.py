@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,14 +22,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-f-_cq&2k*qc_#=75#32=%kf$l5*fvq=*j)q6mdok&yb7yh^fis'
+# The default key is for local development only.
+# In production, this will be read from the SECRET_KEY environment variable.
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-f-_cq&2k*qc_#=75#32=%kf$l5*fvq=*j)q6mdok&yb7yh^fis')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Debug mode is controlled by the DEBUG environment variable. Defaults to False.
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
-ENABLE_DEBUG = True
-
-ALLOWED_HOSTS = []
+# Allowed hosts are controlled by the ALLOWED_HOSTS environment variable.
+# It should be a comma-separated list of hostnames.
+# e.g., .onrender.com,localhost,127.0.0.1
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
 
 # Application definition
@@ -54,6 +60,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Whitenoise for serving static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -76,9 +83,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'vocabulary.context_processors.i18n_compatible_translations',  # Hybrid i18n system
-                # Required for allauth
-                # request is already included above
+                'vocabulary.context_processors.i18n_compatible_translations',
             ],
         },
     },
@@ -89,12 +94,13 @@ WSGI_APPLICATION = 'learn_english_project.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
+# Database configuration is read from the DATABASE_URL environment variable.
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        # Fallback to a local sqlite database if DATABASE_URL is not set
+        default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
+        conn_max_age=600
+    )
 }
 
 
@@ -102,34 +108,19 @@ DATABASES = {
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
 
-# Internationalization disabled and simplified for localhost single-user setup
+# Internationalization
 LANGUAGE_CODE = 'en'
 TIME_ZONE = 'Asia/Ho_Chi_Minh'
 USE_I18N = False
 USE_L10N = True
 USE_TZ = True
-
-# Simplified session/cookie settings
-SESSION_COOKIE_AGE = 60 * 60 * 24 * 30
-SESSION_SAVE_EVERY_REQUEST = True
-CSRF_COOKIE_SECURE = False
-CSRF_COOKIE_HTTPONLY = False
-CSRF_USE_SESSIONS = False
 
 
 # Static files (CSS, JavaScript, Images)
@@ -137,11 +128,9 @@ CSRF_USE_SESSIONS = False
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Additional directories for static files
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
 
 # Media files (user uploaded files)
 MEDIA_URL = '/media/'
@@ -180,81 +169,30 @@ LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
-# Email settings - Gmail SMTP Configuration
+# Email settings - Read from environment variables for production
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'nam27062002@gmail.com'
-EMAIL_HOST_PASSWORD = 'xorn xvut fsif kljt'
+EMAIL_HOST = os.environ.get('EMAIL_HOST')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Learn Vocabulary <no-reply@example.com>')
 
-# Email timeout and additional settings
-EMAIL_TIMEOUT = 60
-EMAIL_USE_LOCALTIME = True
-
-# Default from email
-DEFAULT_FROM_EMAIL = 'Learn Vocabulary <nam27062002@gmail.com>'
-SERVER_EMAIL = DEFAULT_FROM_EMAIL
-
-# Redis Cache Configuration with Fallback
-try:
-    # Try Redis first
-    CACHES = {
-        'default': {
-            'BACKEND': 'django_redis.cache.RedisCache',
-            'LOCATION': 'redis://127.0.0.1:6379/1',
-            'OPTIONS': {
-                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-                'PARSER_CLASS': 'redis.connection.HiredisParser',
-                'CONNECTION_POOL_KWARGS': {
-                    'max_connections': 50,
-                    'health_check_interval': 30,
-                },
-                'IGNORE_EXCEPTIONS': True,  # Don't break on Redis connection issues
-            },
-            'KEY_PREFIX': 'learnenglish',
-            'TIMEOUT': 300,  # Default timeout 5 minutes
-        }
+# Redis Cache Configuration - Read from REDIS_URL environment variable
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+        "KEY_PREFIX": "learnenglish"
     }
-    
-    # Test Redis connection
-    import redis
-    r = redis.Redis(host='127.0.0.1', port=6379, db=1)
-    r.ping()
-    print("Redis server connected successfully")
-    
-except Exception as e:
-    print(f"Redis not available, falling back to database cache: {e}")
-    # Fallback to database cache if Redis is not available
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-            'LOCATION': 'cache_table',
-            'TIMEOUT': 300,
-            'OPTIONS': {
-                'MAX_ENTRIES': 1000,
-                'CULL_FREQUENCY': 3,
-            }
-        }
-    }
-
-# Cache timeouts for different data types (in seconds)
-CACHE_TIMEOUTS = {
-    'flashcard_list': 60 * 10,     # 10 minutes
-    'study_session': 60 * 5,       # 5 minutes  
-    'user_statistics': 60 * 30,    # 30 minutes
-    'deck_info': 60 * 15,          # 15 minutes
-    'api_response': 60 * 2,        # 2 minutes
-    'incorrect_words': 60 * 5,     # 5 minutes
-    'favorites': 60 * 10,          # 10 minutes
 }
 
 # Session storage using Redis
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'default'
-
-# For development/testing, uncomment this line to use console backend:
-# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # Social account providers
 SOCIALACCOUNT_PROVIDERS = {
@@ -266,9 +204,5 @@ SOCIALACCOUNT_PROVIDERS = {
         'AUTH_PARAMS': {
             'access_type': 'online',
         },
-        # Removed APP configuration - using database settings instead
     }
 }
-
-# Allowed hosts for OAuth
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
