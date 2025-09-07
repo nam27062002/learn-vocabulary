@@ -1,7 +1,7 @@
-deep_translator==1.11.4
+deep_translator
 dj_database_url==3.0.1
 Django==5.1.7
-googletrans==3.1.0a0
+googletrans
 lxml==6.0.0
 python-dotenv==1.1.1
 Requests==2.32.5
