@@ -37,6 +37,7 @@ soupsieve==2.7
 # Database utilities
 dj-database-url==2.1.0
 psycopg[binary]==3.2.10
+lxml==5.3.0
 
 # Redis caching
 redis==5.0.1
