@@ -18,6 +18,11 @@ ENABLE_DEBUG = config('ENABLE_DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
+# Redis connection parameters (provide defaults to avoid NameError)
+REDIS_HOST = config('REDIS_HOST', default='localhost')
+REDIS_PORT = config('REDIS_PORT', default=6379, cast=int)
+REDIS_DB = config('REDIS_DB', default=1, cast=int)
+
 
 # Application definition
 
@@ -51,6 +56,14 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',  # Required for allauth
 ]
+
+# Enable WhiteNoise in production to serve static files
+if not DEBUG:
+    try:
+        MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+        STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    except Exception:
+        pass
 
 ROOT_URLCONF = 'learn_english_project.urls'
 
