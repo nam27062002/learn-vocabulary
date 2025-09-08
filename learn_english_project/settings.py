@@ -57,13 +57,11 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',  # Required for allauth
 ]
 
-# Enable WhiteNoise in production to serve static files
-if not DEBUG:
-    try:
-        MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
-        STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-    except Exception:
-        pass
+# Enable WhiteNoise to serve static files
+try:
+    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+except Exception:
+    pass
 
 ROOT_URLCONF = 'learn_english_project.urls'
 
@@ -146,6 +144,7 @@ CSRF_USE_SESSIONS = False
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Additional directories for static files
 STATICFILES_DIRS = [
