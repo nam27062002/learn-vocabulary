@@ -10,32 +10,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Custom Authentication Styles -->
-    <style>
-        body {
-            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-        }
-        
-        /* Form input styling */
-        input[type="email"], 
-        input[type="password"] {
-            @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm;
-        }
-        
-        input[type="checkbox"] {
-            @apply h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded;
-        }
-        
-        /* Custom button hover effects */
-        .btn-google:hover {
-            background-color: #dc2626 !important;
-            transform: translateY(-1px);
-        }
-        
-        .btn-primary:hover {
-            background-color: #4338ca !important;
-            transform: translateY(-1px);
-        }
-    </style>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
 </head>
 <body class="bg-gray-50 min-h-screen">
     {% block content %}
