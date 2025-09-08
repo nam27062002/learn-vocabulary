@@ -9,7 +9,6 @@ services:
     startCommand: |
       python manage.py collectstatic --noinput && 
       python manage.py migrate --noinput && 
-      python manage.py createcachetable cache_table && 
       gunicorn learn_english_project.wsgi:application --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHONUNBUFFERED
@@ -52,9 +51,4 @@ services:
         sync: false
       - key: SITE_ID
         value: "1"
-      - key: REDIS_HOST
-        sync: false
-      - key: REDIS_PORT
-        value: "6379"
-      - key: REDIS_DB
-        value: "1"
+      
