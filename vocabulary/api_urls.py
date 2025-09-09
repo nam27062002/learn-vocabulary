@@ -47,6 +47,11 @@ urlpatterns = [
     path('api/favorites/count/', views.api_get_favorites_count, name='api_get_favorites_count'),
     path('api/favorites/check/', views.api_check_favorite_status, name='api_check_favorite_status'),
 
+    # Blacklist APIs
+    path('api/blacklist/toggle/', views.api_toggle_blacklist, name='api_toggle_blacklist'),
+    path('api/blacklist/count/', views.api_get_blacklist_count, name='api_get_blacklist_count'),
+    path('api/blacklist/check/', views.api_check_blacklist_status, name='api_check_blacklist_status'),
+
     # Language (manual language switch without Django i18n)
     path('api/set-language/', views.api_set_language, name='api_set_language'),
 ]

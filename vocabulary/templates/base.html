@@ -125,6 +125,15 @@
                   <span id="nav-favorites-count" class="ml-1 bg-red-500 text-white text-xs rounded-full px-2 py-1" style="display: none;">0</span>
                 </a>
                 <a
+                  href="{% url 'blacklist' %}"
+                  class="{% if request.resolver_match.url_name == 'blacklist' %}bg-gray-900 text-white{% else %}text-gray-500 dark:text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1"
+                  id="nav-blacklist"
+                >
+                  <span class="nav-icon">⛔</span>
+                  <span>{{ manual_texts.blacklist|default:"Blacklist" }}</span>
+                  <span id="nav-blacklist-count" class="ml-1 bg-red-600 text-white text-xs rounded-full px-2 py-1" style="display: none;">0</span>
+                </a>
+                <a
                   href="{% url 'statistics' %}"
                   class="{% if request.resolver_match.url_name == 'statistics' %}bg-gray-900 text-white{% else %}text-gray-500 dark:text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1"
                   id="nav-statistics"
@@ -333,6 +342,14 @@
             <span class="nav-icon">❤️</span>
             <span>{{ manual_texts.favorites|default:"Favorites" }}</span>
             <span id="mobile-favorites-count" class="ml-1 bg-red-500 text-white text-xs rounded-full px-2 py-1" style="display: none;">0</span>
+          </a>
+          <a
+            href="{% url 'blacklist' %}"
+            class="{% if request.resolver_match.url_name == 'blacklist' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium flex items-center space-x-2"
+          >
+            <span class="nav-icon">⛔</span>
+            <span>{{ manual_texts.blacklist|default:"Blacklist" }}</span>
+            <span id="mobile-blacklist-count" class="ml-1 bg-red-600 text-white text-xs rounded-full px-2 py-1" style="display: none;">0</span>
           </a>
           <a
             href="{% url 'statistics' %}"

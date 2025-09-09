@@ -1549,6 +1549,167 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize favorites when page loads
   initializeFavorites();
 
+  // Initialize blacklist functionality
+  function initializeBlacklist() {
+    console.log("🔍 Initializing blacklist functionality...");
+
+    // Load blacklist status for all cards
+    loadBlacklistStatus();
+
+    // Add event listeners to blacklist buttons
+    const blacklistButtons = document.querySelectorAll('.blacklist-btn');
+    blacklistButtons.forEach(button => {
+      button.addEventListener('click', handleBlacklistToggle);
+    });
+
+    console.log(`✅ Added blacklist listeners to ${blacklistButtons.length} buttons`);
+  }
+
+  // Load blacklist status for all visible cards
+  function loadBlacklistStatus() {
+    const blacklistButtons = document.querySelectorAll('.blacklist-btn');
+    const cardIds = Array.from(blacklistButtons).map(btn => btn.getAttribute('data-card-id'));
+
+    if (cardIds.length === 0) {
+      console.log("No blacklist buttons found");
+      return;
+    }
+
+    const params = new URLSearchParams();
+    cardIds.forEach(id => params.append('card_ids[]', id));
+
+    fetch(`/api/blacklist/check/?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Update blacklist button states
+        Object.entries(data.blacklists).forEach(([cardId, isBlacklisted]) => {
+          const button = document.querySelector(`.blacklist-btn[data-card-id="${cardId}"]`);
+          if (button) {
+            updateBlacklistButton(button, isBlacklisted);
+          }
+        });
+        console.log("✅ Blacklist status loaded for all cards");
+      } else {
+        console.error("Failed to load blacklist status:", data.error);
+      }
+    })
+    .catch(error => {
+      console.error("Error loading blacklist status:", error);
+    });
+  }
+
+  // Handle blacklist button click
+  function handleBlacklistToggle(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const button = event.currentTarget;
+    const cardId = button.getAttribute('data-card-id');
+
+    if (!cardId) {
+      console.error("No card ID found for blacklist button");
+      return;
+    }
+
+    // Show loading state
+    const originalIcon = button.querySelector('.blacklist-icon').textContent;
+    button.querySelector('.blacklist-icon').textContent = '⏳';
+    button.disabled = true;
+
+    fetch('/api/blacklist/toggle/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+      },
+      body: JSON.stringify({
+        card_id: cardId
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        updateBlacklistButton(button, data.is_blacklisted);
+        console.log(`✅ Blacklist toggled for card ${cardId}: ${data.is_blacklisted ? 'added' : 'removed'}`);
+
+        // Show feedback message
+        showBlacklistMessage(data.is_blacklisted);
+      } else {
+        console.error("Failed to toggle blacklist:", data.error);
+        // Restore original state
+        button.querySelector('.blacklist-icon').textContent = originalIcon;
+        alert('Error toggling blacklist: ' + data.error);
+      }
+    })
+    .catch(error => {
+      console.error("Error toggling blacklist:", error);
+      // Restore original state
+      button.querySelector('.blacklist-icon').textContent = originalIcon;
+      alert('Error toggling blacklist');
+    })
+    .finally(() => {
+      button.disabled = false;
+    });
+  }
+
+  // Update blacklist button appearance
+  function updateBlacklistButton(button, isBlacklisted) {
+    const icon = button.querySelector('.blacklist-icon');
+    if (isBlacklisted) {
+      icon.textContent = '🚫';
+      button.classList.add('blacklisted');
+      button.title = 'Remove from blacklist';
+    } else {
+      icon.textContent = '🔘';
+      button.classList.remove('blacklisted');
+      button.title = 'Add to blacklist';
+    }
+  }
+
+  // Show blacklist feedback message
+  function showBlacklistMessage(isBlacklisted) {
+    const message = isBlacklisted ?
+      '⛔ Added to blacklist!' :
+      '✅ Removed from blacklist';
+
+    // Create temporary message element
+    const messageEl = document.createElement('div');
+    messageEl.textContent = message;
+    messageEl.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${isBlacklisted ? '#ef4444' : '#10b981'};
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    `;
+
+    document.body.appendChild(messageEl);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+      messageEl.style.animation = 'slideOut 0.3s ease';
+      setTimeout(() => {
+        if (messageEl.parentNode) {
+          messageEl.parentNode.removeChild(messageEl);
+        }
+      }, 300);
+    }, 3000);
+  }
+
+  // Initialize blacklist when page loads
+  initializeBlacklist();
+
   /**
    * Update card display after audio selection
    * Called by Enhanced Audio Manager after successful audio update

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Flashcard, Definition, Deck, StudySession, StudySessionAnswer, DailyStatistics, WeeklyStatistics, FavoriteFlashcard
+from .models import Flashcard, Definition, Deck, StudySession, StudySessionAnswer, DailyStatistics, WeeklyStatistics, FavoriteFlashcard, BlacklistFlashcard
 
 @admin.register(Deck)
 class DeckAdmin(admin.ModelAdmin):
@@ -198,6 +198,17 @@ class FavoriteFlashcardAdmin(admin.ModelAdmin):
     list_filter = ['favorited_at', 'user']
     search_fields = ['user__email', 'flashcard__word']
     readonly_fields = ['favorited_at']
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'flashcard')
+
+
+@admin.register(BlacklistFlashcard)
+class BlacklistFlashcardAdmin(admin.ModelAdmin):
+    list_display = ['user', 'flashcard', 'blacklisted_at']
+    list_filter = ['blacklisted_at', 'user']
+    search_fields = ['user__email', 'flashcard__word']
+    readonly_fields = ['blacklisted_at']
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('user', 'flashcard')

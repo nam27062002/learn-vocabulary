@@ -184,6 +184,16 @@
               <span class="favorite-icon text-lg">🤍</span>
             </button>
 
+            <!-- Blacklist Button -->
+            <button
+              class="blacklist-btn card-action-btn text-gray-400 hover:text-red-600 transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
+              data-card-id="{{ card.id }}"
+              title="{{ manual_texts.toggle_blacklist|default:'Toggle blacklist' }}"
+              aria-label="{{ manual_texts.toggle_blacklist|default:'Toggle blacklist' }}"
+            >
+              <span class="blacklist-icon text-lg">🔘</span>
+            </button>
+
             <!-- Edit Button -->
             <button
               class="edit-card-btn card-action-btn text-gray-400 hover:text-primary-color transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
@@ -444,6 +454,15 @@
   }
 
   .favorite-btn.favorited:hover {
+    color: #dc2626 !important;
+  }
+
+  /* Blacklist button specific styling */
+  .blacklist-btn.blacklisted {
+    color: #ef4444 !important;
+  }
+
+  .blacklist-btn.blacklisted:hover {
     color: #dc2626 !important;
   }
 

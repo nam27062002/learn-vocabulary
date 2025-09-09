@@ -9,6 +9,7 @@
   const cardImageEl = document.getElementById("cardImage");
   const cardDefsEl = document.getElementById("cardDefs");
   const favoriteButton = document.getElementById("favoriteButton");
+  const blacklistButton = document.getElementById("blacklistButton");
   const answerArea = document.getElementById("answerSection") || {
     innerHTML: "",
     appendChild: () => {},
@@ -989,6 +990,28 @@
       console.log(`[DEBUG] Favorite button reset to default state for new question`);
     }
 
+    // Hide and reset blacklist button during question phase - it will be shown after answer submission
+    let currentBlacklistButton = blacklistButton;
+    if (!currentBlacklistButton || !document.contains(currentBlacklistButton)) {
+      console.log("[DEBUG] Blacklist button reference is stale in renderQuestion, re-querying...");
+      currentBlacklistButton = document.getElementById("blacklistButton");
+    }
+
+    if (currentBlacklistButton) {
+      currentBlacklistButton.style.display = "none";
+
+      // Reset blacklist button to default state for new question
+      const blacklistIcon = currentBlacklistButton.querySelector(".blacklist-icon");
+      if (blacklistIcon) {
+        blacklistIcon.textContent = "🔘"; // Default unblacklisted state
+      }
+      currentBlacklistButton.classList.remove("blacklisted");
+      currentBlacklistButton.title = "Add to blacklist";
+      currentBlacklistButton.removeAttribute("data-card-id");
+
+      console.log(`[DEBUG] Blacklist button reset to default state for new question`);
+    }
+
     // Remove any existing temporary audio containers
     const existingAudioContainer =
       document.getElementById("tempAudioContainer");
@@ -1216,6 +1239,9 @@
     console.log(`  - favoriteButton exists: ${!!favoriteButton}`);
     console.log(`  - favoriteButton parentNode: ${favoriteButton?.parentNode}`);
     console.log(`  - favoriteButton in DOM: ${document.contains(favoriteButton)}`);
+    console.log(`  - blacklistButton exists: ${!!blacklistButton}`);
+    console.log(`  - blacklistButton parentNode: ${blacklistButton?.parentNode}`);
+    console.log(`  - blacklistButton in DOM: ${document.contains(blacklistButton)}`);
     console.log(`  - cardWordEl exists: ${!!cardWordEl}`);
     console.log(`  - optionsArea exists: ${!!optionsArea}`);
 
@@ -1427,6 +1453,35 @@
       loadCardFavoriteStatus(currentQuestion.id);
     } else {
       console.log(`[DEBUG] Favorite button setup skipped - button exists: ${!!currentFavoriteButton}, question ID: ${currentQuestion?.id}`);
+    }
+
+    // Show and setup blacklist button
+    let currentBlacklistButton = blacklistButton;
+
+    // Re-query the blacklist button if the original reference is stale
+    if (!currentBlacklistButton || !document.contains(currentBlacklistButton)) {
+      console.warn(`[WARN] Blacklist button reference is stale, re-querying...`);
+      currentBlacklistButton = document.getElementById("blacklistButton");
+    }
+
+    if (currentBlacklistButton && currentQuestion.id) {
+      currentBlacklistButton.style.display = "block";
+      currentBlacklistButton.setAttribute("data-card-id", currentQuestion.id);
+
+      // To prevent stale event listeners, clone and replace the button.
+      let newBlacklistButton = currentBlacklistButton;
+      if (currentBlacklistButton.parentNode) {
+        newBlacklistButton = currentBlacklistButton.cloneNode(true);
+        currentBlacklistButton.parentNode.replaceChild(newBlacklistButton, currentBlacklistButton);
+      }
+      
+      // Add the event listener to the new, clean button.
+      newBlacklistButton.addEventListener("click", handleStudyBlacklistToggle);
+
+      // Now, load the blacklist status for the current card.
+      loadCardBlacklistStatus(currentQuestion.id);
+    } else {
+      console.log(`[DEBUG] Blacklist button setup skipped - button exists: ${!!currentBlacklistButton}, question ID: ${currentQuestion?.id}`);
     }
 
     // Show definitions in the definitions area
@@ -2870,6 +2925,147 @@
       top: 20px;
       right: 20px;
       background: ${isFavorited ? "#10b981" : "#ef4444"};
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    `;
+
+    document.body.appendChild(messageEl);
+
+    // Remove after 2 seconds
+    setTimeout(() => {
+      messageEl.style.animation = "slideOut 0.3s ease";
+      setTimeout(() => {
+        if (messageEl.parentNode) {
+          messageEl.parentNode.removeChild(messageEl);
+        }
+      }, 300);
+    }, 2000);
+  }
+
+  // Blacklist functionality for study interface
+  function loadCardBlacklistStatus(cardId) {
+    console.log(`[DEBUG] Loading blacklist status for card ID: ${cardId}`);
+
+    const blacklistBtn = document.getElementById("blacklistButton");
+    if (!blacklistBtn) {
+      console.warn(`[WARN] Blacklist button not found when loading status for card ${cardId}`);
+      return;
+    }
+
+    const params = new URLSearchParams();
+    params.append('card_ids[]', cardId);
+
+    fetch(`/api/blacklist/check/?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+      }
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && data.blacklists) {
+          const isBlacklisted = data.blacklists[cardId];
+          console.log(`[DEBUG] Card ${cardId} blacklist status: ${isBlacklisted}`);
+          updateStudyBlacklistButton(blacklistBtn, isBlacklisted);
+        } else {
+          console.warn(`[WARN] No blacklist status data received for card ${cardId}`);
+        }
+      })
+      .catch(error => {
+        console.error(`[ERROR] Error loading blacklist status for card ${cardId}:`, error);
+      });
+  }
+
+  function handleStudyBlacklistToggle(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const button = event.currentTarget;
+    const cardId = button.getAttribute("data-card-id");
+
+    if (!cardId) {
+      console.error("[ERROR] No card ID found for blacklist button");
+      return;
+    }
+
+    // Show loading state
+    const originalIcon = button.querySelector(".blacklist-icon").textContent;
+    button.querySelector(".blacklist-icon").textContent = "⏳";
+    button.disabled = true;
+
+    fetch("/api/blacklist/toggle/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": document.querySelector('meta[name="csrf-token"]').content,
+      },
+      body: JSON.stringify({
+        card_id: cardId,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          updateStudyBlacklistButton(button, data.is_blacklisted);
+          showStudyBlacklistMessage(data.is_blacklisted);
+          console.log(
+            `[DEBUG] Blacklist toggled for card ${cardId}: ${data.is_blacklisted ? "added" : "removed"}`
+          );
+        } else {
+          console.error("[ERROR] Failed to toggle blacklist:", data.error);
+          // Restore original state
+          button.querySelector(".blacklist-icon").textContent = originalIcon;
+          alert("Error toggling blacklist: " + data.error);
+        }
+      })
+      .catch((error) => {
+        console.error("[ERROR] Error toggling blacklist:", error);
+        // Restore original state
+        button.querySelector(".blacklist-icon").textContent = originalIcon;
+        alert("Error toggling blacklist");
+      })
+      .finally(() => {
+        button.disabled = false;
+      });
+  }
+
+  function updateStudyBlacklistButton(button, isBlacklisted) {
+    console.log(`[DEBUG] Updating blacklist button visual state: ${isBlacklisted ? 'blacklisted' : 'not blacklisted'}`);
+
+    const icon = button.querySelector(".blacklist-icon");
+    if (!icon) {
+      console.error(`[ERROR] Blacklist icon element not found in button`);
+      return;
+    }
+
+    if (isBlacklisted) {
+      icon.textContent = "🚫";
+      button.classList.add("blacklisted");
+      button.title = "Remove from blacklist";
+      console.log(`[DEBUG] Button updated to blacklisted state (🚫)`);
+    } else {
+      icon.textContent = "🔘";
+      button.classList.remove("blacklisted");
+      button.title = "Add to blacklist";
+      console.log(`[DEBUG] Button updated to unblacklisted state (🔘)`);
+    }
+  }
+
+  function showStudyBlacklistMessage(isBlacklisted) {
+    const message = isBlacklisted ? "⛔ Added to blacklist!" : "✅ Removed from blacklist";
+
+    // Create temporary message element
+    const messageEl = document.createElement("div");
+    messageEl.textContent = message;
+    messageEl.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${isBlacklisted ? "#ef4444" : "#10b981"};
       color: white;
       padding: 12px 20px;
       border-radius: 8px;
