@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
-from .models import Flashcard, Definition, Deck, StudySession, StudySessionAnswer, IncorrectWordReview, FavoriteFlashcard # Import Deck model
+from .models import Flashcard, Definition, Deck, StudySession, StudySessionAnswer, IncorrectWordReview, FavoriteFlashcard, BlacklistFlashcard # Import Deck model
 from django.conf import settings # Import settings
 from .api_services import get_word_suggestions_from_datamuse # Import new service functions
 from .word_details_service import get_word_details # Import the new service function
@@ -84,6 +84,11 @@ def _build_difficulty_groups_cached(user, deck_ids, today, seen_card_ids=None):
     qs = Flashcard.objects.filter(user=user)
     if deck_ids:
         qs = qs.filter(deck_id__in=deck_ids)
+    
+    # Exclude blacklisted cards
+    blacklisted_card_ids = BlacklistFlashcard.objects.filter(user=user).values_list('flashcard_id', flat=True)
+    if blacklisted_card_ids:
+        qs = qs.exclude(id__in=blacklisted_card_ids)
     
     # Exclude seen cards in current session
     if seen_card_ids:
@@ -343,8 +348,13 @@ def api_next_question(request):
             all_cards_data = list(Flashcard.objects.filter(user=request.user).select_related('deck').prefetch_related('definitions'))
             cache.set(cache_key, all_cards_data, 600)  # Cache for 10 minutes
         
-        # Filter out seen cards
-        available_cards = [card for card in all_cards_data if card.id not in seen_card_ids]
+        # Get blacklisted card IDs to exclude
+        blacklisted_card_ids = set(BlacklistFlashcard.objects.filter(user=request.user).values_list('flashcard_id', flat=True))
+        
+        # Filter out seen cards and blacklisted cards
+        available_cards = [card for card in all_cards_data 
+                          if card.id not in seen_card_ids 
+                          and card.id not in blacklisted_card_ids]
 
         if not available_cards:
             return JsonResponse({'done': True})
@@ -365,8 +375,13 @@ def api_next_question(request):
             ).select_related('flashcard').prefetch_related('flashcard__definitions'))
             cache.set(cache_key, favorite_cards_data, 300)  # Cache for 5 minutes
         
-        # Filter out seen cards
-        favorite_cards = [fc for fc in favorite_cards_data if fc.flashcard_id not in seen_card_ids]
+        # Get blacklisted card IDs to exclude
+        blacklisted_card_ids = set(BlacklistFlashcard.objects.filter(user=request.user).values_list('flashcard_id', flat=True))
+        
+        # Filter out seen cards and blacklisted cards
+        favorite_cards = [fc for fc in favorite_cards_data 
+                         if fc.flashcard_id not in seen_card_ids 
+                         and fc.flashcard_id not in blacklisted_card_ids]
 
         if not favorite_cards:
             return JsonResponse({'done': True, 'message': 'No favorite cards available'})
@@ -2295,6 +2310,102 @@ def favorites_page(request):
     }
 
     return render(request, 'vocabulary/favorites.html', context)
+
+
+# Blacklist API Endpoints
+
+@login_required
+@require_POST
+def api_toggle_blacklist(request):
+    """Toggle blacklist status for a flashcard."""
+    try:
+        data = json.loads(request.body)
+        card_id = data.get('card_id')
+
+        if not card_id:
+            return JsonResponse({'success': False, 'error': 'Card ID is required'}, status=400)
+
+        try:
+            card = Flashcard.objects.get(id=card_id, user=request.user)
+        except Flashcard.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Card not found'}, status=404)
+
+        # Toggle blacklist status
+        blacklist, created = BlacklistFlashcard.toggle_blacklist(request.user, card)
+
+        return JsonResponse({
+            'success': True,
+            'is_blacklisted': created,  # True if blacklisted, False if unblacklisted
+            'blacklist_count': BlacklistFlashcard.get_user_blacklist_count(request.user)
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_GET
+def api_get_blacklist_count(request):
+    """Get count of user's blacklisted flashcards."""
+    try:
+        count = BlacklistFlashcard.get_user_blacklist_count(request.user)
+
+        return JsonResponse({
+            'success': True,
+            'count': count
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_GET
+def api_check_blacklist_status(request):
+    """Check if specific flashcards are blacklisted."""
+    try:
+        card_ids = request.GET.getlist('card_ids[]')
+        
+        if not card_ids:
+            return JsonResponse({'success': False, 'error': 'No card IDs provided'}, status=400)
+
+        card_ids = [int(cid) for cid in card_ids if cid.isdigit()]
+
+        # Get blacklist status for each card
+        blacklists = BlacklistFlashcard.objects.filter(
+            user=request.user,
+            flashcard_id__in=card_ids
+        ).values_list('flashcard_id', flat=True)
+
+        blacklist_status = {card_id: card_id in blacklists for card_id in card_ids}
+
+        return JsonResponse({
+            'success': True,
+            'blacklists': blacklist_status
+        })
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+def blacklist_page(request):
+    """Display user's blacklisted flashcards."""
+    blacklists = BlacklistFlashcard.get_user_blacklist(request.user)
+
+    # Paginate blacklists (20 per page)
+    from django.core.paginator import Paginator
+    paginator = Paginator(blacklists, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'blacklists': page_obj,
+        'total_blacklists': blacklists.count(),
+    }
+
+    return render(request, 'vocabulary/blacklist.html', context)
 
 
 def debug_study_template(request):

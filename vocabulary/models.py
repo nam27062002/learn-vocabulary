@@ -430,3 +430,49 @@ class FavoriteFlashcard(models.Model):
             favorite.delete()
             return None, False
         return favorite, True
+
+
+class BlacklistFlashcard(models.Model):
+    """Track user's blacklisted flashcards to exclude from study sessions."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='blacklisted_flashcards')
+    flashcard = models.ForeignKey(Flashcard, on_delete=models.CASCADE, related_name='blacklisted_by')
+    blacklisted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['user', 'flashcard']  # Prevent duplicate blacklists
+        ordering = ['-blacklisted_at']
+        indexes = [
+            models.Index(fields=['user', 'blacklisted_at']),
+            models.Index(fields=['user', 'flashcard']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.flashcard.word} (blacklisted)"
+
+    @classmethod
+    def is_blacklisted(cls, user, flashcard):
+        """Check if a flashcard is blacklisted by a user."""
+        return cls.objects.filter(user=user, flashcard=flashcard).exists()
+
+    @classmethod
+    def get_user_blacklist_count(cls, user):
+        """Get the count of user's blacklisted flashcards."""
+        return cls.objects.filter(user=user).count()
+
+    @classmethod
+    def get_user_blacklist(cls, user):
+        """Get all blacklisted flashcards for a user."""
+        return cls.objects.filter(user=user).select_related('flashcard')
+
+    @classmethod
+    def toggle_blacklist(cls, user, flashcard):
+        """Toggle blacklist status for a flashcard. Returns (blacklist_obj, created)."""
+        blacklist, created = cls.objects.get_or_create(
+            user=user,
+            flashcard=flashcard
+        )
+        if not created:
+            # If it already exists, remove it (unblacklist)
+            blacklist.delete()
+            return None, False
+        return blacklist, True

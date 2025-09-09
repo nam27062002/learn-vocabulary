@@ -19,6 +19,7 @@ urlpatterns = [
     path('decks/<int:deck_id>/', views.deck_detail, name='deck_detail'),
     path('decks/<int:deck_id>/delete/', views.delete_deck, name='delete_deck'),
     path('favorites/', views.favorites_page, name='favorites'),
+    path('blacklist/', views.blacklist_page, name='blacklist'),
     path('statistics/', views.statistics_view, name='statistics'),
     path('study/', views.study_page, name='study'),
     path('test-statistics/', views.test_statistics_view, name='test_statistics'),
