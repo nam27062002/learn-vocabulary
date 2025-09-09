@@ -873,11 +873,13 @@ def test_statistics_view(request):
 @login_required
 def dashboard(request):
     # Thống kê cơ bản cho user hiện tại
+    # Always initialize user_flashcards first
+    user_flashcards = Flashcard.objects.filter(user=request.user)
+    
     # Use caching for dashboard statistics
     cache_key = f"user_{request.user.id}_dashboard_basic_stats"
     basic_stats = cache.get(cache_key)
     if basic_stats is None:
-        user_flashcards = Flashcard.objects.filter(user=request.user)
         total_cards = user_flashcards.count()
         recent_cards = user_flashcards.filter(
             created_at__gte=datetime.now() - timedelta(days=7)
