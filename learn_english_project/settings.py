@@ -4,7 +4,6 @@ from decouple import config
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -17,7 +16,6 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ENABLE_DEBUG = config('ENABLE_DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
-
 
 # Application definition
 
@@ -75,7 +73,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'learn_english_project.wsgi.application'
 
-
 # Database
 DATABASES = {
     'default': {
@@ -92,7 +89,6 @@ DATABASES = {
         # 'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -112,7 +108,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization disabled and simplified for localhost single-user setup
 LANGUAGE_CODE = 'en'
 TIME_ZONE = 'Asia/Ho_Chi_Minh'
@@ -126,7 +121,6 @@ SESSION_SAVE_EVERY_REQUEST = True
 CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = False
 CSRF_USE_SESSIONS = False
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
@@ -212,13 +206,14 @@ try:
             'TIMEOUT': 300,  # Default timeout 5 minutes
         }
     }
-    
+
     # Test Redis connection
     import redis
+
     r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
     r.ping()
     print("Redis server connected successfully")
-    
+
 except Exception as e:
     print(f"Redis not available, falling back to database cache: {e}")
     # Fallback to database cache if Redis is not available
@@ -236,13 +231,13 @@ except Exception as e:
 
 # Cache timeouts for different data types (in seconds)
 CACHE_TIMEOUTS = {
-    'flashcard_list': 60 * 10,     # 10 minutes
-    'study_session': 60 * 5,       # 5 minutes  
-    'user_statistics': 60 * 30,    # 30 minutes
-    'deck_info': 60 * 15,          # 15 minutes
-    'api_response': 60 * 2,        # 2 minutes
-    'incorrect_words': 60 * 5,     # 5 minutes
-    'favorites': 60 * 10,          # 10 minutes
+    'flashcard_list': 60 * 10,  # 10 minutes
+    'study_session': 60 * 5,  # 5 minutes
+    'user_statistics': 60 * 30,  # 30 minutes
+    'deck_info': 60 * 15,  # 15 minutes
+    'api_response': 60 * 2,  # 2 minutes
+    'incorrect_words': 60 * 5,  # 5 minutes
+    'favorites': 60 * 10,  # 10 minutes
 }
 
 # Session storage using Redis
