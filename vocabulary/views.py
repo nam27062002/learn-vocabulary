@@ -1391,13 +1391,15 @@ def study_page(request):
     decks = Deck.objects.filter(user=request.user)
     total_words_available = Flashcard.objects.filter(user=request.user).count()
 
-    # End any incomplete sessions for this user
+    # Instead of completing stale sessions, we'll delete them to prevent incorrect stats
     incomplete_sessions = StudySession.objects.filter(
         user=request.user,
         session_end__isnull=True
     )
-    for session in incomplete_sessions:
-        end_study_session(session)
+    if incomplete_sessions.exists():
+        # Log that we are deleting stale sessions for debugging
+        print(f"Deleting {incomplete_sessions.count()} stale study sessions for user {request.user.id}")
+        incomplete_sessions.delete()
 
     return render(request, 'vocabulary/study.html', {
         'decks': decks,
