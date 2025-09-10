@@ -257,17 +257,45 @@ def _update_card_difficulty(card, correct: bool, grade: int = None):
 
 
 @login_required
-@require_GET
 def api_next_question(request):
+    """
+    API endpoint to get the next question for study sessions.
+    Supports both GET and POST requests:
+    - GET: For smaller requests with few seen_card_ids (backward compatibility)
+    - POST: For larger requests with many seen_card_ids to avoid URL length limits
+    """
     import random as _rnd
-    MODES = ['mc', 'type', 'dictation']
-    deck_ids = request.GET.getlist('deck_ids[]')
-    study_mode = request.GET.get('study_mode', 'decks')
-    word_count = int(request.GET.get('word_count', 10))
-    seen_card_ids = request.GET.getlist('seen_card_ids[]')
+    import json
+    import logging
 
-    # Convert seen_card_ids to integers
-    seen_card_ids = [int(cid) for cid in seen_card_ids if cid.isdigit()]
+    logger = logging.getLogger(__name__)
+    MODES = ['mc', 'type', 'dictation']
+
+    # Handle both GET and POST requests
+    if request.method == 'GET':
+        # GET request - extract parameters from query string
+        deck_ids = request.GET.getlist('deck_ids[]')
+        study_mode = request.GET.get('study_mode', 'decks')
+        word_count = int(request.GET.get('word_count', 10))
+        seen_card_ids = request.GET.getlist('seen_card_ids[]')
+        logger.info(f"GET request: study_mode={study_mode}, seen_cards_count={len(seen_card_ids)}")
+    elif request.method == 'POST':
+        # POST request - extract parameters from request body
+        try:
+            data = json.loads(request.body)
+            deck_ids = data.get('deck_ids', [])
+            study_mode = data.get('study_mode', 'decks')
+            word_count = int(data.get('word_count', 10))
+            seen_card_ids = data.get('seen_card_ids', [])
+            logger.info(f"POST request: study_mode={study_mode}, seen_cards_count={len(seen_card_ids)}")
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.error(f"Invalid JSON in POST request: {e}")
+            return JsonResponse({'error': 'Invalid JSON data or parameters'}, status=400)
+    else:
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    # Convert seen_card_ids to integers (handle both string and int inputs)
+    seen_card_ids = [int(cid) for cid in seen_card_ids if str(cid).isdigit()]
     
     # Get or create current study session
     # This part remains the same, ensuring session tracking is maintained
@@ -2211,10 +2239,26 @@ def api_check_blacklist_status(request):
 @login_required
 def api_blacklist(request):
     if request.method == 'GET':
+        # Check if requesting all IDs for global select all
+        all_ids = request.GET.get('all_ids', '').lower() == 'true'
+
+        if all_ids:
+            # Return all blacklisted flashcard IDs for global select all
+            blacklist_ids = BlacklistFlashcard.objects.filter(
+                user=request.user
+            ).values_list('flashcard_id', flat=True)
+
+            return JsonResponse({
+                'success': True,
+                'all_ids': list(blacklist_ids)
+            })
+
+        # Regular pagination request
         search_query = request.GET.get('q', '')
         sort_by = request.GET.get('sort', '-blacklisted_at')
         page_number = request.GET.get('page', 1)
-        
+        page_size = int(request.GET.get('page_size', 20))
+
         blacklist_qs = BlacklistFlashcard.objects.filter(user=request.user).select_related(
             'flashcard', 'flashcard__deck'
         )
@@ -2228,10 +2272,10 @@ def api_blacklist(request):
         valid_sort_fields = ['flashcard__word', '-flashcard__word', 'flashcard__deck__name', '-flashcard__deck__name', 'blacklisted_at', '-blacklisted_at']
         if sort_by not in valid_sort_fields:
             sort_by = '-blacklisted_at'
-        
+
         blacklist_qs = blacklist_qs.order_by(sort_by)
 
-        paginator = Paginator(blacklist_qs, 20)
+        paginator = Paginator(blacklist_qs, page_size)
         page_obj = paginator.get_page(page_number)
 
         data = {
