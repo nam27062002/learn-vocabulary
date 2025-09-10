@@ -8,8 +8,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const carouselSlides = carouselContainer.querySelector("#carousel-slides");
   const slides = Array.from(carouselSlides.children);
-  const prevBtn = carouselContainer.querySelector("#prevBtn");
-  const nextBtn = carouselContainer.querySelector("#nextBtn");
+  const prevBtn = document.querySelector("#prevBtn");
+  const nextBtn = document.querySelector("#nextBtn");
   const paginationDotsContainer = document.querySelector("#pagination-dots");
 
   let currentSlideIndex = 0;
@@ -20,6 +20,8 @@ document.addEventListener("DOMContentLoaded", function () {
       currentSlideIndex = slides.length - 1;
     } else if (index >= slides.length) {
       currentSlideIndex = 0;
+    } else {
+      currentSlideIndex = index;
     }
 
     const currentSlide = slides[currentSlideIndex];
@@ -1713,6 +1715,9 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize delete card functionality
   initializeDeleteCard();
 
+  // Initialize card hover functionality
+  initializeCardHoverEffects();
+
   /**
    * Update card display after audio selection
    * Called by Enhanced Audio Manager after successful audio update
@@ -2059,6 +2064,76 @@ document.addEventListener("DOMContentLoaded", function () {
       }, 300);
     }, 3000);
   }
+
+  // Card Hover Effects for Auto-hide Buttons
+  function initializeCardHoverEffects() {
+    console.log("👆 Initializing card hover effects...");
+
+    const cardElements = document.querySelectorAll('.card-view-mode');
+
+    cardElements.forEach(card => {
+      const actionButtons = card.querySelector('.card-action-buttons');
+
+      if (!actionButtons) return;
+
+      // Enhanced hover functionality
+      card.addEventListener('mouseenter', () => {
+        actionButtons.style.opacity = '1';
+      });
+
+      card.addEventListener('mouseleave', () => {
+        // Only hide if not on mobile
+        if (window.innerWidth > 480) {
+          actionButtons.style.opacity = '0';
+        }
+      });
+
+      // Ensure buttons stay visible when hovering over them
+      actionButtons.addEventListener('mouseenter', () => {
+        actionButtons.style.opacity = '1';
+      });
+    });
+
+    // Handle window resize to adjust mobile behavior
+    window.addEventListener('resize', () => {
+      if (window.innerWidth <= 480) {
+        // Show all buttons on mobile
+        document.querySelectorAll('.card-action-buttons').forEach(buttons => {
+          buttons.style.opacity = '1';
+        });
+      }
+    });
+
+    console.log(`✅ Card hover effects initialized for ${cardElements.length} cards`);
+  }
+
+  // Fix tooltip issues by removing unwanted title attributes
+  function fixTooltipIssues() {
+    // Remove title attributes from elements that shouldn't have tooltips
+    const cardElements = document.querySelectorAll('.card-view-mode');
+
+    cardElements.forEach(card => {
+      // Remove title from the card itself if it exists
+      if (card.hasAttribute('title')) {
+        card.removeAttribute('title');
+      }
+
+      // Ensure only action buttons have tooltips
+      const nonButtonElements = card.querySelectorAll('*:not(.card-action-btn)[title]');
+      nonButtonElements.forEach(element => {
+        // Keep audio button tooltips but remove others that might interfere
+        if (!element.classList.contains('audio-icon-tailwind')) {
+          const titleValue = element.getAttribute('title');
+          if (titleValue && titleValue.toLowerCase().includes('favorite')) {
+            element.removeAttribute('title');
+          }
+        }
+      });
+    });
+  }
+
+  // Initialize tooltip fixes
+  fixTooltipIssues();
 
   // Make functions globally available for modal buttons
   window.showDeleteCardModal = showDeleteCardModal;
