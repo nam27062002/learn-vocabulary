@@ -130,9 +130,9 @@ def _get_next_card_enhanced(user, deck_ids=None, seen_card_ids=None):
     """
     from django.db.models import Case, When, FloatField, Q
     from django.db.models.functions import Random
-    from datetime import datetime
+    from django.utils import timezone
 
-    today = datetime.now().date()
+    today = timezone.now().date()
     
     # For normal deck study, we need to exclude seen cards to prevent repetition
     # Don't use cache when seen_card_ids is provided to ensure fresh results
@@ -205,9 +205,9 @@ def _get_next_card_enhanced(user, deck_ids=None, seen_card_ids=None):
 # Helper to update tracking when card is shown
 def _update_card_shown_tracking(card):
     """Update tracking fields when a card is shown to the user."""
-    from datetime import datetime
+    from django.utils import timezone
 
-    today = datetime.now().date()
+    today = timezone.now().date()
 
     # Update daily tracking
     if card.last_seen_date != today:
@@ -230,7 +230,7 @@ def _update_card_difficulty(card, correct: bool, grade: int = None):
     - 2 (Good): Medium difficulty - show moderately
     - 3 (Easy): Low difficulty - show least frequently
     """
-    from datetime import datetime
+    from django.utils import timezone
 
     # Update review tracking fields
     card.total_reviews += 1
@@ -262,13 +262,13 @@ def _update_card_difficulty(card, correct: bool, grade: int = None):
     card.difficulty_score = difficulty_score_mapping.get(difficulty_level, 0.0)
 
     # Update timestamp
-    card.last_reviewed = datetime.now()
+    card.last_reviewed = timezone.now()
 
     # Clear SM-2 fields (no longer used)
     card.ease_factor = 2.5  # Reset to default
     card.repetitions = 0    # Not used
     card.interval = 0       # Not used
-    card.next_review = datetime.now().date()  # Always available
+    card.next_review = timezone.now().date()  # Always available
 
     print(f"DIFFICULTY UPDATE: Card '{card.word}' set to difficulty_score={card.difficulty_score} (level {difficulty_level})", file=sys.stderr)
 
@@ -289,27 +289,6 @@ def api_next_question(request):
     seen_card_ids = [int(cid) for cid in seen_card_ids if cid.isdigit()]
     
     print(f"API_NEXT_QUESTION DEBUG: study_mode={study_mode}, deck_ids={deck_ids}, seen_card_ids={seen_card_ids}", file=sys.stderr)
-    
-    # Create cache key for this API request
-    cache_params = {
-        'deck_ids': sorted(deck_ids) if deck_ids else [],
-        'study_mode': study_mode,
-        'word_count': word_count,
-        'seen_count': len(seen_card_ids)
-    }
-    params_hash = hash_query_params(cache_params)
-    api_cache_key = generate_cache_key(
-        CacheKeys.API_NEXT_QUESTION, 
-        user_id=request.user.id, 
-        mode=study_mode,
-        hash=params_hash
-    )
-    
-    # Try to get from cache first (only for consistent queries)
-    if len(seen_card_ids) < 5:  # Cache early requests only
-        cached_response = APICache.get_api_response(api_cache_key)
-        if cached_response is not None:
-            return JsonResponse(cached_response)
 
     # Get or create current study session
     current_session = request.session.get('current_study_session_id')
@@ -340,30 +319,29 @@ def api_next_question(request):
             request.session['session_start_time'] = timezone.now().timestamp()
 
     if study_mode == 'random':
-        # Random study mode: select random words from entire vocabulary
-        # Use caching for user's flashcards in random mode
-        cache_key = f"user_{request.user.id}_all_flashcards"
-        all_cards_data = cache.get(cache_key)
-        if all_cards_data is None:
-            all_cards_data = list(Flashcard.objects.filter(user=request.user).select_related('deck').prefetch_related('definitions'))
-            cache.set(cache_key, all_cards_data, 600)  # Cache for 10 minutes
+        # OPTIMIZED: Select a random card directly from the database
         
-        # Get blacklisted card IDs to exclude
-        blacklisted_card_ids = set(BlacklistFlashcard.objects.filter(user=request.user).values_list('flashcard_id', flat=True))
+        # Get blacklisted card IDs
+        blacklisted_card_ids = BlacklistFlashcard.objects.filter(user=request.user).values_list('flashcard_id', flat=True)
         
-        # Filter out seen cards and blacklisted cards
-        available_cards = [card for card in all_cards_data 
-                          if card.id not in seen_card_ids 
-                          and card.id not in blacklisted_card_ids]
+        # Build a queryset to find a random card
+        qs = Flashcard.objects.filter(user=request.user)
+        
+        # Exclude seen and blacklisted cards
+        if seen_card_ids:
+            qs = qs.exclude(id__in=seen_card_ids)
+        if blacklisted_card_ids.exists():
+            qs = qs.exclude(id__in=blacklisted_card_ids)
 
-        if not available_cards:
+        # Get a random card using database's `order_by('?')`
+        card = qs.order_by('?').first()
+
+        if not card:
             return JsonResponse({'done': True})
-
-        # Use random.choice instead of database order_by('?')
-        card = _rnd.choice(available_cards)
 
         # Update tracking fields when card is shown
         _update_card_shown_tracking(card)
+
     elif study_mode == 'favorites':
         # Favorites study mode: select from user's favorite flashcards
         # Use caching for favorite cards
@@ -512,20 +490,13 @@ def api_next_question(request):
     }
 
     if mode == 'mc':
-        # Build 3 distractors from ALL user's words (not just selected decks)
-        # Use cached data for distractors to avoid additional DB query
-        cache_key = f"user_{request.user.id}_flashcards_distractors"
-        distractor_words = cache.get(cache_key)
-        if distractor_words is None:
-            distractor_words = list(Flashcard.objects.filter(user=request.user).values_list('word', flat=True))
-            cache.set(cache_key, distractor_words, 600)  # Cache for 10 minutes
+        # OPTIMIZED: Build 3 distractors from a random sample of user's words
         
-        # Filter out the current card's word
-        distractors = [word for word in distractor_words if word != card.word]
-
-        # Get more candidates to improve semantic filtering
-        distractor_candidates = distractors[:50] if len(distractors) >= 50 else distractors
-        _rnd.shuffle(distractor_candidates)
+        # Get 50 random distractor candidates from the database
+        distractor_candidates = list(Flashcard.objects.filter(user=request.user)
+                                     .exclude(word=card.word)
+                                     .order_by('?')
+                                     .values_list('word', flat=True)[:50])
 
         # Filter out semantically similar words to improve question quality
         filtered_distractors = _filter_semantic_distractors(card.word, distractor_candidates)
@@ -548,10 +519,6 @@ def api_next_question(request):
         payload['question']['type'] = 'type'
         payload['question']['answer'] = card.word
 
-    # Cache the response for early study session requests
-    if len(seen_card_ids) < 5:  # Cache early requests only
-        APICache.cache_api_response(api_cache_key, payload, timeout=120)  # 2 minutes cache
-    
     return JsonResponse(payload)
 
 
