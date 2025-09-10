@@ -35,6 +35,327 @@
     opacity: 0.3;
     pointer-events: none;
   }
+
+  /* Edit Card Button Styling */
+  .edit-card-button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #cbd5e1;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .edit-card-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #6a6cff;
+    transform: translateY(-1px);
+  }
+
+  /* Edit Card Modal Styling */
+  .edit-card-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .edit-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
+    padding: 20px;
+  }
+
+  .edit-modal-content {
+    background: linear-gradient(145deg, #1f2937, #111827);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  }
+
+  .edit-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 24px 0 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+  }
+
+  .edit-modal-title {
+    color: #f1f5f9;
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+  }
+
+  .close-edit-modal {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #cbd5e1;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .close-edit-modal:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #f1f5f9;
+    transform: scale(1.05);
+  }
+
+  .edit-modal-body {
+    padding: 0 24px;
+  }
+
+  .edit-card-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-label {
+    color: #cbd5e1;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .form-input {
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: #6366f1;
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+
+  .form-input::placeholder {
+    color: #6b7280;
+  }
+
+  .form-select {
+    /* Aggressively remove ALL browser styling */
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    -ms-appearance: none !important;
+    appearance: none !important;
+
+    /* Reset all background properties */
+    background: #374151 !important;
+    background-image: none !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+    background-size: 0 !important;
+
+    /* Positioning and spacing */
+    padding-right: 40px !important;
+    cursor: pointer;
+    position: relative;
+
+    /* Border and basic styling */
+    border: 1px solid #4b5563;
+    border-radius: 8px;
+    color: #f1f5f9;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* Remove browser-specific arrows with pseudo-selectors */
+  .form-select::-webkit-appearance {
+    -webkit-appearance: none !important;
+  }
+
+  .form-select::-moz-appearance {
+    -moz-appearance: none !important;
+  }
+
+  .form-select::-ms-expand {
+    display: none !important;
+  }
+
+  /* Add custom arrow using ::after pseudo-element */
+  .form-select {
+    background-image: linear-gradient(45deg, transparent 50%, #6b7280 50%),
+                      linear-gradient(135deg, #6b7280 50%, transparent 50%) !important;
+    background-position: calc(100% - 20px) calc(1em + 2px),
+                         calc(100% - 15px) calc(1em + 2px) !important;
+    background-size: 5px 5px, 5px 5px !important;
+    background-repeat: no-repeat !important;
+  }
+
+  .form-select:focus {
+    border-color: #6366f1;
+    background-image: linear-gradient(45deg, transparent 50%, #6366f1 50%),
+                      linear-gradient(135deg, #6366f1 50%, transparent 50%) !important;
+  }
+
+  .form-select option {
+    background: #1f2937;
+    color: #f1f5f9;
+    padding: 8px 12px;
+  }
+
+
+
+  /* Modal Footer */
+  .edit-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 24px;
+  }
+
+  .cancel-edit-btn,
+  .save-edit-btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+  }
+
+  .cancel-edit-btn {
+    background: rgba(107, 114, 128, 0.2);
+    color: #9ca3af;
+    border: 1px solid rgba(107, 114, 128, 0.3);
+  }
+
+  .cancel-edit-btn:hover {
+    background: rgba(107, 114, 128, 0.3);
+    color: #d1d5db;
+  }
+
+  .save-edit-btn {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+  }
+
+  .save-edit-btn:hover {
+    background: linear-gradient(135deg, #5b21b6, #7c3aed);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  }
+
+  .save-edit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 640px) {
+    .edit-modal-overlay {
+      padding: 10px;
+    }
+
+    .edit-modal-content {
+      max-height: 95vh;
+    }
+
+    .edit-modal-header,
+    .edit-modal-body,
+    .edit-modal-footer {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+
+    .edit-modal-footer {
+      flex-direction: column;
+    }
+
+    .cancel-edit-btn,
+    .save-edit-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  /* Animation */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideOutRight {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
 </style>
 {% endblock %}
 
@@ -383,6 +704,9 @@
           <button id="blacklistButton" class="blacklist-button" style="display: none" title="{{ manual_texts.toggle_blacklist|default:'Toggle blacklist' }}">
             <span class="blacklist-icon">🔘</span>
           </button>
+          <button id="editCardButton" class="edit-card-button" style="display: none" title="{{ manual_texts.edit_card|default:'Edit card' }}">
+            <i class="fas fa-edit"></i>
+          </button>
         </div>
         <p id="cardPhonetic" class="card-phonetic"></p>
       </div>
@@ -417,6 +741,138 @@
       <p id="noCardMsg" class="no-cards-message">
         {{ manual_texts.no_cards_due }}
       </p>
+    </div>
+
+    <!-- Edit Card Modal -->
+    <div id="editCardModal" class="edit-card-modal" style="display: none;">
+      <div class="edit-modal-overlay">
+        <div class="edit-modal-content">
+          <div class="edit-modal-header">
+            <h3 class="edit-modal-title">
+              <i class="fas fa-edit"></i>
+              {{ manual_texts.edit_card|default:'Edit Card' }}
+            </h3>
+            <button id="closeEditModal" class="close-edit-modal">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <div class="edit-modal-body">
+            <form id="editCardForm" class="edit-card-form">
+              <!-- Word Field -->
+              <div class="form-group">
+                <label for="editWord" class="form-label">
+                  {{ manual_texts.english_word|default:'English Word' }}
+                </label>
+                <input
+                  type="text"
+                  id="editWord"
+                  name="word"
+                  class="form-input"
+                  required
+                />
+              </div>
+
+              <!-- Part of Speech Field -->
+              <div class="form-group">
+                <label for="editPartOfSpeech" class="form-label">
+                  {{ manual_texts.part_of_speech|default:'Part of Speech' }}
+                </label>
+                <select
+                  id="editPartOfSpeech"
+                  name="part_of_speech"
+                  class="form-input form-select"
+                >
+                  <option value="">{{ manual_texts.select_part_of_speech|default:'Select part of speech...' }}</option>
+                  <option value="noun">{{ manual_texts.noun|default:'Noun' }}</option>
+                  <option value="verb">{{ manual_texts.verb|default:'Verb' }}</option>
+                  <option value="adjective">{{ manual_texts.adjective|default:'Adjective' }}</option>
+                  <option value="adverb">{{ manual_texts.adverb|default:'Adverb' }}</option>
+                  <option value="pronoun">{{ manual_texts.pronoun|default:'Pronoun' }}</option>
+                  <option value="preposition">{{ manual_texts.preposition|default:'Preposition' }}</option>
+                  <option value="conjunction">{{ manual_texts.conjunction|default:'Conjunction' }}</option>
+                  <option value="interjection">{{ manual_texts.interjection|default:'Interjection' }}</option>
+                  <option value="article">{{ manual_texts.article|default:'Article' }}</option>
+                  <option value="determiner">{{ manual_texts.determiner|default:'Determiner' }}</option>
+                  <option value="modal">{{ manual_texts.modal|default:'Modal' }}</option>
+                  <option value="auxiliary">{{ manual_texts.auxiliary|default:'Auxiliary' }}</option>
+                  <option value="phrasal verb">{{ manual_texts.phrasal_verb|default:'Phrasal Verb' }}</option>
+                  <option value="idiom">{{ manual_texts.idiom|default:'Idiom' }}</option>
+                  <option value="phrase">{{ manual_texts.phrase|default:'Phrase' }}</option>
+                </select>
+              </div>
+
+              <!-- Phonetic Field -->
+              <div class="form-group">
+                <label for="editPhonetic" class="form-label">
+                  {{ manual_texts.phonetic|default:'Phonetic' }}
+                </label>
+                <input
+                  type="text"
+                  id="editPhonetic"
+                  name="phonetic"
+                  class="form-input"
+                  placeholder="{{ manual_texts.phonetic_placeholder|default:'e.g., /ˈwɜːrd/' }}"
+                />
+              </div>
+
+              <!-- Audio URL Field -->
+              <div class="form-group">
+                <label for="editAudioUrl" class="form-label">
+                  {{ manual_texts.audio_url|default:'Audio URL' }}
+                </label>
+                <input
+                  type="url"
+                  id="editAudioUrl"
+                  name="audio_url"
+                  class="form-input"
+                  placeholder="{{ manual_texts.audio_url_placeholder|default:'https://example.com/audio.mp3' }}"
+                />
+              </div>
+
+              <!-- Definition Fields -->
+              <div class="form-group">
+                <label for="editEnglishDefinition" class="form-label">
+                  {{ manual_texts.english_definition|default:'English Definition' }}
+                </label>
+                <input
+                  type="text"
+                  id="editEnglishDefinition"
+                  name="english_definition"
+                  class="form-input"
+                  placeholder="{{ manual_texts.english_definition_placeholder|default:'Enter English definition...' }}"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="editVietnameseDefinition" class="form-label">
+                  {{ manual_texts.vietnamese_definition|default:'Vietnamese Definition' }}
+                </label>
+                <input
+                  type="text"
+                  id="editVietnameseDefinition"
+                  name="vietnamese_definition"
+                  class="form-input"
+                  placeholder="{{ manual_texts.vietnamese_definition_placeholder|default:'Enter Vietnamese definition...' }}"
+                  required
+                />
+              </div>
+            </form>
+          </div>
+
+          <div class="edit-modal-footer">
+            <button type="button" id="cancelEditBtn" class="cancel-edit-btn">
+              <i class="fas fa-times"></i>
+              {{ manual_texts.cancel|default:'Cancel' }}
+            </button>
+            <button type="button" id="saveEditBtn" class="save-edit-btn">
+              <i class="fas fa-save"></i>
+              {{ manual_texts.save|default:'Save' }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>

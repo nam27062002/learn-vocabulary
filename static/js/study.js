@@ -1074,6 +1074,9 @@
       console.log(`[DEBUG] Favorite button reset to default state for new question`);
     }
 
+    // Hide edit button for new question
+    hideEditButton();
+
     // Hide and reset blacklist button during question phase - it will be shown after answer submission
     let currentBlacklistButton = blacklistButton;
     if (!currentBlacklistButton || !document.contains(currentBlacklistButton)) {
@@ -1524,6 +1527,9 @@
     if (currentFavoriteButton && currentQuestion.id) {
       currentFavoriteButton.style.display = "block";
       currentFavoriteButton.setAttribute("data-card-id", currentQuestion.id);
+
+      // Also show edit button when showing other action buttons
+      showEditButton();
 
       // To prevent stale event listeners, clone and replace the button.
       // This is safer than trying to remove specific listeners.
@@ -4092,10 +4098,350 @@
     }
   });
 
+  // ===== EDIT CARD FUNCTIONALITY =====
+
+  let currentEditingCard = null;
+  let originalCardData = null;
+
+  function initializeEditCardFunctionality() {
+    console.log("🔧 Initializing edit card functionality...");
+
+    const editButton = document.getElementById('editCardButton');
+    const editModal = document.getElementById('editCardModal');
+    const closeModalBtn = document.getElementById('closeEditModal');
+    const cancelBtn = document.getElementById('cancelEditBtn');
+    const saveBtn = document.getElementById('saveEditBtn');
+
+    if (!editButton || !editModal) {
+      console.log("❌ Edit card elements not found");
+      return;
+    }
+
+    // Edit button click handler
+    editButton.addEventListener('click', () => {
+      if (currentQuestion) {
+        openEditModal(currentQuestion);
+      }
+    });
+
+    // Close modal handlers
+    closeModalBtn.addEventListener('click', closeEditModal);
+    cancelBtn.addEventListener('click', closeEditModal);
+
+    // Save button handler
+    saveBtn.addEventListener('click', saveCardChanges);
+
+    // Close modal when clicking outside
+    editModal.addEventListener('click', (e) => {
+      if (e.target === editModal) {
+        closeEditModal();
+      }
+    });
+
+    // ESC key to close modal
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && editModal.style.display !== 'none') {
+        closeEditModal();
+      }
+    });
+
+    console.log("✅ Edit card functionality initialized");
+  }
+
+  function showEditButton() {
+    const editButton = document.getElementById('editCardButton');
+    if (editButton && currentQuestion) {
+      editButton.style.display = 'flex';
+    }
+  }
+
+  function hideEditButton() {
+    const editButton = document.getElementById('editCardButton');
+    if (editButton) {
+      editButton.style.display = 'none';
+    }
+  }
+
+  function openEditModal(card) {
+    console.log("📝 Opening edit modal for card:", card);
+
+    currentEditingCard = card;
+    originalCardData = { ...card };
+
+    const modal = document.getElementById('editCardModal');
+
+    // Populate form fields
+    document.getElementById('editWord').value = card.word || '';
+    document.getElementById('editPartOfSpeech').value = card.part_of_speech || '';
+    document.getElementById('editPhonetic').value = card.phonetic || '';
+    document.getElementById('editAudioUrl').value = card.audio_url || '';
+
+    // Populate definition fields (simplified to single definition pair)
+    const definitions = card.definitions || [];
+    const firstDefinition = definitions.length > 0 ? definitions[0] : { english: '', vietnamese: '' };
+
+    document.getElementById('editEnglishDefinition').value = firstDefinition.english || '';
+    document.getElementById('editVietnameseDefinition').value = firstDefinition.vietnamese || '';
+
+    console.log("📝 Populated definition fields:", {
+      english: firstDefinition.english,
+      vietnamese: firstDefinition.vietnamese
+    });
+
+    // Show modal
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+
+    // Focus on first input
+    setTimeout(() => {
+      document.getElementById('editWord').focus();
+    }, 100);
+  }
+
+  function closeEditModal() {
+    const modal = document.getElementById('editCardModal');
+    modal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+
+    currentEditingCard = null;
+    originalCardData = null;
+  }
+
+
+
+  function saveCardChanges() {
+    if (!currentEditingCard) return;
+
+    console.log("💾 Saving card changes...");
+
+    const form = document.getElementById('editCardForm');
+    const saveBtn = document.getElementById('saveEditBtn');
+
+    // Collect form data
+    const formData = {
+      card_id: currentEditingCard.id,
+      word: document.getElementById('editWord').value.trim(),
+      part_of_speech: document.getElementById('editPartOfSpeech').value.trim(),
+      phonetic: document.getElementById('editPhonetic').value.trim(),
+      audio_url: document.getElementById('editAudioUrl').value.trim(),
+      definitions: []
+    };
+
+    // Collect single definition pair
+    const englishDef = document.getElementById('editEnglishDefinition').value.trim();
+    const vietnameseDef = document.getElementById('editVietnameseDefinition').value.trim();
+
+    if (englishDef || vietnameseDef) {
+      formData.definitions.push({
+        english: englishDef,
+        vietnamese: vietnameseDef
+      });
+    }
+
+    // Validation
+    if (!formData.word) {
+      showStudyMessage('Word is required', 'error');
+      return;
+    }
+
+    if (formData.definitions.length === 0) {
+      showStudyMessage('At least one definition is required', 'error');
+      return;
+    }
+
+    // Show loading state
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    saveBtn.disabled = true;
+
+    // Send update request
+    fetch('/api/update-flashcard/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': STUDY_CFG.csrfToken,
+      },
+      body: JSON.stringify(formData)
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success) {
+        // Update current question data
+        updateCurrentQuestionData(data.card);
+
+        // Update UI display
+        updateStudyCardDisplay(data.card);
+
+        // Close modal
+        closeEditModal();
+
+        // Show success message
+        showStudyMessage('Card updated successfully!', 'success');
+
+        console.log("✅ Card updated successfully");
+      } else {
+        throw new Error(data.error || 'Failed to update card');
+      }
+    })
+    .catch(error => {
+      console.error("❌ Error updating card:", error);
+      showStudyMessage(error.message || 'Error updating card', 'error');
+    })
+    .finally(() => {
+      // Restore button state
+      saveBtn.innerHTML = originalText;
+      saveBtn.disabled = false;
+    });
+  }
+
+  function updateCurrentQuestionData(updatedCard) {
+    if (currentQuestion && currentQuestion.id === updatedCard.id) {
+      // Update the current question object with new data
+      currentQuestion.word = updatedCard.word;
+      currentQuestion.part_of_speech = updatedCard.part_of_speech;
+      currentQuestion.phonetic = updatedCard.phonetic;
+      currentQuestion.audio_url = updatedCard.audio_url;
+      currentQuestion.definitions = updatedCard.definitions;
+
+      console.log("🔄 Updated current question data:", currentQuestion);
+    }
+  }
+
+  function updateStudyCardDisplay(updatedCard) {
+    // Update word display
+    const cardWordEl = document.getElementById('cardWord');
+    if (cardWordEl && currentQuestion.type !== 'dictation') {
+      if (currentQuestion.type === 'mc') {
+        // For multiple choice, show definitions
+        cardWordEl.innerHTML = updatedCard.definitions.map(def =>
+          `<div class="definition-item">
+            <strong>${def.english}</strong><br>
+            <span class="vietnamese-def">${def.vietnamese}</span>
+          </div>`
+        ).join('');
+      } else {
+        // For typing mode, show the word
+        cardWordEl.innerHTML = `
+          <a href="https://dictionary.cambridge.org/dictionary/english/${updatedCard.word}"
+             target="_blank" class="dictionary-word-link">
+            ${updatedCard.word}
+          </a>
+        `;
+      }
+    }
+
+    // Update part of speech display
+    if (updatedCard.part_of_speech) {
+      let partOfSpeechHtml = `<span class="part-of-speech">(${updatedCard.part_of_speech})</span>`;
+
+      if (currentQuestion.type === 'type') {
+        // For typing mode, add part of speech after the word
+        if (cardWordEl) {
+          cardWordEl.innerHTML += ` ${partOfSpeechHtml}`;
+        }
+      }
+    }
+
+    // Update phonetic display
+    const cardPhoneticEl = document.getElementById('cardPhonetic');
+    if (cardPhoneticEl) {
+      if (updatedCard.phonetic) {
+        cardPhoneticEl.textContent = updatedCard.phonetic;
+        cardPhoneticEl.style.display = 'block';
+      } else {
+        cardPhoneticEl.style.display = 'none';
+      }
+    }
+
+    // Update definitions display for typing mode
+    const cardDefsEl = document.getElementById('cardDefs');
+    if (cardDefsEl && currentQuestion.type === 'type') {
+      cardDefsEl.innerHTML = updatedCard.definitions.map(def =>
+        `<div class="definition-item">
+          <strong>${def.english}</strong><br>
+          <span class="vietnamese-def">${def.vietnamese}</span>
+        </div>`
+      ).join('');
+    }
+
+    // Update audio button if audio URL changed
+    const audioButton = document.getElementById('audioButton');
+    if (audioButton) {
+      if (updatedCard.audio_url) {
+        audioButton.style.display = 'block';
+        audioButton.onclick = () => {
+          const audio = new Audio(updatedCard.audio_url);
+          audio.play().catch(e => console.log('Audio play failed:', e));
+        };
+      } else {
+        audioButton.style.display = 'none';
+      }
+    }
+
+    console.log("🎨 Updated study card display");
+  }
+
+  function showStudyMessage(message, type = 'info') {
+    // Create or update message element
+    let messageEl = document.querySelector('.study-edit-message');
+    if (!messageEl) {
+      messageEl = document.createElement('div');
+      messageEl.className = 'study-edit-message';
+      document.body.appendChild(messageEl);
+    }
+
+    messageEl.className = `study-edit-message ${type}`;
+    messageEl.textContent = message;
+    messageEl.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      color: white;
+      font-weight: 600;
+      z-index: 10001;
+      animation: slideInRight 0.3s ease;
+      max-width: 300px;
+      word-wrap: break-word;
+    `;
+
+    // Set background color based on type
+    if (type === 'success') {
+      messageEl.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+    } else if (type === 'error') {
+      messageEl.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+    } else {
+      messageEl.style.background = 'linear-gradient(135deg, #6366f1, #8b5cf6)';
+    }
+
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      if (messageEl) {
+        messageEl.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => {
+          if (messageEl && messageEl.parentNode) {
+            messageEl.parentNode.removeChild(messageEl);
+          }
+        }, 300);
+      }
+    }, 3000);
+  }
+
   // Make functions globally available
   window.showReviewCompletionModal = showReviewCompletionModal;
   window.hideReviewCompletionModal = hideReviewCompletionModal;
   window.returnToStudySelection = returnToStudySelection;
   window.loadCardFavoriteStatus = loadCardFavoriteStatus;
   window.handleStudyFavoriteToggle = handleStudyFavoriteToggle;
+  window.showEditButton = showEditButton;
+  window.hideEditButton = hideEditButton;
+
+  // Initialize edit functionality
+  initializeEditCardFunctionality();
 })();
