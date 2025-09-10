@@ -1,0 +1,498 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Blacklist Management - Learn English{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  .blacklist-manager {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 2rem;
+  }
+
+  .manager-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+    border-bottom: 1px solid #3a3a5c;
+    padding-bottom: 1.5rem;
+  }
+
+  .manager-title {
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #fff;
+  }
+
+  .controls-bar {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    align-items: center;
+  }
+
+  .search-input-wrapper {
+      position: relative;
+      flex-grow: 1;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem; /* Add padding for icon */
+    background: #232345;
+    border: 1px solid #3a3a5c;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+  }
+
+  .search-input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+  }
+
+  .search-input-wrapper .fa-search {
+      position: absolute;
+      top: 50%;
+      left: 1rem;
+      transform: translateY(-50%);
+      color: #b0b0b0;
+  }
+
+  .action-btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .bulk-remove-btn {
+      background-color: #ef4444;
+      color: white;
+  }
+
+  .bulk-remove-btn:hover:not(:disabled) {
+      background-color: #dc2626;
+  }
+
+  .action-btn:disabled {
+    background-color: #3a3a5c;
+    color: #b0b0b0;
+    cursor: not-allowed;
+  }
+
+  .table-container {
+    overflow-x: auto;
+    background: #232345;
+    border: 1px solid #3a3a5c;
+    border-radius: 12px;
+  }
+
+  .blacklist-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+
+  .blacklist-table th, .blacklist-table td {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #3a3a5c;
+  }
+  
+  .blacklist-table tbody tr:last-child td {
+      border-bottom: none;
+  }
+
+  .blacklist-table thead {
+    background-color: #18182f;
+  }
+
+  .blacklist-table th {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #b0b0b0;
+    text-transform: uppercase;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  
+  .blacklist-table th .sort-indicator {
+      display: inline-block;
+      margin-left: 8px;
+      opacity: 0.7;
+      transition: opacity 0.2s ease;
+  }
+
+  .blacklist-table tbody tr:hover {
+    background-color: #3a3a5c;
+  }
+
+  .action-cell button {
+    background: none;
+    border: none;
+    color: #b0b0b0;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: color 0.2s ease;
+  }
+  .action-cell button:hover {
+      color: #ef4444;
+  }
+
+  .pagination-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+    padding: 0 0.5rem;
+    color: #b0b0b0;
+  }
+
+  .pagination-controls button {
+    padding: 0.5rem 1rem;
+    border: 1px solid #3a3a5c;
+    border-radius: 6px;
+    background: #232345;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .pagination-controls button:hover:not(:disabled) {
+      background: #3a3a5c;
+      border-color: #667eea;
+  }
+
+  .pagination-controls button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .loading-overlay, .empty-state {
+    text-align: center;
+    padding: 6rem;
+    color: #b0b0b0;
+    background: #232345;
+    border-radius: 12px;
+  }
+  
+  .empty-state h3 {
+      font-size: 1.5rem;
+      color: #fff;
+      margin-bottom: 0.5rem;
+  }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="blacklist-app" class="blacklist-manager">
+  <div class="manager-header">
+    <h1 class="manager-title">Blacklist Management</h1>
+    <div id="selection-counter" class="selection-info"></div>
+  </div>
+
+  <div class="controls-bar">
+    <div class="search-input-wrapper">
+        <i class="fas fa-search"></i>
+        <input type="text" id="search-input" class="search-input" placeholder="Search words or decks...">
+    </div>
+    <button id="bulk-remove-btn" class="action-btn bulk-remove-btn" disabled>
+        <i class="fas fa-trash-alt"></i>
+        <span>Remove Selected</span>
+    </button>
+  </div>
+
+  <div class="table-container">
+    <table class="blacklist-table">
+      <thead>
+        <tr>
+          <th style="width: 1%;"><input type="checkbox" id="select-all-checkbox"></th>
+          <th data-sort="flashcard__word">Word <span class="sort-indicator"></span></th>
+          <th data-sort="flashcard__deck__name">Deck <span class="sort-indicator"></span></th>
+          <th data-sort="blacklisted_at">Date Added <span class="sort-indicator"></span></th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <!-- Rows will be injected by JavaScript -->
+      </tbody>
+    </table>
+    <div id="loading-indicator" class="loading-overlay" style="display: none;">Loading...</div>
+    <div id="empty-state" class="empty-state" style="display: none;">
+        <h3>No Blacklisted Words</h3>
+        <p>Words you add to the blacklist will appear here.</p>
+    </div>
+  </div>
+
+  <div class="pagination-footer">
+    <div id="pagination-info"></div>
+    <div class="pagination-controls">
+      <button id="prev-page-btn" disabled><i class="fas fa-arrow-left"></i> Previous</button>
+      <button id="next-page-btn" disabled>Next <i class="fas fa-arrow-right"></i></button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const app = document.getElementById('blacklist-app');
+  const searchInput = document.getElementById('search-input');
+  const tableBody = document.getElementById('table-body');
+  const selectAllCheckbox = document.getElementById('select-all-checkbox');
+  const bulkRemoveBtn = document.getElementById('bulk-remove-btn');
+  const selectionCounter = document.getElementById('selection-counter');
+  const paginationInfo = document.getElementById('pagination-info');
+  const prevPageBtn = document.getElementById('prev-page-btn');
+  const nextPageBtn = document.getElementById('next-page-btn');
+  const loadingIndicator = document.getElementById('loading-indicator');
+  const emptyState = document.getElementById('empty-state');
+  const tableHeaders = app.querySelectorAll('thead th[data-sort]');
+
+  let state = {
+    items: [],
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    searchQuery: '',
+    sortBy: '-blacklisted_at',
+    selectedIds: new Set(),
+    isLoading: true,
+  };
+
+  const fetchData = async () => {
+    state.isLoading = true;
+    render();
+
+    const params = new URLSearchParams({
+      page: state.currentPage,
+      sort: state.sortBy,
+      q: state.searchQuery,
+    });
+
+    try {
+      const response = await fetch(`/api/blacklist/?${params.toString()}`);
+      if (!response.ok) throw new Error('Network response was not ok');
+      const data = await response.json();
+
+      state.items = data.items;
+      state.currentPage = data.pagination.current_page;
+      state.totalPages = data.pagination.total_pages;
+      state.totalItems = data.pagination.total_items;
+    } catch (error) {
+      console.error("Fetch error:", error);
+    } finally {
+      state.isLoading = false;
+      render();
+    }
+  };
+
+  const render = () => {
+    const tableContainer = app.querySelector('.table-container');
+    loadingIndicator.style.display = state.isLoading ? 'block' : 'none';
+    tableBody.style.display = state.isLoading ? 'none' : '';
+    emptyState.style.display = 'none';
+
+    if (!state.isLoading && state.items.length === 0) {
+        tableContainer.style.display = 'none';
+        emptyState.style.display = 'block';
+    } else {
+        tableContainer.style.display = 'block';
+        tableBody.innerHTML = '';
+        state.items.forEach(item => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><input type="checkbox" class="row-checkbox" data-id="${item.flashcard_id}" ${state.selectedIds.has(item.flashcard_id) ? 'checked' : ''}></td>
+            <td>${item.word}</td>
+            <td>${item.deck}</td>
+            <td>${item.blacklisted_at}</td>
+            <td class="action-cell">
+              <button class="remove-btn" data-id="${item.flashcard_id}" title="Remove"><i class="fas fa-trash-alt"></i></button>
+            </td>
+          `;
+          tableBody.appendChild(tr);
+        });
+    }
+
+    renderPagination();
+    updateControls();
+    updateSortIndicators();
+  };
+
+  const renderPagination = () => {
+    if(state.totalItems > 0) {
+        const firstItem = (state.currentPage - 1) * 20 + 1;
+        const lastItem = Math.min(state.currentPage * 20, state.totalItems);
+        paginationInfo.textContent = `Showing ${firstItem}-${lastItem} of ${state.totalItems}`;
+    } else {
+        paginationInfo.textContent = ''
+    }
+    prevPageBtn.disabled = state.currentPage <= 1;
+    nextPageBtn.disabled = state.currentPage >= state.totalPages;
+  };
+
+  const updateControls = () => {
+    const numSelected = state.selectedIds.size;
+    bulkRemoveBtn.disabled = numSelected === 0;
+    const bulkRemoveBtnText = bulkRemoveBtn.querySelector('span');
+    if (bulkRemoveBtnText) {
+        bulkRemoveBtnText.textContent = numSelected > 0 ? `Remove Selected (${numSelected})` : 'Remove Selected';
+    }
+    
+    const allCheckboxes = app.querySelectorAll('.row-checkbox');
+    const allVisibleChecked = allCheckboxes.length > 0 && [...allCheckboxes].every(cb => cb.checked);
+    selectAllCheckbox.checked = allCheckboxes.length > 0 && allVisibleChecked;
+  };
+  
+  const updateSortIndicators = () => {
+      tableHeaders.forEach(th => {
+          const indicator = th.querySelector('.sort-indicator');
+          if (th.dataset.sort === state.sortBy.replace('-', '')) {
+              indicator.innerHTML = state.sortBy.startsWith('-') ? '<i class="fas fa-sort-down"></i>' : '<i class="fas fa-sort-up"></i>';
+              indicator.style.opacity = '1';
+          } else {
+              indicator.innerHTML = '<i class="fas fa-sort"></i>';
+              indicator.style.opacity = '0.5';
+          }
+      });
+  };
+
+  const handleSearch = (e) => {
+    state.searchQuery = e.target.value;
+    state.currentPage = 1;
+    fetchData();
+  };
+
+  const handleSort = (e) => {
+      const newSortBy = e.currentTarget.dataset.sort;
+      if (state.sortBy === newSortBy) {
+          state.sortBy = `-${newSortBy}`;
+      } else {
+          state.sortBy = newSortBy;
+      }
+      fetchData();
+  };
+
+  const handleSelectionChange = (e) => {
+    const target = e.target;
+    if (!target.matches('.row-checkbox, #select-all-checkbox')) return;
+
+    if (target.id === 'select-all-checkbox') {
+      const isChecked = target.checked;
+      app.querySelectorAll('.row-checkbox').forEach(checkbox => {
+        checkbox.checked = isChecked;
+        const id = parseInt(checkbox.dataset.id);
+        if (isChecked) {
+          state.selectedIds.add(id);
+        } else {
+          state.selectedIds.delete(id);
+        }
+      });
+    } else {
+      const id = parseInt(target.dataset.id);
+      if (target.checked) {
+        state.selectedIds.add(id);
+      } else {
+        state.selectedIds.delete(id);
+      }
+    }
+    updateControls();
+  };
+
+  const handleBulkRemove = async () => {
+    const idsToRemove = Array.from(state.selectedIds);
+    if (idsToRemove.length === 0 || !confirm(`Are you sure you want to remove ${idsToRemove.length} word(s) from the blacklist?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/blacklist/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ card_ids: idsToRemove })
+      });
+      const data = await response.json();
+      if (data.success) {
+        state.selectedIds.clear();
+        fetchData();
+      } else {
+        throw new Error(data.error || 'Failed to remove items.');
+      }
+    } catch (error) {
+      console.error('Bulk remove error:', error);
+      alert('Error: ' + error.message);
+    }
+  };
+
+  const handleIndividualRemove = async (id) => {
+      if (!confirm('Are you sure you want to remove this word from the blacklist?')) return;
+      try {
+          const response = await fetch('/api/blacklist/', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': '{{ csrf_token }}'
+              },
+              body: JSON.stringify({ card_ids: [id] })
+          });
+          const data = await response.json();
+          if (data.success) {
+              fetchData();
+          } else {
+              throw new Error(data.error || 'Failed to remove item.');
+          }
+      } catch (error) {
+          console.error('Individual remove error:', error);
+          alert('Error: ' + error.message);
+      }
+  };
+
+  // Event Listeners
+  searchInput.addEventListener('input', _.debounce(handleSearch, 300));
+  prevPageBtn.addEventListener('click', () => { if(state.currentPage > 1) { state.currentPage--; fetchData(); } });
+  nextPageBtn.addEventListener('click', () => { if(state.currentPage < state.totalPages) { state.currentPage++; fetchData(); } });
+  tableHeaders.forEach(th => th.addEventListener('click', handleSort));
+  app.addEventListener('change', handleSelectionChange);
+  bulkRemoveBtn.addEventListener('click', handleBulkRemove);
+  
+  tableBody.addEventListener('click', (e) => {
+      if (e.target.closest('.remove-btn')) {
+          const id = parseInt(e.target.closest('.remove-btn').dataset.id);
+          handleIndividualRemove(id);
+      }
+  });
+
+  // Initial Load
+  fetchData();
+});
+
+const _ = {
+    debounce(func, delay) {
+        let timeout;
+        return function(...args) {
+            const context = this;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), delay);
+        };
+    }
+};
+</script>
+{% endblock %}

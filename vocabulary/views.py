@@ -11,6 +11,7 @@ from django.views.decorators.http import require_POST, require_GET
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.db.models import Count, Q
+from django.core.paginator import Paginator
 from datetime import datetime, timedelta
 from django.utils import timezone
 import os
@@ -2206,22 +2207,74 @@ def api_check_blacklist_status(request):
 
 
 @login_required
+def api_blacklist(request):
+    if request.method == 'GET':
+        search_query = request.GET.get('q', '')
+        sort_by = request.GET.get('sort', '-blacklisted_at')
+        page_number = request.GET.get('page', 1)
+        
+        blacklist_qs = BlacklistFlashcard.objects.filter(user=request.user).select_related(
+            'flashcard', 'flashcard__deck'
+        )
+
+        if search_query:
+            blacklist_qs = blacklist_qs.filter(
+                Q(flashcard__word__icontains=search_query) |
+                Q(flashcard__deck__name__icontains=search_query)
+            )
+
+        valid_sort_fields = ['flashcard__word', '-flashcard__word', 'flashcard__deck__name', '-flashcard__deck__name', 'blacklisted_at', '-blacklisted_at']
+        if sort_by not in valid_sort_fields:
+            sort_by = '-blacklisted_at'
+        
+        blacklist_qs = blacklist_qs.order_by(sort_by)
+
+        paginator = Paginator(blacklist_qs, 20)
+        page_obj = paginator.get_page(page_number)
+
+        data = {
+            'items': [{
+                'id': item.id,
+                'flashcard_id': item.flashcard.id,
+                'word': item.flashcard.word,
+                'deck': item.flashcard.deck.name if item.flashcard.deck else 'N/A',
+                'part_of_speech': item.flashcard.part_of_speech or 'N/A',
+                'blacklisted_at': item.blacklisted_at.strftime('%Y-%m-%d %H:%M')
+            } for item in page_obj.object_list],
+            'pagination': {
+                'current_page': page_obj.number,
+                'total_pages': paginator.num_pages,
+                'has_next': page_obj.has_next(),
+                'has_previous': page_obj.has_previous(),
+                'total_items': paginator.count
+            }
+        }
+        return JsonResponse(data)
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            card_ids = data.get('card_ids', [])
+            if not isinstance(card_ids, list) or not card_ids:
+                return JsonResponse({'success': False, 'error': 'Invalid or empty card_ids list'}, status=400)
+
+            deleted_count, _ = BlacklistFlashcard.objects.filter(
+                user=request.user,
+                flashcard_id__in=card_ids
+            ).delete()
+
+            return JsonResponse({'success': True, 'message': f'{deleted_count} words removed from blacklist.'})
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+@login_required
 def blacklist_page(request):
-    """Display user's blacklisted flashcards."""
-    blacklists = BlacklistFlashcard.get_user_blacklist(request.user)
-
-    # Paginate blacklists (20 per page)
-    from django.core.paginator import Paginator
-    paginator = Paginator(blacklists, 20)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    context = {
-        'blacklists': page_obj,
-        'total_blacklists': blacklists.count(),
-    }
-
-    return render(request, 'vocabulary/blacklist.html', context)
+    """Display the new dynamic blacklist management page."""
+    return render(request, 'vocabulary/blacklist_management.html')
 
 
 def debug_study_template(request):
