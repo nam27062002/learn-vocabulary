@@ -840,33 +840,97 @@
   }
 
   function getNextQuestion() {
-    const params = new URLSearchParams();
+    // Prepare request data
+    let requestData = {};
 
     if (currentStudyMode === "random") {
-      params.append("study_mode", "random");
-      params.append("word_count", wordCount);
-      seenCardIds.forEach((id) => params.append("seen_card_ids[]", id));
+      requestData = {
+        study_mode: "random",
+        word_count: wordCount,
+        seen_card_ids: seenCardIds
+      };
     } else if (currentStudyMode === "review") {
-      params.append("study_mode", "review");
-      seenCardIds.forEach((id) => params.append("seen_card_ids[]", id));
+      requestData = {
+        study_mode: "review",
+        seen_card_ids: seenCardIds
+      };
     } else if (currentStudyMode === "favorites") {
-      params.append("study_mode", "favorites");
-      seenCardIds.forEach((id) => params.append("seen_card_ids[]", id));
+      requestData = {
+        study_mode: "favorites",
+        seen_card_ids: seenCardIds
+      };
     } else {
       // Normal deck study mode
       const selectedDeckIds = Array.from(
         document.querySelectorAll('input[name="deck_ids"]:checked')
       ).map((cb) => cb.value);
-      selectedDeckIds.forEach((id) => params.append("deck_ids[]", id));
-      // Also send seen cards to prevent repetition in deck study mode
-      seenCardIds.forEach((id) => params.append("seen_card_ids[]", id));
+      requestData = {
+        deck_ids: selectedDeckIds,
+        seen_card_ids: seenCardIds
+      };
     }
 
-    fetch(`${STUDY_CFG.nextUrl}?${params.toString()}`, {
+    // Estimate URL length for GET request to decide between GET and POST
+    // Base URL length + parameters + seen_card_ids array
+    const baseUrlLength = STUDY_CFG.nextUrl.length;
+    const estimatedParamsLength = Object.keys(requestData).reduce((total, key) => {
+      if (key === 'seen_card_ids') {
+        // Each seen_card_id adds approximately 20 characters: "seen_card_ids[]=123&"
+        return total + (requestData[key].length * 20);
+      } else if (key === 'deck_ids') {
+        // Each deck_id adds approximately 15 characters: "deck_ids[]=1&"
+        return total + (requestData[key].length * 15);
+      } else {
+        // Other parameters add approximately 30 characters each
+        return total + 30;
+      }
+    }, 0);
+
+    const estimatedUrlLength = baseUrlLength + estimatedParamsLength;
+    const MAX_SAFE_URL_LENGTH = 3500; // Conservative limit to avoid server issues
+
+    let fetchOptions = {
       headers: {
         "X-CSRFToken": STUDY_CFG.csrfToken,
       },
-    })
+    };
+
+    let fetchUrl = STUDY_CFG.nextUrl;
+
+    if (estimatedUrlLength > MAX_SAFE_URL_LENGTH) {
+      // Use POST request for large data
+      console.log(`Using POST request due to large data size (estimated URL length: ${estimatedUrlLength})`);
+      fetchOptions.method = 'POST';
+      fetchOptions.headers['Content-Type'] = 'application/json';
+      fetchOptions.body = JSON.stringify(requestData);
+    } else {
+      // Use GET request for smaller data (backward compatibility)
+      console.log(`Using GET request (estimated URL length: ${estimatedUrlLength})`);
+      const params = new URLSearchParams();
+
+      if (currentStudyMode === "random") {
+        params.append("study_mode", "random");
+        params.append("word_count", wordCount);
+        seenCardIds.forEach((id) => params.append("seen_card_ids[]", id));
+      } else if (currentStudyMode === "review") {
+        params.append("study_mode", "review");
+        seenCardIds.forEach((id) => params.append("seen_card_ids[]", id));
+      } else if (currentStudyMode === "favorites") {
+        params.append("study_mode", "favorites");
+        seenCardIds.forEach((id) => params.append("seen_card_ids[]", id));
+      } else {
+        // Normal deck study mode
+        const selectedDeckIds = Array.from(
+          document.querySelectorAll('input[name="deck_ids"]:checked')
+        ).map((cb) => cb.value);
+        selectedDeckIds.forEach((id) => params.append("deck_ids[]", id));
+        seenCardIds.forEach((id) => params.append("seen_card_ids[]", id));
+      }
+
+      fetchUrl = `${STUDY_CFG.nextUrl}?${params.toString()}`;
+    }
+
+    fetch(fetchUrl, fetchOptions)
       .then((r) => r.json())
       .then((data) => {
         if (data.done) {
