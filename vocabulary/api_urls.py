@@ -48,6 +48,7 @@ urlpatterns = [
     path('api/favorites/check/', views.api_check_favorite_status, name='api_check_favorite_status'),
 
     # Blacklist APIs
+    path('api/blacklist/', views.api_blacklist, name='api_blacklist'),
     path('api/blacklist/toggle/', views.api_toggle_blacklist, name='api_toggle_blacklist'),
     path('api/blacklist/count/', views.api_get_blacklist_count, name='api_get_blacklist_count'),
     path('api/blacklist/check/', views.api_check_blacklist_status, name='api_check_blacklist_status'),
