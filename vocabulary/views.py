@@ -2239,10 +2239,26 @@ def api_check_blacklist_status(request):
 @login_required
 def api_blacklist(request):
     if request.method == 'GET':
+        # Check if requesting all IDs for global select all
+        all_ids = request.GET.get('all_ids', '').lower() == 'true'
+
+        if all_ids:
+            # Return all blacklisted flashcard IDs for global select all
+            blacklist_ids = BlacklistFlashcard.objects.filter(
+                user=request.user
+            ).values_list('flashcard_id', flat=True)
+
+            return JsonResponse({
+                'success': True,
+                'all_ids': list(blacklist_ids)
+            })
+
+        # Regular pagination request
         search_query = request.GET.get('q', '')
         sort_by = request.GET.get('sort', '-blacklisted_at')
         page_number = request.GET.get('page', 1)
-        
+        page_size = int(request.GET.get('page_size', 20))
+
         blacklist_qs = BlacklistFlashcard.objects.filter(user=request.user).select_related(
             'flashcard', 'flashcard__deck'
         )
@@ -2256,10 +2272,10 @@ def api_blacklist(request):
         valid_sort_fields = ['flashcard__word', '-flashcard__word', 'flashcard__deck__name', '-flashcard__deck__name', 'blacklisted_at', '-blacklisted_at']
         if sort_by not in valid_sort_fields:
             sort_by = '-blacklisted_at'
-        
+
         blacklist_qs = blacklist_qs.order_by(sort_by)
 
-        paginator = Paginator(blacklist_qs, 20)
+        paginator = Paginator(blacklist_qs, page_size)
         page_obj = paginator.get_page(page_number)
 
         data = {

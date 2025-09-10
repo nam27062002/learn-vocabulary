@@ -1054,9 +1054,9 @@
     <div class="header-content">
       <h1 class="manager-title">
         <i class="fas fa-ban"></i>
-        Blacklist Management
+        {{ manual_texts.blacklist_management|default:"Blacklist Management" }}
       </h1>
-      <p class="manager-subtitle">Manage words excluded from your study sessions</p>
+      <p class="manager-subtitle">{{ manual_texts.manage_words_excluded|default:"Manage words excluded from your study sessions" }}</p>
     </div>
 
     <!-- Comprehensive Statistics Dashboard -->
@@ -1067,7 +1067,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-number" id="total-blacklisted">0</div>
-          <div class="stat-label">Total Blacklisted</div>
+          <div class="stat-label">{{ manual_texts.total_blacklisted|default:"Total Blacklisted" }}</div>
         </div>
       </div>
 
@@ -1077,7 +1077,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-number" id="filtered-count">0</div>
-          <div class="stat-label">Filtered Results</div>
+          <div class="stat-label">{{ manual_texts.filtered_results|default:"Filtered Results" }}</div>
         </div>
       </div>
 
@@ -1087,7 +1087,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-number" id="selected-count">0</div>
-          <div class="stat-label">Selected</div>
+          <div class="stat-label">{{ manual_texts.selected|default:"Selected" }}</div>
         </div>
       </div>
 
@@ -1097,7 +1097,7 @@
         </div>
         <div class="stat-content">
           <div class="stat-number" id="current-page-info">1/1</div>
-          <div class="stat-label">Page</div>
+          <div class="stat-label">{{ manual_texts.page|default:"Page" }}</div>
         </div>
       </div>
     </div>
@@ -1108,7 +1108,7 @@
     <div class="search-section">
       <div class="search-input-wrapper">
         <i class="fas fa-search"></i>
-        <input type="text" id="search-input" class="search-input" placeholder="Search words, decks, or definitions...">
+        <input type="text" id="search-input" class="search-input" placeholder="{{ manual_texts.search_words_decks|default:'Search words, decks, or definitions...' }}">
         <button id="clear-search" class="clear-search-btn" style="display: none;">
           <i class="fas fa-times"></i>
         </button>
@@ -1118,20 +1118,20 @@
 
     <div class="action-section">
       <div class="selection-controls">
-        <button id="select-all-global" class="action-btn select-all-btn" title="Select all blacklisted words across all pages">
+        <button id="select-all-global" class="action-btn select-all-btn" title="{{ manual_texts.select_all|default:'Select all blacklisted words across all pages' }}">
           <i class="fas fa-check-double"></i>
-          <span>Select All</span>
+          <span>{{ manual_texts.select_all|default:"Select All" }}</span>
         </button>
-        <button id="select-none" class="action-btn select-none-btn" title="Clear all selections">
+        <button id="select-none" class="action-btn select-none-btn" title="{{ manual_texts.clear|default:'Clear all selections' }}">
           <i class="fas fa-square"></i>
-          <span>Clear</span>
+          <span>{{ manual_texts.clear|default:"Clear" }}</span>
         </button>
       </div>
 
       <div class="bulk-actions">
         <button id="bulk-remove-btn" class="action-btn bulk-remove-btn" disabled>
           <i class="fas fa-trash-alt"></i>
-          <span>Remove Selected</span>
+          <span>{{ manual_texts.remove_selected|default:"Remove Selected" }}</span>
         </button>
       </div>
     </div>
@@ -1145,11 +1145,11 @@
       <div class="summary-actions">
         <button id="confirm-bulk-remove" class="confirm-btn">
           <i class="fas fa-check"></i>
-          Confirm Removal
+          {{ manual_texts.confirm_removal|default:"Confirm Removal" }}
         </button>
         <button id="cancel-selection" class="cancel-btn">
           <i class="fas fa-times"></i>
-          Cancel
+          {{ manual_texts.cancel|default:"Cancel" }}
         </button>
       </div>
     </div>
@@ -1157,16 +1157,16 @@
 
   <div class="table-header-actions">
       <div class="view-options">
-        <button id="view-grid" class="view-btn" title="Grid View">
+        <button id="view-grid" class="view-btn" title="{{ manual_texts.grid_view|default:'Grid View' }}">
           <i class="fas fa-th"></i>
         </button>
-        <button id="view-table" class="view-btn active" title="Table View">
+        <button id="view-table" class="view-btn active" title="{{ manual_texts.table_view|default:'Table View' }}">
           <i class="fas fa-list"></i>
         </button>
       </div>
 
       <div class="table-info">
-        <span id="table-showing-info">Showing 0 of 0 words</span>
+        <span id="table-showing-info">{{ manual_texts.showing_words|default:"Showing 0 of 0 words" }}</span>
       </div>
     </div>
 
@@ -1181,35 +1181,35 @@
             <div class="checkbox-wrapper">
               <input type="checkbox" id="select-all-checkbox" class="page-select-all">
               <label for="select-all-checkbox" class="checkbox-label">
-                <span class="checkbox-text">Select Page</span>
+                <span class="checkbox-text">{{ manual_texts.select_page|default:"Select Page" }}</span>
               </label>
             </div>
           </th>
           <th class="word-column sortable" data-sort="flashcard__word">
             <div class="header-content">
               <i class="fas fa-font"></i>
-              <span>Word</span>
+              <span>{{ manual_texts.word|default:"Word" }}</span>
               <span class="sort-indicator"></span>
             </div>
           </th>
           <th class="deck-column sortable" data-sort="flashcard__deck__name">
             <div class="header-content">
               <i class="fas fa-layer-group"></i>
-              <span>Deck</span>
+              <span>{{ manual_texts.deck|default:"Deck" }}</span>
               <span class="sort-indicator"></span>
             </div>
           </th>
           <th class="date-column sortable" data-sort="blacklisted_at">
             <div class="header-content">
               <i class="fas fa-calendar-alt"></i>
-              <span>Date Added</span>
+              <span>{{ manual_texts.blacklisted_at|default:"Date Added" }}</span>
               <span class="sort-indicator"></span>
             </div>
           </th>
           <th class="actions-column">
             <div class="header-content">
               <i class="fas fa-cog"></i>
-              <span>Actions</span>
+              <span>{{ manual_texts.actions|default:"Actions" }}</span>
             </div>
           </th>
         </tr>
@@ -1223,7 +1223,7 @@
     <div id="loading-indicator" class="loading-overlay" style="display: none;">
       <div class="loading-content">
         <div class="loading-spinner"></div>
-        <div class="loading-text">Loading blacklisted words...</div>
+        <div class="loading-text">{{ manual_texts.loading_blacklisted_words|default:"Loading blacklisted words..." }}</div>
       </div>
     </div>
 
@@ -1232,16 +1232,16 @@
       <div class="empty-icon">
         <i class="fas fa-ban"></i>
       </div>
-      <h3>No Blacklisted Words Found</h3>
-      <p>You haven't blacklisted any words yet, or no words match your current search.</p>
+      <h3>{{ manual_texts.no_blacklisted_words_found|default:"No Blacklisted Words Found" }}</h3>
+      <p>{{ manual_texts.no_blacklisted_words_message|default:"You haven't blacklisted any words yet, or no words match your current search." }}</p>
       <div class="empty-actions">
         <a href="/study/" class="action-btn primary-btn">
           <i class="fas fa-play"></i>
-          Start Studying
+          {{ manual_texts.start_studying|default:"Start Studying" }}
         </a>
         <a href="/decks/" class="action-btn secondary-btn">
           <i class="fas fa-layer-group"></i>
-          Browse Decks
+          {{ manual_texts.browse_decks|default:"Browse Decks" }}
         </a>
       </div>
     </div>
@@ -1255,10 +1255,10 @@
   <div class="pagination-footer">
     <div class="pagination-info">
       <div class="page-stats">
-        <span id="pagination-text">Showing 0-0 of 0 words</span>
+        <span id="pagination-text">{{ manual_texts.showing_words|default:"Showing 0-0 of 0 words" }}</span>
       </div>
       <div class="page-size-selector">
-        <label for="page-size">Items per page:</label>
+        <label for="page-size">{{ manual_texts.items_per_page|default:"Items per page:" }}</label>
         <select id="page-size" class="page-size-select">
           <option value="10">10</option>
           <option value="20" selected>20</option>
@@ -1269,31 +1269,31 @@
     </div>
 
     <div class="pagination-controls">
-      <button id="first-page-btn" class="pagination-btn" disabled title="First Page">
+      <button id="first-page-btn" class="pagination-btn" disabled title="{{ manual_texts.first_page|default:'First Page' }}">
         <i class="fas fa-angle-double-left"></i>
       </button>
-      <button id="prev-page-btn" class="pagination-btn" disabled title="Previous Page">
+      <button id="prev-page-btn" class="pagination-btn" disabled title="{{ manual_texts.previous_page|default:'Previous Page' }}">
         <i class="fas fa-angle-left"></i>
-        <span>Previous</span>
+        <span>{{ manual_texts.previous_page|default:"Previous" }}</span>
       </button>
 
       <div class="page-numbers" id="page-numbers">
         <!-- Page numbers will be generated by JavaScript -->
       </div>
 
-      <button id="next-page-btn" class="pagination-btn" disabled title="Next Page">
-        <span>Next</span>
+      <button id="next-page-btn" class="pagination-btn" disabled title="{{ manual_texts.next_page|default:'Next Page' }}">
+        <span>{{ manual_texts.next_page|default:"Next" }}</span>
         <i class="fas fa-angle-right"></i>
       </button>
-      <button id="last-page-btn" class="pagination-btn" disabled title="Last Page">
+      <button id="last-page-btn" class="pagination-btn" disabled title="{{ manual_texts.last_page|default:'Last Page' }}">
         <i class="fas fa-angle-double-right"></i>
       </button>
     </div>
 
     <div class="quick-navigation">
-      <label for="goto-page">Go to page:</label>
+      <label for="goto-page">{{ manual_texts.go_to_page|default:"Go to page:" }}</label>
       <input type="number" id="goto-page" class="goto-page-input" min="1" max="1" placeholder="1">
-      <button id="goto-page-btn" class="goto-btn">Go</button>
+      <button id="goto-page-btn" class="goto-btn">{{ manual_texts.go|default:"Go" }}</button>
     </div>
   </div>
 </div>
@@ -1302,6 +1302,24 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  // Localization object
+  const i18n = {
+    searchingFor: "{{ manual_texts.searching_for|default:'Searching for \"{query}\" - {count} results found' }}",
+    wordsSelected: "{{ manual_texts.words_selected|default:'{count} word{plural} selected' }}",
+    allWordsSelected: "{{ manual_texts.all_words_selected|default:'All {count} words selected' }}",
+    successfullyRemovedWords: "{{ manual_texts.successfully_removed_words|default:'Successfully removed {count} word{plural} from blacklist' }}",
+    wordRemovedFromBlacklist: "{{ manual_texts.word_removed_from_blacklist|default:'Word removed from blacklist' }}",
+    errorRemovingWord: "{{ manual_texts.error_removing_word|default:'Error removing word: {error}' }}",
+    errorRemovingItems: "{{ manual_texts.error_removing_items|default:'Error removing items: {error}' }}",
+    errorSelectingAllItems: "{{ manual_texts.error_selecting_all_items|default:'Error selecting all items' }}",
+    errorLoadingBlacklistedWords: "{{ manual_texts.error_loading_blacklisted_words|default:'Error loading blacklisted words. Please try again.' }}",
+    removing: "{{ manual_texts.removing|default:'Removing...' }}",
+    showingWords: "{{ manual_texts.showing_words|default:'Showing {start}-{end} of {total} words' }}",
+    removeFromBlacklist: "{{ manual_texts.remove_from_blacklist|default:'Remove from blacklist' }}",
+    selectAll: "{{ manual_texts.select_all|default:'Select All' }}",
+    removeSelected: "{{ manual_texts.remove_selected|default:'Remove Selected' }}",
+    confirmRemoval: "{{ manual_texts.confirm_removal|default:'Confirm Removal' }}"
+  };
   // Enhanced DOM element references
   const app = document.getElementById('blacklist-app');
   const searchInput = document.getElementById('search-input');
@@ -1388,7 +1406,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (error) {
       console.error("Fetch error:", error);
-      showNotification('Error loading blacklisted words. Please try again.', 'error');
+      showNotification(i18n.errorLoadingBlacklistedWords, 'error');
     } finally {
       state.isLoading = false;
       updateUI();
@@ -1427,8 +1445,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update table info
     const startItem = state.totalItems === 0 ? 0 : (state.currentPage - 1) * state.pageSize + 1;
     const endItem = Math.min(state.currentPage * state.pageSize, state.totalItems);
-    tableShowingInfoEl.textContent = `Showing ${startItem}-${endItem} of ${state.totalItems} words`;
-    paginationTextEl.textContent = `Showing ${startItem}-${endItem} of ${state.totalItems} words`;
+    const showingText = i18n.showingWords.replace('{start}', startItem).replace('{end}', endItem).replace('{total}', state.totalItems);
+    tableShowingInfoEl.textContent = showingText;
+    paginationTextEl.textContent = showingText;
   };
 
   const updateTable = () => {
@@ -1472,7 +1491,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td class="deck-column">${escapeHtml(item.deck)}</td>
         <td class="date-column">${formatDate(item.blacklisted_at)}</td>
         <td class="actions-column">
-          <button class="remove-btn" data-id="${item.flashcard_id}" title="Remove from blacklist">
+          <button class="remove-btn" data-id="${item.flashcard_id}" title="${i18n.removeFromBlacklist}">
             <i class="fas fa-trash-alt"></i>
           </button>
         </td>
@@ -1617,7 +1636,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bulkRemoveBtn.disabled = numSelected === 0;
     const bulkRemoveBtnText = bulkRemoveBtn.querySelector('span');
     if (bulkRemoveBtnText) {
-      bulkRemoveBtnText.textContent = numSelected > 0 ? `Remove Selected (${numSelected})` : 'Remove Selected';
+      bulkRemoveBtnText.textContent = numSelected > 0 ? `${i18n.removeSelected} (${numSelected})` : i18n.removeSelected;
     }
 
     // Update page select all checkbox
@@ -1631,10 +1650,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectAllText = selectAllGlobalBtn.querySelector('span');
     if (selectAllText) {
       if (state.globalSelectAll) {
-        selectAllText.textContent = `Selected All (${state.totalItems})`;
+        selectAllText.textContent = `${i18n.selectAll} (${state.totalItems})`;
         selectAllGlobalBtn.classList.add('active');
       } else {
-        selectAllText.textContent = 'Select All';
+        selectAllText.textContent = i18n.selectAll;
         selectAllGlobalBtn.classList.remove('active');
       }
     }
@@ -1642,9 +1661,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show/hide selection summary
     if (numSelected > 0) {
       selectionSummary.style.display = 'block';
-      selectionText.textContent = state.globalSelectAll
-        ? `All ${state.totalItems} words selected`
-        : `${numSelected} word${numSelected !== 1 ? 's' : ''} selected`;
+      if (state.globalSelectAll) {
+        selectionText.textContent = i18n.allWordsSelected.replace('{count}', state.totalItems);
+      } else {
+        const plural = numSelected !== 1 ? 's' : '';
+        selectionText.textContent = i18n.wordsSelected.replace('{count}', numSelected).replace('{plural}', plural);
+      }
     } else {
       selectionSummary.style.display = 'none';
     }
@@ -1699,7 +1721,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const updateSearchStatus = () => {
     if (state.searchQuery) {
-      searchStatus.textContent = `Searching for "${state.searchQuery}" - ${state.filteredItems} results found`;
+      const searchText = i18n.searchingFor.replace('{query}', state.searchQuery).replace('{count}', state.filteredItems);
+      searchStatus.textContent = searchText;
       searchStatus.style.display = 'block';
     } else {
       searchStatus.style.display = 'none';
@@ -1764,7 +1787,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
+    // Update UI immediately to reflect selection changes
     updateSelectionControls();
+    updateStatistics();
   };
 
   // Global select all functionality
@@ -1797,11 +1822,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } catch (error) {
         console.error('Error fetching all IDs:', error);
-        showNotification('Error selecting all items', 'error');
+        showNotification(i18n.errorSelectingAllItems, 'error');
       }
     }
 
     updateSelectionControls();
+    updateStatistics();
   };
 
   const handleSelectNone = () => {
@@ -1815,6 +1841,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     updateSelectionControls();
+    updateStatistics();
   };
 
   // Enhanced bulk removal with confirmation
@@ -1836,7 +1863,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       // Show loading state
       confirmBulkRemoveBtn.disabled = true;
-      confirmBulkRemoveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Removing...';
+      confirmBulkRemoveBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${i18n.removing}`;
 
       const response = await fetch('/api/blacklist/', {
         method: 'POST',
@@ -1855,17 +1882,20 @@ document.addEventListener('DOMContentLoaded', () => {
         selectionSummary.style.display = 'none';
         bulkRemoveBtn.style.display = 'flex';
 
-        showNotification(`Successfully removed ${numToRemove} word${numToRemove !== 1 ? 's' : ''} from blacklist`, 'success');
+        const plural = numToRemove !== 1 ? 's' : '';
+        const successMessage = i18n.successfullyRemovedWords.replace('{count}', numToRemove).replace('{plural}', plural);
+        showNotification(successMessage, 'success');
         fetchData();
       } else {
         throw new Error(data.error || 'Failed to remove items.');
       }
     } catch (error) {
       console.error('Bulk remove error:', error);
-      showNotification('Error removing items: ' + error.message, 'error');
+      const errorMessage = i18n.errorRemovingItems.replace('{error}', error.message);
+      showNotification(errorMessage, 'error');
     } finally {
       confirmBulkRemoveBtn.disabled = false;
-      confirmBulkRemoveBtn.innerHTML = '<i class="fas fa-check"></i> Confirm Removal';
+      confirmBulkRemoveBtn.innerHTML = `<i class="fas fa-check"></i> ${i18n.confirmRemoval}`;
     }
   };
 
@@ -1889,14 +1919,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
       if (data.success) {
         state.selectedIds.delete(id);
-        showNotification('Word removed from blacklist', 'success');
+        showNotification(i18n.wordRemovedFromBlacklist, 'success');
         fetchData();
       } else {
         throw new Error(data.error || 'Failed to remove item.');
       }
     } catch (error) {
       console.error('Individual remove error:', error);
-      showNotification('Error removing word: ' + error.message, 'error');
+      const errorMessage = i18n.errorRemovingWord.replace('{error}', error.message);
+      showNotification(errorMessage, 'error');
     }
   };
 
