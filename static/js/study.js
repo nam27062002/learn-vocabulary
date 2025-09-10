@@ -3313,25 +3313,25 @@
       </div>
     `;
 
-    // Apply improved styles - position as a prominent modal-like sidebar
+    // Apply improved styles with better contrast and readability
     feedbackContainer.style.cssText = `
       position: fixed;
       left: 20px;
       top: 50%;
       transform: translateY(-50%);
-      width: 380px;
-      max-height: 80vh;
+      width: 400px;
+      max-height: 85vh;
       overflow-y: auto;
-      background: linear-gradient(135deg, #ef4444, #dc2626);
-      color: white;
-      padding: 24px;
-      border-radius: 20px;
+      background: linear-gradient(145deg, #1e293b, #334155);
+      color: #f1f5f9;
+      padding: 28px;
+      border-radius: 24px;
       font-size: 15px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
       z-index: 1000;
       animation: slideInFromLeft 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-      backdrop-filter: blur(10px);
-      border: 2px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
     `;
 
     // No auto-hide - feedback stays until next question
