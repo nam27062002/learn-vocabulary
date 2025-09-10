@@ -1004,6 +1004,12 @@
     // Reset UI elements
     feedbackMsg.className = "feedback-message";
 
+    // Clear any existing detailed feedback from previous question
+    const existingFeedback = document.querySelector('.detailed-input-feedback');
+    if (existingFeedback) {
+      existingFeedback.remove();
+    }
+
     if (cardWordEl) {
       cardWordEl.innerHTML = "";
     }
@@ -1395,9 +1401,9 @@
     }
     updateStats();
 
-    // Show detailed feedback for input modes
-    if ((currentQuestion.type === "type" || currentQuestion.type === "dictation") && 
-        userAnswer !== null && expectedAnswer !== null) {
+    // Show detailed feedback for input modes - only for incorrect answers
+    if ((currentQuestion.type === "type" || currentQuestion.type === "dictation") &&
+        userAnswer !== null && expectedAnswer !== null && !correct) {
       showDetailedInputFeedback(correct, userAnswer, expectedAnswer);
     }
 
@@ -3236,13 +3242,25 @@
   window.addEventListener('focus', handleWindowFocus, false);
   console.log(`[DEBUG] Added window focus/blur listeners for timer pause/resume`);
 
-  // Detailed Input Feedback System
+  // Detailed Input Feedback System - Only for incorrect answers
   function showDetailedInputFeedback(correct, userAnswer, expectedAnswer) {
     console.log(`[DEBUG] Showing detailed feedback: correct=${correct}, user="${userAnswer}", expected="${expectedAnswer}"`);
-    
+
+    // Only show feedback for incorrect answers
+    if (correct) {
+      return;
+    }
+
+    // Remove any existing feedback
+    const existingFeedback = document.querySelector('.detailed-input-feedback');
+    if (existingFeedback) {
+      existingFeedback.remove();
+    }
+
     // Create feedback container
     const feedbackContainer = document.createElement('div');
     feedbackContainer.className = 'detailed-input-feedback';
+    feedbackContainer.id = 'current-feedback';
     
     // Position it to the left of cardBox
     const cardBox = document.getElementById('cardBox');
@@ -3256,74 +3274,67 @@
         studyArea.appendChild(feedbackContainer);
       }
     }
-    
-    if (correct) {
-      // Correct answer feedback
-      feedbackContainer.innerHTML = `
-        <div class="feedback-content correct">
-          <div class="feedback-header">
-            <span class="feedback-icon">✅</span>
-            <span class="feedback-title">Correct!</span>
-            <button class="close-feedback-btn" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
-          </div>
-          <div class="answer-display">
-            <span class="user-answer correct">"${userAnswer}"</span>
-          </div>
+
+    // Incorrect answer - show detailed comparison with improved UI
+    const comparisonHtml = generateLetterComparison(userAnswer, expectedAnswer);
+
+    feedbackContainer.innerHTML = `
+      <div class="feedback-content incorrect">
+        <div class="feedback-header">
+          <span class="feedback-icon">❌</span>
+          <span class="feedback-title">Incorrect</span>
+          <button class="close-feedback-btn" onclick="document.getElementById('current-feedback').remove()">×</button>
         </div>
-      `;
-    } else {
-      // Incorrect answer - show detailed comparison
-      const comparisonHtml = generateLetterComparison(userAnswer, expectedAnswer);
-      
-      feedbackContainer.innerHTML = `
-        <div class="feedback-content incorrect">
-          <div class="feedback-header">
-            <span class="feedback-icon">❌</span>
-            <span class="feedback-title">Incorrect</span>
-            <button class="close-feedback-btn" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
-          </div>
-          <div class="answer-comparison">
+        <div class="answer-comparison">
+          <div class="answer-section">
             <div class="answer-row">
               <span class="answer-label">Your answer:</span>
-              <span class="user-answer incorrect">"${userAnswer}"</span>
+              <div class="user-answer-box incorrect">"${userAnswer}"</div>
             </div>
             <div class="answer-row">
               <span class="answer-label">Correct answer:</span>
-              <span class="expected-answer">"${expectedAnswer}"</span>
+              <div class="expected-answer-box">"${expectedAnswer}"</div>
             </div>
-            <div class="letter-comparison">
-              <span class="comparison-label">Letter by letter:</span>
-              <div class="comparison-display">${comparisonHtml}</div>
+          </div>
+          <div class="letter-comparison">
+            <span class="comparison-label">Letter by letter comparison:</span>
+            <div class="comparison-display">${comparisonHtml}</div>
+            <div class="comparison-legend">
+              <span class="legend-item"><span class="legend-correct">●</span> Correct</span>
+              <span class="legend-item"><span class="legend-incorrect">●</span> Incorrect</span>
+              <span class="legend-item"><span class="legend-missing">●</span> Missing</span>
+              <span class="legend-item"><span class="legend-extra">●</span> Extra</span>
             </div>
           </div>
         </div>
-      `;
-    }
-    
-    // Apply styles - position it as a sidebar
+        <div class="feedback-footer">
+          <small>This feedback will remain until you move to the next card</small>
+        </div>
+      </div>
+    `;
+
+    // Apply improved styles - position as a prominent modal-like sidebar
     feedbackContainer.style.cssText = `
       position: fixed;
       left: 20px;
       top: 50%;
       transform: translateY(-50%);
-      width: 320px;
-      max-height: 70vh;
+      width: 380px;
+      max-height: 80vh;
       overflow-y: auto;
-      background: ${correct ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #ef4444, #dc2626)'};
+      background: linear-gradient(135deg, #ef4444, #dc2626);
       color: white;
-      padding: 20px;
-      border-radius: 16px;
-      font-size: 14px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      padding: 24px;
+      border-radius: 20px;
+      font-size: 15px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
       z-index: 1000;
-      animation: slideInFromLeft 0.4s ease;
+      animation: slideInFromLeft 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255, 255, 255, 0.1);
     `;
-    
-    // Auto-hide after some time with fade out
-    setTimeout(() => {
-      feedbackContainer.style.transition = 'opacity 1s ease';
-      feedbackContainer.style.opacity = '0.6';
-    }, 8000);
+
+    // No auto-hide - feedback stays until next question
     
     // Auto-remove after longer time
     setTimeout(() => {
@@ -3517,37 +3528,42 @@
     const user = userAnswer.toLowerCase();
     const expected = expectedAnswer.toLowerCase();
     const maxLength = Math.max(user.length, expected.length);
-    
+
     let comparisonHtml = '';
-    
+
     for (let i = 0; i < maxLength; i++) {
       const userChar = user[i] || '';
       const expectedChar = expected[i] || '';
-      
+
       let charClass = '';
       let displayChar = '';
-      
+      let tooltip = '';
+
       if (i >= user.length) {
         // Missing character
         charClass = 'char-missing';
         displayChar = expectedChar;
+        tooltip = `Missing: "${expectedChar}"`;
       } else if (i >= expected.length) {
         // Extra character
         charClass = 'char-extra';
         displayChar = userChar;
+        tooltip = `Extra: "${userChar}"`;
       } else if (userChar === expectedChar) {
         // Correct character
         charClass = 'char-correct';
         displayChar = userChar;
+        tooltip = `Correct: "${userChar}"`;
       } else {
         // Wrong character
         charClass = 'char-wrong';
-        displayChar = `${userChar}→${expectedChar}`;
+        displayChar = userChar;
+        tooltip = `Wrong: "${userChar}" should be "${expectedChar}"`;
       }
-      
-      comparisonHtml += `<span class="char-comparison ${charClass}">${displayChar || ' '}</span>`;
+
+      comparisonHtml += `<span class="char-comparison ${charClass}" title="${tooltip}">${displayChar || '·'}</span>`;
     }
-    
+
     return comparisonHtml;
   }
 

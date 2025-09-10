@@ -2508,6 +2508,17 @@ div.input-row.hidden {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-100%) translateY(-50%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) translateY(-50%);
+  }
+}
+
 .flashcard-correct {
   border-color: #10b981 !important; /* green-500 */
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
@@ -2517,4 +2528,178 @@ div.input-row.hidden {
   border-color: #ef4444 !important; /* red-500 */
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18);
   transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+/* Enhanced Detailed Input Feedback */
+.detailed-input-feedback .feedback-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.detailed-input-feedback .feedback-icon {
+  font-size: 1.5rem;
+  margin-right: 10px;
+}
+
+.detailed-input-feedback .feedback-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  flex: 1;
+}
+
+.detailed-input-feedback .close-feedback-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.detailed-input-feedback .close-feedback-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.detailed-input-feedback .answer-section {
+  margin-bottom: 20px;
+}
+
+.detailed-input-feedback .answer-row {
+  margin-bottom: 12px;
+}
+
+.detailed-input-feedback .answer-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  opacity: 0.9;
+}
+
+.detailed-input-feedback .user-answer-box,
+.detailed-input-feedback .expected-answer-box {
+  display: block;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  word-break: break-all;
+}
+
+.detailed-input-feedback .user-answer-box {
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.detailed-input-feedback .expected-answer-box {
+  background: rgba(16, 185, 129, 0.2);
+  border: 2px solid rgba(16, 185, 129, 0.4);
+}
+
+.detailed-input-feedback .letter-comparison {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.detailed-input-feedback .comparison-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  opacity: 0.9;
+}
+
+.detailed-input-feedback .comparison-display {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 16px;
+  border-radius: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 1.2rem;
+  line-height: 1.8;
+  word-break: break-all;
+  margin-bottom: 12px;
+}
+
+.detailed-input-feedback .char-comparison {
+  display: inline-block;
+  padding: 4px 6px;
+  margin: 2px 1px;
+  border-radius: 4px;
+  font-weight: 700;
+  min-width: 20px;
+  text-align: center;
+  cursor: help;
+}
+
+.detailed-input-feedback .char-correct {
+  background: rgba(16, 185, 129, 0.8);
+  color: white;
+}
+
+.detailed-input-feedback .char-wrong {
+  background: rgba(239, 68, 68, 0.8);
+  color: white;
+}
+
+.detailed-input-feedback .char-missing {
+  background: rgba(245, 158, 11, 0.8);
+  color: white;
+  text-decoration: underline;
+}
+
+.detailed-input-feedback .char-extra {
+  background: rgba(168, 85, 247, 0.8);
+  color: white;
+  text-decoration: line-through;
+}
+
+.detailed-input-feedback .comparison-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.detailed-input-feedback .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.detailed-input-feedback .legend-correct {
+  color: #10b981;
+}
+
+.detailed-input-feedback .legend-incorrect {
+  color: #ef4444;
+}
+
+.detailed-input-feedback .legend-missing {
+  color: #f59e0b;
+}
+
+.detailed-input-feedback .legend-extra {
+  color: #a855f7;
+}
+
+.detailed-input-feedback .feedback-footer {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: center;
+  opacity: 0.7;
+  font-size: 0.85rem;
 }
