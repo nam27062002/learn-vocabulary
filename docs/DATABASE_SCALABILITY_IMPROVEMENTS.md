@@ -89,14 +89,15 @@ DATABASES = {
 
 ### 3. **Caching Strategy**
 ```python
-# Redis caching for frequent queries
+# Database caching for frequent queries
 CACHES = {
     'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'cache_table',
+        'TIMEOUT': 300,
         'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'PARSER_CLASS': 'redis.connection.HiredisParser',
+            'MAX_ENTRIES': 1000,
+            'CULL_FREQUENCY': 3,
         }
     }
 }
@@ -186,7 +187,7 @@ SILKY_PYTHON_PROFILER = True
 
 1. **HIGH**: Run the migration files (0015, 0016) ✅
 2. **HIGH**: Optimize `_get_next_card_enhanced()` query
-3. **MEDIUM**: Implement Redis caching
+3. **MEDIUM**: Database caching optimization ✅
 4. **MEDIUM**: Migrate to PostgreSQL  
 5. **LOW**: Add monitoring tools
 

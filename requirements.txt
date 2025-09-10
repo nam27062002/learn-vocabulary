@@ -39,10 +39,7 @@ dj-database-url==2.1.0
 psycopg[binary]==3.2.10
 lxml==5.3.0
 
-# Redis caching
-redis==5.0.1
-django-redis==5.4.0
-hiredis==2.3.2
+
 
 # Other essential dependencies
 certifi==2025.4.26

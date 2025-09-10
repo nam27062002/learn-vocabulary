@@ -4,7 +4,6 @@ from decouple import config
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -17,12 +16,6 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ENABLE_DEBUG = config('ENABLE_DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
-
-# Redis connection parameters (provide defaults to avoid NameError)
-REDIS_HOST = config('REDIS_HOST', default='localhost')
-REDIS_PORT = config('REDIS_PORT', default=6379, cast=int)
-REDIS_DB = config('REDIS_DB', default=1, cast=int)
-
 
 # Application definition
 
@@ -57,12 +50,6 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',  # Required for allauth
 ]
 
-# Enable WhiteNoise to serve static files
-try:
-    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
-except Exception:
-    pass
-
 ROOT_URLCONF = 'learn_english_project.urls'
 
 TEMPLATES = [
@@ -86,7 +73,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'learn_english_project.wsgi.application'
 
-
 # Database
 DATABASES = {
     'default': {
@@ -103,7 +89,6 @@ DATABASES = {
         # 'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -123,7 +108,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization disabled and simplified for localhost single-user setup
 LANGUAGE_CODE = 'en'
 TIME_ZONE = 'Asia/Ho_Chi_Minh'
@@ -137,7 +121,6 @@ SESSION_SAVE_EVERY_REQUEST = True
 CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = False
 CSRF_USE_SESSIONS = False
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
@@ -204,27 +187,31 @@ EMAIL_USE_LOCALTIME = config('EMAIL_USE_LOCALTIME', default=True, cast=bool)
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
 SERVER_EMAIL = config('SERVER_EMAIL')
 
-# Cache configuration without Redis (simple in‑memory cache)
+# Database Cache Configuration
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'learnenglish-locmem',
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'cache_table',
         'TIMEOUT': 300,
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+            'CULL_FREQUENCY': 3,
+        }
     }
 }
 
 # Cache timeouts for different data types (in seconds)
 CACHE_TIMEOUTS = {
-    'flashcard_list': 60 * 10,     # 10 minutes
-    'study_session': 60 * 5,       # 5 minutes  
-    'user_statistics': 60 * 30,    # 30 minutes
-    'deck_info': 60 * 15,          # 15 minutes
-    'api_response': 60 * 2,        # 2 minutes
-    'incorrect_words': 60 * 5,     # 5 minutes
-    'favorites': 60 * 10,          # 10 minutes
+    'flashcard_list': 60 * 10,  # 10 minutes
+    'study_session': 60 * 5,  # 5 minutes
+    'user_statistics': 60 * 30,  # 30 minutes
+    'deck_info': 60 * 15,  # 15 minutes
+    'api_response': 60 * 2,  # 2 minutes
+    'incorrect_words': 60 * 5,  # 5 minutes
+    'favorites': 60 * 10,  # 10 minutes
 }
 
-# Use database-backed sessions (default and compatible with Render)
+# Session storage using database
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 # For development/testing, uncomment this line to use console backend:

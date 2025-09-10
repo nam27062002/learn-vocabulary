@@ -120,7 +120,7 @@ def _get_next_card_enhanced(user, deck_ids=None, seen_card_ids=None):
     """
     Difficulty-based card selection algorithm that prioritizes cards based on their difficulty levels.
     Shows harder cards more frequently than easier ones while maintaining variety.
-    Uses Redis caching for better performance.
+    Uses database caching for improved performance.
 
     Difficulty Levels (stored in difficulty_score field):
     - 0.0 (Again): Highest difficulty - 40% selection weight
