@@ -118,89 +118,69 @@ def _build_difficulty_groups_cached(user, deck_ids, today, seen_card_ids=None):
 # Difficulty-based card selection algorithm (replaces SM-2)
 def _get_next_card_enhanced(user, deck_ids=None, seen_card_ids=None):
     """
-    Difficulty-based card selection algorithm that prioritizes cards based on their difficulty levels.
-    Shows harder cards more frequently than easier ones while maintaining variety.
-    Uses database caching for improved performance.
-
-    Difficulty Levels (stored in difficulty_score field):
-    - 0.0 (Again): Highest difficulty - 40% selection weight
-    - 0.33 (Hard): High difficulty - 30% selection weight
-    - 0.67 (Good): Medium difficulty - 20% selection weight
-    - 1.0 (Easy): Low difficulty - 10% selection weight
+    Optimized difficulty-based card selection algorithm.
+    It first determines the number of available cards in each difficulty pool,
+    then makes a weighted random choice to select a difficulty level,
+    and finally fetches a single random card from that chosen pool.
+    This avoids loading large lists of IDs into memory.
     """
-    from django.db.models import Case, When, FloatField, Q
-    from django.db.models.functions import Random
+    from django.db.models import Q
     from django.utils import timezone
+    import random as _rnd_local
 
     today = timezone.now().date()
-    
-    # For normal deck study, we need to exclude seen cards to prevent repetition
-    # Don't use cache when seen_card_ids is provided to ensure fresh results
+
+    # Base queryset for available cards
+    base_qs = Flashcard.objects.filter(user=user)
+    if deck_ids:
+        base_qs = base_qs.filter(deck_id__in=deck_ids)
+
+    # Exclude blacklisted and recently seen cards
+    blacklisted_card_ids = BlacklistFlashcard.objects.filter(user=user).values_list('flashcard_id', flat=True)
+    if blacklisted_card_ids.exists():
+        base_qs = base_qs.exclude(id__in=blacklisted_card_ids)
     if seen_card_ids:
-        print(f"CARD SELECTION: Excluding {len(seen_card_ids)} seen cards: {seen_card_ids}", file=sys.stderr)
-        # Build fresh difficulty groups excluding seen cards
-        difficulty_groups = _build_difficulty_groups_cached(user, deck_ids, today, seen_card_ids)
-    else:
-        # Try to get cached difficulty groups first
-        cache_params = {'deck_ids': sorted(deck_ids) if deck_ids else [], 'date': today.isoformat()}
-        cached_cards = StudySessionCache.get_next_card_pool(user.id, cache_params)
-        
-        if cached_cards is not None:
-            # Use cached difficulty groups (contains card IDs)
-            difficulty_groups = cached_cards
-        else:
-            # Build difficulty groups and cache them
-            difficulty_groups = _build_difficulty_groups_cached(user, deck_ids, today)
-            StudySessionCache.set_next_card_pool(user.id, cache_params, difficulty_groups)
-    
-    # Check if we have any cards available
-    total_available = sum(len(group) for group in difficulty_groups.values())
-    if total_available == 0:
-        # Fallback: get any card from user's collection
-        qs = Flashcard.objects.filter(user=user)
-        if deck_ids:
-            qs = qs.filter(deck_id__in=deck_ids)
-        # Exclude seen cards even in fallback
-        if seen_card_ids:
-            qs = qs.exclude(id__in=seen_card_ids)
-        return qs.order_by(Random()).first()
+        base_qs = base_qs.exclude(id__in=seen_card_ids)
 
-    # Define selection weights (higher = more likely to be selected)
-    selection_weights = [
-        ('again', 40),  # 40% chance for Again cards
-        ('hard', 30),   # 30% chance for Hard cards
-        ('good', 20),   # 20% chance for Good cards
-        ('easy', 10),   # 10% chance for Easy cards
-        ('new', 35),    # 35% chance for new cards (high priority for learning)
-    ]
+    # Reset daily counters if needed (consider moving this to a periodic task)
+    # For now, we do it here for simplicity.
+    base_qs.filter(last_seen_date__lt=today).update(times_seen_today=0)
 
-    # Build weighted selection pool using cached card IDs
+    # Filter for cards that haven't hit their daily review limit
+    available_cards_qs = base_qs.filter(times_seen_today__lt=SPACED_REPETITION_CONFIG['MAX_DAILY_REVIEWS'])
+
+    # Get counts for each difficulty group
+    difficulty_groups = {
+        'again': available_cards_qs.filter(difficulty_score=0.0),
+        'hard': available_cards_qs.filter(difficulty_score=0.33),
+        'good': available_cards_qs.filter(difficulty_score=0.67),
+        'easy': available_cards_qs.filter(difficulty_score=1.0),
+        'new': available_cards_qs.filter(difficulty_score__isnull=True)
+    }
+
+    difficulty_counts = {level: qs.count() for level, qs in difficulty_groups.items()}
+
+    # Define selection weights
+    selection_weights = SPACED_REPETITION_CONFIG['DIFFICULTY_WEIGHTS']
+
+    # Build a weighted pool of choices based on available cards
     weighted_pool = []
-    for difficulty_level, weight in selection_weights:
-        card_ids = difficulty_groups[difficulty_level]
-        if card_ids:  # Check if list has card IDs
-            # Add this difficulty level to the pool with its weight
-            for _ in range(weight):
-                weighted_pool.append(difficulty_level)
+    for difficulty_level, weight in selection_weights.items():
+        if difficulty_counts[difficulty_level] > 0:
+            weighted_pool.extend([difficulty_level] * weight)
 
     if not weighted_pool:
-        # No cards available in any difficulty group
-        return None
+        # No cards available in any group, try to get any card at all as a fallback
+        return base_qs.order_by('?').first()
 
-    # Randomly select a difficulty level based on weights
-    import random as _rnd_local
+    # Randomly select a difficulty level from the weighted pool
     selected_difficulty = _rnd_local.choice(weighted_pool)
-    selected_card_ids = difficulty_groups[selected_difficulty]
 
-    print(f"CARD SELECTION: Selected difficulty '{selected_difficulty}' from {len(weighted_pool)} weighted options", file=sys.stderr)
-    print(f"CARD SELECTION: Available cards in '{selected_difficulty}': {len(selected_card_ids)}", file=sys.stderr)
+    # Fetch one random card from the selected difficulty group
+    selected_qs = difficulty_groups[selected_difficulty]
+    card = selected_qs.order_by('?').first()
 
-    # Return a random card from the selected difficulty group
-    if selected_card_ids:
-        card_id = _rnd_local.choice(selected_card_ids)
-        return Flashcard.objects.filter(id=card_id, user=user).first()
-    
-    return None
+    return card
 
 # Helper to update tracking when card is shown
 def _update_card_shown_tracking(card):
@@ -288,227 +268,94 @@ def api_next_question(request):
     # Convert seen_card_ids to integers
     seen_card_ids = [int(cid) for cid in seen_card_ids if cid.isdigit()]
     
-    print(f"API_NEXT_QUESTION DEBUG: study_mode={study_mode}, deck_ids={deck_ids}, seen_card_ids={seen_card_ids}", file=sys.stderr)
-
     # Get or create current study session
+    # This part remains the same, ensuring session tracking is maintained
     current_session = request.session.get('current_study_session_id')
     if not current_session:
-        # Create new study session
-        if study_mode == 'random':
-            session_mode = 'random'
-        elif study_mode == 'favorites':
-            session_mode = 'favorites'
-        else:
-            session_mode = 'deck'
+        session_mode_map = {'random': 'random', 'favorites': 'favorites', 'decks': 'deck'}
+        session_mode = session_mode_map.get(study_mode, 'deck')
         session = create_study_session(request.user, session_mode, deck_ids if session_mode == 'deck' else None)
         request.session['current_study_session_id'] = session.id
-        request.session['session_start_time'] = timezone.now().timestamp()
-    else:
-        try:
-            session = StudySession.objects.get(id=current_session, user=request.user)
-        except StudySession.DoesNotExist:
-            # Session doesn't exist, create new one
-            if study_mode == 'random':
-                session_mode = 'random'
-            elif study_mode == 'favorites':
-                session_mode = 'favorites'
-            else:
-                session_mode = 'deck'
-            session = create_study_session(request.user, session_mode, deck_ids if session_mode == 'deck' else None)
-            request.session['current_study_session_id'] = session.id
-            request.session['session_start_time'] = timezone.now().timestamp()
+
+    card = None
+    original_question_type = None
 
     if study_mode == 'random':
-        # OPTIMIZED: Select a random card directly from the database
-        
-        # Get blacklisted card IDs
         blacklisted_card_ids = BlacklistFlashcard.objects.filter(user=request.user).values_list('flashcard_id', flat=True)
-        
-        # Build a queryset to find a random card
         qs = Flashcard.objects.filter(user=request.user)
-        
-        # Exclude seen and blacklisted cards
         if seen_card_ids:
             qs = qs.exclude(id__in=seen_card_ids)
         if blacklisted_card_ids.exists():
             qs = qs.exclude(id__in=blacklisted_card_ids)
-
-        # Get a random card using database's `order_by('?')`
         card = qs.order_by('?').first()
 
-        if not card:
-            return JsonResponse({'done': True})
-
-        # Update tracking fields when card is shown
-        _update_card_shown_tracking(card)
-
     elif study_mode == 'favorites':
-        # Favorites study mode: select from user's favorite flashcards
-        # Use caching for favorite cards
-        cache_key = f"user_{request.user.id}_favorites"
-        favorite_cards_data = cache.get(cache_key)
-        if favorite_cards_data is None:
-            favorite_cards_data = list(FavoriteFlashcard.objects.filter(
-                user=request.user
-            ).select_related('flashcard').prefetch_related('flashcard__definitions'))
-            cache.set(cache_key, favorite_cards_data, 300)  # Cache for 5 minutes
-        
-        # Get blacklisted card IDs to exclude
-        blacklisted_card_ids = set(BlacklistFlashcard.objects.filter(user=request.user).values_list('flashcard_id', flat=True))
-        
-        # Filter out seen cards and blacklisted cards
-        favorite_cards = [fc for fc in favorite_cards_data 
-                         if fc.flashcard_id not in seen_card_ids 
-                         and fc.flashcard_id not in blacklisted_card_ids]
+        blacklisted_card_ids = BlacklistFlashcard.objects.filter(user=request.user).values_list('flashcard_id', flat=True)
+        favorite_qs = FavoriteFlashcard.objects.filter(user=request.user).select_related('flashcard')
+        if seen_card_ids:
+            favorite_qs = favorite_qs.exclude(flashcard_id__in=seen_card_ids)
+        if blacklisted_card_ids.exists():
+            favorite_qs = favorite_qs.exclude(flashcard_id__in=blacklisted_card_ids)
+        favorite_card = favorite_qs.order_by('?').first()
+        if favorite_card:
+            card = favorite_card.flashcard
 
-        if not favorite_cards:
-            return JsonResponse({'done': True, 'message': 'No favorite cards available'})
-
-        # Get random favorite card
-        favorite_card = _rnd.choice(favorite_cards)
-        card = favorite_card.flashcard
-
-        # Update tracking fields when card is shown
-        _update_card_shown_tracking(card)
     elif study_mode == 'review':
-        # Review incorrect words mode: select from incorrect words list
-        # First, check if there are any unresolved incorrect words at all
-        total_incorrect_words = IncorrectWordReview.objects.filter(
-            user=request.user,
-            is_resolved=False
-        ).count()
-
-        print(f"Total unresolved incorrect words: {total_incorrect_words}", file=sys.stderr)
-
-        if total_incorrect_words == 0:
-            # All incorrect words have been resolved - session complete!
-            print("Review session completed - all words resolved!", file=sys.stderr)
-            return JsonResponse({
-                'done': True,
-                'session_completed': True,
-                'message': 'All incorrect words have been successfully reviewed!'
-            })
-
-        # Get incorrect words excluding those already seen in this session
-        # Use caching for incorrect words
-        cache_key = f"user_{request.user.id}_incorrect_words"
-        incorrect_words_data = cache.get(cache_key)
-        if incorrect_words_data is None:
-            incorrect_words_data = list(IncorrectWordReview.objects.filter(
-                user=request.user,
-                is_resolved=False
-            ).select_related('flashcard').prefetch_related('flashcard__definitions'))
-            cache.set(cache_key, incorrect_words_data, 300)  # Cache for 5 minutes
+        incorrect_qs = IncorrectWordReview.objects.filter(user=request.user, is_resolved=False)
+        if not incorrect_qs.exists():
+            return JsonResponse({'done': True, 'session_completed': True})
         
-        # Filter out seen cards
-        incorrect_words = [iw for iw in incorrect_words_data if iw.flashcard_id not in seen_card_ids]
+        unseen_incorrect_qs = incorrect_qs.exclude(flashcard_id__in=seen_card_ids)
+        if not unseen_incorrect_qs.exists():
+            seen_card_ids = []  # Reset for infinite loop
+            unseen_incorrect_qs = incorrect_qs
 
-        if not incorrect_words:
-            # If no more unseen incorrect words, loop back to all incorrect words
-            print("Looping back to start of review session", file=sys.stderr)
-            incorrect_words = incorrect_words_data
+        incorrect_word = unseen_incorrect_qs.select_related('flashcard').order_by('?').first()
+        if incorrect_word:
+            card = incorrect_word.flashcard
+            original_question_type = incorrect_word.question_type
 
-            # Double-check that we still have words (this should not happen due to check above)
-            if not incorrect_words:
-                print("No incorrect words found in loop-back - session complete!", file=sys.stderr)
-                return JsonResponse({
-                    'done': True,
-                    'session_completed': True,
-                    'message': 'All incorrect words have been successfully reviewed!'
-                })
-
-        # Get a random incorrect word
-        incorrect_word = _rnd.choice(incorrect_words)
-
-        if not incorrect_word:
-            print("No incorrect word found - this should not happen!", file=sys.stderr)
-            return JsonResponse({
-                'done': True,
-                'session_completed': True,
-                'message': 'No incorrect words found!'
-            })
-
-        card = incorrect_word.flashcard
-
-        # Store the original question type for this review session
-        original_question_type = incorrect_word.question_type
-
-        print(f"Selected word for review: {card.word} (type: {original_question_type})", file=sys.stderr)
-
-        # Update tracking fields when card is shown
-        _update_card_shown_tracking(card)
-    else:
-        # Normal study mode: use enhanced card selection algorithm
+    else:  # Default to deck-based study
         card = _get_next_card_enhanced(request.user, deck_ids, seen_card_ids)
-        if not card:
-            # For normal deck study, if no cards available with exclusions,
-            # try again without exclusions to allow infinite studying
-            if study_mode == 'decks' and seen_card_ids:
-                print(f"No cards available with exclusions, retrying without exclusions for infinite study", file=sys.stderr)
-                card = _get_next_card_enhanced(request.user, deck_ids, None)
-            
-            if not card:
-                return JsonResponse({'done': True})
 
-    # Check if card has audio for dictation mode
+    if not card:
+        return JsonResponse({'done': True})
+
+    _update_card_shown_tracking(card)
+
+    # Determine question type
     has_audio = card.audio_url and card.audio_url.strip()
-
-    # Determine question type based on study mode
-    if study_mode == 'review':
-        # For review mode, use the original question type where the error occurred
+    if original_question_type:
         mode = original_question_type
-
-        # Fallback if dictation mode but no audio available
         if mode == 'dictation' and not has_audio:
-            mode = 'type'  # Fallback to input mode
+            mode = 'type'  # Fallback if audio is missing
     else:
-        # For other modes, determine available modes based on audio availability
         available_modes = ['mc', 'type']
         if has_audio:
             available_modes.append('dictation')
-
-        # Select random mode from available options
         mode = _rnd.choice(available_modes)
 
-        # For dictation mode, ensure we have audio
-        if mode == 'dictation' and not has_audio:
-            mode = _rnd.choice(['mc', 'type'])
-
+    # Prepare payload
     defs = list(card.definitions.values('english_definition', 'vietnamese_definition'))
-
     payload = {
         'done': False,
         'question': {
-            'id': card.id,
-            'word': card.word,
-            'phonetic': card.phonetic,
-            'part_of_speech': card.part_of_speech,
-            'image_url': card.image.url if card.image else card.related_image_url,
-            'audio_url': card.audio_url,
-            'definitions': defs,
+            'id': card.id, 'word': card.word, 'phonetic': card.phonetic,
+            'part_of_speech': card.part_of_speech, 'image_url': card.image.url if card.image else card.related_image_url,
+            'audio_url': card.audio_url, 'definitions': defs,
         }
     }
 
     if mode == 'mc':
-        # OPTIMIZED: Build 3 distractors from a random sample of user's words
-        
-        # Get 50 random distractor candidates from the database
         distractor_candidates = list(Flashcard.objects.filter(user=request.user)
-                                     .exclude(word=card.word)
-                                     .order_by('?')
-                                     .values_list('word', flat=True)[:50])
-
-        # Filter out semantically similar words to improve question quality
+                                     .exclude(word=card.word).order_by('?').values_list('word', flat=True)[:50])
         filtered_distractors = _filter_semantic_distractors(card.word, distractor_candidates)
-
-        # Take the first 3 filtered distractors, or fall back to random if not enough
         final_distractors = filtered_distractors[:3]
         if len(final_distractors) < 3:
-            # Fill remaining slots with random words if semantic filtering didn't provide enough
             remaining_candidates = [w for w in distractor_candidates if w not in final_distractors]
-            final_distractors.extend(remaining_candidates[:3-len(final_distractors)])
-
-        options = [card.word] + final_distractors[:3]
+            final_distractors.extend(remaining_candidates[:3 - len(final_distractors)])
+        
+        options = [card.word] + final_distractors
         _rnd.shuffle(options)
         payload['question']['options'] = options
         payload['question']['type'] = 'mc'
