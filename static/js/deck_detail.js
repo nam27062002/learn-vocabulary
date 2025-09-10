@@ -1710,6 +1710,9 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize blacklist when page loads
   initializeBlacklist();
 
+  // Initialize delete card functionality
+  initializeDeleteCard();
+
   /**
    * Update card display after audio selection
    * Called by Enhanced Audio Manager after successful audio update
@@ -1840,4 +1843,226 @@ document.addEventListener("DOMContentLoaded", function () {
 
     console.log(`Successfully updated card display for card ${cardId}`);
   }
+
+  // Delete Card Functionality
+  let cardToDelete = null;
+
+  function initializeDeleteCard() {
+    console.log("🗑️ Initializing delete card functionality...");
+
+    // Add event listeners to delete buttons
+    const deleteButtons = document.querySelectorAll('.delete-card-btn');
+    deleteButtons.forEach(button => {
+      button.addEventListener('click', handleDeleteCardClick);
+    });
+
+    console.log(`✅ Added delete listeners to ${deleteButtons.length} buttons`);
+  }
+
+  function handleDeleteCardClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const button = event.currentTarget;
+    const cardId = button.getAttribute('data-card-id');
+
+    if (!cardId) {
+      console.error("No card ID found for delete button");
+      return;
+    }
+
+    // Find the card data
+    const cardElement = button.closest('[data-card-id]');
+    if (!cardElement) {
+      console.error("Could not find card element");
+      return;
+    }
+
+    // Extract card information for preview
+    const wordElement = cardElement.querySelector('.word-text');
+    const partOfSpeechElement = cardElement.querySelector('.part-of-speech');
+
+    const word = wordElement ? wordElement.textContent.trim() : 'Unknown';
+    const partOfSpeech = partOfSpeechElement ? partOfSpeechElement.textContent.trim() : '';
+
+    // Store card to delete
+    cardToDelete = {
+      id: cardId,
+      word: word,
+      partOfSpeech: partOfSpeech,
+      element: cardElement
+    };
+
+    // Show confirmation modal
+    showDeleteCardModal(word, partOfSpeech);
+  }
+
+  function showDeleteCardModal(word, partOfSpeech) {
+    const modal = document.getElementById('deleteCardModal');
+    const wordElement = document.getElementById('deleteCardWord');
+    const partOfSpeechElement = document.getElementById('deleteCardPartOfSpeech');
+
+    if (wordElement) {
+      wordElement.textContent = word;
+    }
+
+    if (partOfSpeechElement) {
+      partOfSpeechElement.textContent = partOfSpeech ? `(${partOfSpeech})` : '';
+    }
+
+    if (modal) {
+      modal.style.display = 'block';
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    }
+  }
+
+  function hideDeleteCardModal() {
+    const modal = document.getElementById('deleteCardModal');
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = ''; // Restore scrolling
+    }
+    cardToDelete = null;
+  }
+
+  async function confirmDeleteCard() {
+    if (!cardToDelete) {
+      console.error("No card to delete");
+      return;
+    }
+
+    const deleteBtn = document.querySelector('.btn-delete');
+    const originalText = deleteBtn.innerHTML;
+
+    try {
+      // Show loading state
+      deleteBtn.disabled = true;
+      deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+
+      // Get CSRF token
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+      const response = await fetch('/api/delete-flashcard/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({
+          id: cardToDelete.id
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log(`✅ Card ${cardToDelete.id} deleted successfully`);
+
+        // Hide modal
+        hideDeleteCardModal();
+
+        // Remove card from UI with animation
+        if (cardToDelete.element) {
+          cardToDelete.element.style.transition = 'all 0.3s ease';
+          cardToDelete.element.style.transform = 'scale(0.8)';
+          cardToDelete.element.style.opacity = '0';
+
+          setTimeout(() => {
+            cardToDelete.element.remove();
+
+            // Check if this was the last card
+            const remainingCards = document.querySelectorAll('[data-card-id]');
+            if (remainingCards.length === 0) {
+              // Reload page to show empty state
+              window.location.reload();
+            } else {
+              // Update pagination if needed
+              updatePaginationAfterDelete();
+            }
+          }, 300);
+        }
+
+        // Show success message
+        showDeleteMessage(true, `Card "${cardToDelete.word}" deleted successfully`);
+
+      } else {
+        console.error("Failed to delete card:", data.error);
+        showDeleteMessage(false, data.error || 'Failed to delete card');
+      }
+    } catch (error) {
+      console.error("Error deleting card:", error);
+      showDeleteMessage(false, 'Network error occurred');
+    } finally {
+      // Restore button state
+      deleteBtn.disabled = false;
+      deleteBtn.innerHTML = originalText;
+    }
+  }
+
+  function updatePaginationAfterDelete() {
+    // Update carousel navigation if needed
+    const slides = document.querySelectorAll('#carousel-slides > div');
+    const totalSlides = slides.length;
+
+    if (totalSlides > 0) {
+      // Reset to first slide if current slide was deleted
+      const carousel = document.getElementById('carousel-slides');
+      if (carousel) {
+        carousel.scrollTo({ left: 0, behavior: 'smooth' });
+      }
+
+      // Update pagination dots
+      updatePaginationDots(totalSlides);
+    }
+  }
+
+  function updatePaginationDots(totalSlides) {
+    const paginationContainer = document.getElementById('pagination-dots');
+    if (paginationContainer && totalSlides > 1) {
+      paginationContainer.innerHTML = '';
+
+      for (let i = 0; i < totalSlides; i++) {
+        const dot = document.createElement('span');
+        dot.className = `pagination-dot ${i === 0 ? 'active' : ''}`;
+        dot.onclick = () => scrollToSlide(i);
+        paginationContainer.appendChild(dot);
+      }
+    }
+  }
+
+  function showDeleteMessage(success, message) {
+    const messageEl = document.createElement('div');
+    messageEl.textContent = message;
+    messageEl.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${success ? '#10b981' : '#ef4444'};
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      z-index: 10001;
+      animation: slideIn 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    `;
+
+    document.body.appendChild(messageEl);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+      messageEl.style.animation = 'slideOut 0.3s ease';
+      setTimeout(() => {
+        if (messageEl.parentNode) {
+          messageEl.parentNode.removeChild(messageEl);
+        }
+      }, 300);
+    }, 3000);
+  }
+
+  // Make functions globally available for modal buttons
+  window.showDeleteCardModal = showDeleteCardModal;
+  window.hideDeleteCardModal = hideDeleteCardModal;
+  window.confirmDeleteCard = confirmDeleteCard;
+
 });

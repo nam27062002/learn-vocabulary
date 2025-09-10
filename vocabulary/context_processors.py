@@ -116,6 +116,10 @@ def i18n_compatible_translations(request):
             'save_all_flashcards': '💾 Save all Flashcards',
             'drag_to_move': 'Drag to move card',
             'delete_card': 'Delete card',
+            'confirm_delete_card': 'Delete Card',
+            'delete_card_warning': 'Are you sure you want to delete this card? This action cannot be undone.',
+            'cancel': 'Cancel',
+            'delete': 'Delete',
             'part_of_speech': 'part of speech',
             'listen': 'Listen',
 
@@ -480,6 +484,10 @@ def i18n_compatible_translations(request):
             'save_all_flashcards': '💾 Lưu tất cả Flashcards',
             'drag_to_move': 'Kéo để di chuyển thẻ',
             'delete_card': 'Xóa thẻ',
+            'confirm_delete_card': 'Xóa Thẻ',
+            'delete_card_warning': 'Bạn có chắc chắn muốn xóa thẻ này? Hành động này không thể hoàn tác.',
+            'cancel': 'Hủy',
+            'delete': 'Xóa',
             'part_of_speech': 'từ loại',
             'listen': 'Nghe',
 
