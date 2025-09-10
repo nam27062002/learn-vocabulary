@@ -186,48 +186,18 @@ EMAIL_USE_LOCALTIME = config('EMAIL_USE_LOCALTIME', default=True, cast=bool)
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
 SERVER_EMAIL = config('SERVER_EMAIL')
 
-# Redis Cache Configuration with Fallback
-try:
-    # Try Redis first
-    CACHES = {
-        'default': {
-            'BACKEND': 'django_redis.cache.RedisCache',
-            'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}',
-            'OPTIONS': {
-                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-                'PARSER_CLASS': 'redis.connection.HiredisParser',
-                'CONNECTION_POOL_KWARGS': {
-                    'max_connections': 50,
-                    'health_check_interval': 30,
-                },
-                'IGNORE_EXCEPTIONS': True,  # Don't break on Redis connection issues
-            },
-            'KEY_PREFIX': 'learnenglish',
-            'TIMEOUT': 300,  # Default timeout 5 minutes
+# Database Cache Configuration
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'cache_table',
+        'TIMEOUT': 300,
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+            'CULL_FREQUENCY': 3,
         }
     }
-
-    # Test Redis connection
-    import redis
-
-    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
-    r.ping()
-    print("Redis server connected successfully")
-
-except Exception as e:
-    print(f"Redis not available, falling back to database cache: {e}")
-    # Fallback to database cache if Redis is not available
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-            'LOCATION': 'cache_table',
-            'TIMEOUT': 300,
-            'OPTIONS': {
-                'MAX_ENTRIES': 1000,
-                'CULL_FREQUENCY': 3,
-            }
-        }
-    }
+}
 
 # Cache timeouts for different data types (in seconds)
 CACHE_TIMEOUTS = {
@@ -240,9 +210,8 @@ CACHE_TIMEOUTS = {
     'favorites': 60 * 10,  # 10 minutes
 }
 
-# Session storage using Redis
-SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
-SESSION_CACHE_ALIAS = 'default'
+# Session storage using database
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 # For development/testing, uncomment this line to use console backend:
 # EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

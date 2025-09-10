@@ -1,6 +1,6 @@
 """
-Redis Cache Utilities for Learn English Application
-Provides efficient caching for frequently accessed data.
+Cache Utilities for Learn English Application
+Provides efficient caching for frequently accessed data using Django's cache framework.
 """
 
 from django.core.cache import cache
@@ -122,14 +122,9 @@ class FlashcardCache:
     @staticmethod
     def invalidate_user_cards(user_id: int):
         """Invalidate all flashcard-related caches for a user."""
-        # Note: In production, consider using Redis SCAN with pattern matching
-        # For now, we'll rely on TTL expiration
-        pattern_keys = [
-            f"learnenglish:user:{user_id}:flashcards:*",
-            f"learnenglish:user:{user_id}:study:*",
-            f"learnenglish:api:next_question:user:{user_id}:*"
-        ]
-        # Redis pattern deletion would be implemented here in production
+        # For database cache, we'll rely on TTL expiration
+        # Individual cache keys can be deleted if needed
+        pass
 
 class StudySessionCache:
     """Cache management for study session data."""
@@ -190,8 +185,7 @@ class StatisticsCache:
     @staticmethod
     def invalidate_user_stats(user_id: int):
         """Invalidate all statistics caches for a user."""
-        # Pattern: user:{user_id}:stats:*
-        # In production, use Redis SCAN for pattern-based deletion
+        # For database cache, we'll rely on TTL expiration
         pass
 
 class DeckCache:
@@ -257,17 +251,13 @@ def invalidate_user_study_cache(user_id: int):
     cache.delete_many(cache_keys_to_invalidate)
 
 def get_cache_stats():
-    """Get cache statistics (if Redis is available)."""
+    """Get cache statistics for database cache."""
     try:
-        from django_redis import get_redis_connection
-        redis_conn = get_redis_connection("default")
-        info = redis_conn.info()
+        # For database cache, we can return basic information
         return {
-            'connected_clients': info.get('connected_clients', 0),
-            'used_memory_human': info.get('used_memory_human', '0B'),
-            'keyspace_hits': info.get('keyspace_hits', 0),
-            'keyspace_misses': info.get('keyspace_misses', 0),
-            'hit_rate': (info.get('keyspace_hits', 0) / max(info.get('keyspace_hits', 0) + info.get('keyspace_misses', 0), 1)) * 100
+            'cache_backend': 'Database Cache',
+            'status': 'Active',
+            'note': 'Using Django database cache backend'
         }
-    except Exception:
-        return {'error': 'Unable to connect to Redis'}
+    except Exception as e:
+        return {'error': f'Unable to get cache stats: {str(e)}'}
