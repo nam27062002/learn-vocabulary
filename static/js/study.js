@@ -4178,14 +4178,15 @@
 
     // Populate definition fields (simplified to single definition pair)
     const definitions = card.definitions || [];
-    const firstDefinition = definitions.length > 0 ? definitions[0] : { english: '', vietnamese: '' };
+    const firstDefinition = definitions.length > 0 ? definitions[0] : { english_definition: '', vietnamese_definition: '' };
 
-    document.getElementById('editEnglishDefinition').value = firstDefinition.english || '';
-    document.getElementById('editVietnameseDefinition').value = firstDefinition.vietnamese || '';
+    document.getElementById('editEnglishDefinition').value = firstDefinition.english_definition || '';
+    document.getElementById('editVietnameseDefinition').value = firstDefinition.vietnamese_definition || '';
 
     console.log("📝 Populated definition fields:", {
-      english: firstDefinition.english,
-      vietnamese: firstDefinition.vietnamese
+      english_definition: firstDefinition.english_definition,
+      vietnamese_definition: firstDefinition.vietnamese_definition,
+      definitions_array: definitions
     });
 
     // Show modal
@@ -4233,8 +4234,8 @@
 
     if (englishDef || vietnameseDef) {
       formData.definitions.push({
-        english: englishDef,
-        vietnamese: vietnameseDef
+        english_definition: englishDef,
+        vietnamese_definition: vietnameseDef
       });
     }
 
@@ -4320,8 +4321,8 @@
         // For multiple choice, show definitions
         cardWordEl.innerHTML = updatedCard.definitions.map(def =>
           `<div class="definition-item">
-            <strong>${def.english}</strong><br>
-            <span class="vietnamese-def">${def.vietnamese}</span>
+            <strong>${def.english_definition}</strong><br>
+            <span class="vietnamese-def">${def.vietnamese_definition}</span>
           </div>`
         ).join('');
       } else {
@@ -4363,8 +4364,8 @@
     if (cardDefsEl && currentQuestion.type === 'type') {
       cardDefsEl.innerHTML = updatedCard.definitions.map(def =>
         `<div class="definition-item">
-          <strong>${def.english}</strong><br>
-          <span class="vietnamese-def">${def.vietnamese}</span>
+          <strong>${def.english_definition}</strong><br>
+          <span class="vietnamese-def">${def.vietnamese_definition}</span>
         </div>`
       ).join('');
     }
