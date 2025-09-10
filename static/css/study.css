@@ -1487,6 +1487,24 @@
   opacity: 0.9;
 }
 
+.part-of-speech-hint {
+  font-size: 1.1rem;
+  color: var(--primary-color);
+  margin: 0 0 15px 0;
+  padding: 8px 12px;
+  text-align: center;
+  background: rgba(79, 70, 229, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(79, 70, 229, 0.2);
+  font-style: italic;
+  font-weight: 500;
+}
+
+.definition-item.vietnamese {
+  color: #fbbf24;
+  font-style: italic;
+}
+
 .audio-button {
   background: var(--gradient-success);
   color: white;

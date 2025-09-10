@@ -1233,19 +1233,24 @@
       optionsArea.appendChild(dictationContainer);
       setTimeout(() => inp.focus(), 100);
     } else {
-      // Type answer mode - show definitions, hide word initially
+      // Type answer mode - show definitions with part of speech, hide word initially
       if (cardDefsEl && q.definitions && q.definitions.length > 0) {
-        let defsText = "";
+        let defsHTML = "";
+
+        // Add part of speech if available
+        if (q.part_of_speech) {
+          defsHTML += `<div class="part-of-speech-hint">${STUDY_CFG.labels.part_of_speech}: <em>${q.part_of_speech}</em></div>`;
+        }
+
         q.definitions.forEach((def) => {
           if (def.english_definition) {
-            defsText += `${def.english_definition}\n`;
+            defsHTML += `<div class="definition-item">${def.english_definition}</div>`;
           }
           if (def.vietnamese_definition) {
-            defsText += `${def.vietnamese_definition}\n`;
+            defsHTML += `<div class="definition-item vietnamese">${def.vietnamese_definition}</div>`;
           }
-          defsText += "\n";
         });
-        cardDefsEl.textContent = defsText.trim();
+        cardDefsEl.innerHTML = defsHTML;
         cardDefsEl.className = "card-definitions show";
       }
 
