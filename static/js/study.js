@@ -1612,22 +1612,27 @@
       console.log("[DEBUG] No current question to submit grade for");
       return;
     }
-
-    window.submittingGrade = true;
-    showLoadingState();
-    console.log(`[DEBUG] Starting grade submission process...`);
-
-    // Calculate response time
-    const responseTime = questionStartTime
-      ? (Date.now() - questionStartTime) / 1000
-      : 0;
-
-    // Use the actual answer correctness, not the grade
-    const actualCorrectness =
-      window.currentAnswerCorrectness !== undefined
+    
+    // --- OPTIMIZATION: Store the question being answered ---
+    const questionToSubmit = currentQuestion;
+    const answeredQuestionStartTime = questionStartTime;
+    const answerCorrectness = window.currentAnswerCorrectness !== undefined
         ? window.currentAnswerCorrectness
         : grade >= 2;
 
+    window.submittingGrade = true;
+    showLoadingState();
+    
+    // --- OPTIMIZATION: Get next question immediately ---
+    getNextQuestion();
+    // ---
+
+    // Calculate response time
+    const responseTime = answeredQuestionStartTime
+      ? (Date.now() - answeredQuestionStartTime) / 1000
+      : 0;
+
+    // --- Fire and forget the submission ---
     fetch(STUDY_CFG.submitUrl, {
       method: "POST",
       headers: {
@@ -1635,42 +1640,38 @@
         "X-CSRFToken": STUDY_CFG.csrfToken,
       },
       body: JSON.stringify({
-        card_id: currentQuestion.id,
-        correct: actualCorrectness, // Use actual answer correctness, not grade-based
+        card_id: questionToSubmit.id,
+        correct: answerCorrectness, // Use actual answer correctness, not grade-based
         response_time: responseTime,
-        question_type: currentQuestion.type || "multiple_choice",
+        question_type: questionToSubmit.type || "multiple_choice",
         grade: grade, // Also send the grade for spaced repetition algorithm
       }),
     })
       .then((r) => {
         if (!r.ok) {
-          throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+          // Log error but don't block UI
+          console.error(`HTTP ${r.status}: ${r.statusText}`);
         }
         return r.json();
       })
       .then((data) => {
         if (data.success) {
-          // Update progress bar
+          // Update progress bar in the background
           updateProgressBar();
-          
-          // Reset submission flag and proceed to next question
-          window.submittingGrade = false;
-          getNextQuestion();
+          console.log("Grade submission successful in background.");
         } else {
           console.error(
-            "Grade submission failed:",
+            "Grade submission failed in background:",
             data.error || "Unknown error"
           );
-          // Reset submission flag and still proceed to next question to avoid getting stuck
-          window.submittingGrade = false;
-          getNextQuestion();
         }
       })
       .catch((error) => {
-        console.error("Error submitting grade:", error);
-        // Reset submission flag and still proceed to next question to avoid getting stuck
-        window.submittingGrade = false;
-        getNextQuestion();
+        console.error("Error submitting grade in background:", error);
+      })
+      .finally(() => {
+          // Reset submission flag after fetch is complete
+          window.submittingGrade = false;
       });
   }
 
