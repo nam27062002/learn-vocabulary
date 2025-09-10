@@ -139,31 +139,42 @@
     </button>
   </div>
 
-  <div
-    id="carousel-container"
-    class="relative w-full max-w-xl mx-auto overflow-hidden rounded-xl shadow-2xl bg-gray-800 p-6"
-  >
-    <!-- Edit Mode Overlay -->
-    <div class="edit-mode-overlay"></div>
-
-    <div
-      id="carousel-slides"
-      class="flex overflow-x-scroll no-scrollbar snap-x snap-mandatory"
-      style="scroll-behavior: auto"
+  <!-- Navigation Container with repositioned arrows -->
+  <div class="navigation-container relative w-full max-w-4xl mx-auto flex items-center justify-center">
+    <!-- Left Navigation Arrow -->
+    <button
+      id="prevBtn"
+      class="navigation-arrow navigation-arrow-left bg-gray-700 bg-opacity-75 text-white p-3 rounded-full hover:bg-opacity-100 transition-all duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 focus:ring-offset-gray-900 mr-6"
     >
-      {% for card in flashcards %}
+      <i class="fas fa-chevron-left text-xl"></i>
+    </button>
+
+    <!-- Card Container -->
+    <div
+      id="carousel-container"
+      class="relative w-full max-w-2xl overflow-hidden rounded-xl shadow-2xl bg-gray-800 p-6"
+    >
+      <!-- Edit Mode Overlay -->
+      <div class="edit-mode-overlay"></div>
+
       <div
-        class="flex-shrink-0 snap-center"
-        style="width: 100%"
-        data-card-id="{{ card.id }}"
+        id="carousel-slides"
+        class="flex overflow-x-scroll no-scrollbar snap-x snap-mandatory"
+        style="scroll-behavior: auto"
       >
+        {% for card in flashcards %}
+        <div
+          class="flex-shrink-0 snap-center"
+          style="width: 100%"
+          data-card-id="{{ card.id }}"
+        >
         <!-- View Mode -->
         <div
-          class="card-view-mode word-item-tailwind p-6 bg-gray-900 rounded-lg shadow-lg w-full max-w-md mx-auto text-white flex flex-col items-start relative"
+          class="card-view-mode word-item-tailwind p-6 bg-gray-900 rounded-lg shadow-lg w-full max-w-2xl mx-auto text-white flex flex-col items-start relative"
           data-has-audio="{% if card.audio_url %}true{% else %}false{% endif %}"
         >
           <!-- Card Action Buttons Group -->
-          <div class="absolute top-4 right-4 flex items-center gap-2">
+          <div class="card-action-buttons absolute top-4 right-4 flex items-center gap-2 opacity-0 transition-opacity duration-300">
             <!-- Enhanced Audio Fetch Button -->
             <button
               class="enhanced-audio-btn card-action-btn text-gray-400 hover:text-blue-400 transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
@@ -403,18 +414,15 @@
             </div>
           </div>
         </div>
+        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
     </div>
-    <button
-      id="prevBtn"
-      class="absolute top-1/2 left-2 -translate-y-1/2 bg-gray-700 bg-opacity-75 text-white p-3 rounded-full hover:bg-opacity-100 transition-all duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 focus:ring-offset-gray-800"
-    >
-      <i class="fas fa-chevron-left text-xl"></i>
-    </button>
+
+    <!-- Right Navigation Arrow -->
     <button
       id="nextBtn"
-      class="absolute top-1/2 right-2 -translate-y-1/2 bg-gray-700 bg-opacity-75 text-white p-3 rounded-full hover:bg-opacity-100 transition-all duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 focus:ring-offset-gray-800"
+      class="navigation-arrow navigation-arrow-right bg-gray-700 bg-opacity-75 text-white p-3 rounded-full hover:bg-opacity-100 transition-all duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 focus:ring-offset-gray-900 ml-6"
     >
       <i class="fas fa-chevron-right text-xl"></i>
     </button>
@@ -489,6 +497,29 @@
     transform: translateY(0);
   }
 
+  /* Auto-hide action buttons functionality */
+  .card-view-mode:hover .card-action-buttons {
+    opacity: 1;
+  }
+
+  .card-action-buttons {
+    transition: opacity 0.3s ease;
+  }
+
+  /* Ensure buttons don't interfere with card content */
+  .card-view-mode {
+    min-height: 200px; /* Ensure adequate height */
+  }
+
+  /* Fix tooltip positioning to prevent unwanted tooltips */
+  .card-view-mode [title]:not(.card-action-btn) {
+    pointer-events: none;
+  }
+
+  .card-action-btn[title] {
+    pointer-events: auto;
+  }
+
   /* Favorite button specific styling */
   .favorite-btn.favorited {
     color: #ef4444 !important;
@@ -527,6 +558,54 @@
   }
 
   /* Responsive adjustments */
+  @media (max-width: 1024px) {
+    .navigation-container {
+      max-width: 90%;
+    }
+
+    .navigation-arrow {
+      min-width: 48px;
+      min-height: 48px;
+    }
+
+    .navigation-arrow-left {
+      margin-right: 1rem;
+    }
+
+    .navigation-arrow-right {
+      margin-left: 1rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .card-view-mode {
+      max-width: 100% !important;
+      margin: 0;
+    }
+
+    .navigation-container {
+      max-width: 95%;
+      gap: 0.5rem;
+    }
+
+    .navigation-arrow {
+      min-width: 44px;
+      min-height: 44px;
+    }
+
+    .navigation-arrow-left {
+      margin-right: 0.75rem;
+    }
+
+    .navigation-arrow-right {
+      margin-left: 0.75rem;
+    }
+
+    #carousel-container {
+      padding: 1rem;
+    }
+  }
+
   @media (max-width: 640px) {
     .card-action-btn {
       min-width: 36px;
@@ -540,10 +619,23 @@
     .favorite-icon {
       font-size: 1rem !important;
     }
+
+    .card-action-buttons {
+      gap: 1px; /* Reduce gap on mobile */
+    }
+
+    .navigation-arrow {
+      min-width: 40px;
+      min-height: 40px;
+    }
+
+    .navigation-arrow i {
+      font-size: 1rem;
+    }
   }
 
   /* Button group container */
-  .card-view-mode .absolute.top-4.right-4 {
+  .card-view-mode .card-action-buttons {
     z-index: 10;
   }
 
@@ -552,6 +644,94 @@
     .card-view-mode {
       padding-top: 4rem !important;
     }
+
+    .card-action-buttons {
+      opacity: 1 !important; /* Always show on mobile for accessibility */
+    }
+
+    .navigation-container {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .navigation-arrow-left,
+    .navigation-arrow-right {
+      margin: 0;
+      order: 2;
+    }
+
+    #carousel-container {
+      order: 1;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    /* Stack navigation arrows below card on very small screens */
+    .navigation-arrow-left {
+      margin-right: 0.5rem;
+    }
+
+    .navigation-arrow-right {
+      margin-left: 0.5rem;
+    }
+  }
+
+  /* Navigation Container and Arrow Styling */
+  .navigation-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .navigation-arrow {
+    flex-shrink: 0;
+    min-width: 56px;
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+  }
+
+  .navigation-arrow:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .navigation-arrow:active {
+    transform: translateY(0);
+  }
+
+  /* Enhanced Edit Mode Overlay */
+  .edit-mode-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(145deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.05));
+    z-index: 5;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    border-radius: 12px;
+    backdrop-filter: blur(2px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  body[data-edit-mode="true"] .edit-mode-overlay {
+    opacity: 1;
+    background: linear-gradient(145deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.08));
+    backdrop-filter: blur(4px);
+  }
+
+  /* Enhanced carousel container to match card width */
+  #carousel-container {
+    max-width: 672px; /* Match max-w-2xl */
+    background: linear-gradient(145deg, #1f2937, #111827);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   /* Delete Card Confirmation Modal */

@@ -543,12 +543,13 @@ a.button:hover {
     cursor: not-allowed;
 }
 
-/* Edit Mode Navigation Hiding */
-body[data-edit-mode="true"] .carousel-nav-btn,
+/* Edit Mode Navigation Hiding - Updated for new navigation structure */
+body[data-edit-mode="true"] .navigation-arrow,
 body[data-edit-mode="true"] .carousel-pagination {
-    opacity: 0;
+    opacity: 0.3;
     pointer-events: none;
     transition: opacity 0.3s ease;
+    filter: blur(1px);
 }
 
 body[data-edit-mode="true"] .carousel-slides {
@@ -560,28 +561,40 @@ body[data-edit-mode="true"] .carousel-slides .card-edit-mode {
     pointer-events: all;
 }
 
-/* Edit mode visual feedback */
+/* Enhanced edit mode visual feedback - Updated for new design */
 .edit-mode-overlay {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.05);
+    background: linear-gradient(145deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.03));
     z-index: 5;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.3s ease;
+    transition: all 0.3s ease;
     border-radius: 12px;
+    backdrop-filter: blur(1px);
+    border: 1px solid rgba(255, 255, 255, 0.02);
 }
 
 body[data-edit-mode="true"] .edit-mode-overlay {
     opacity: 1;
+    background: linear-gradient(145deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.06));
+    backdrop-filter: blur(3px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Position overlay relative to carousel container */
 .carousel-container {
     position: relative;
+}
+
+/* Enhanced carousel container styling */
+#carousel-container {
+    background: linear-gradient(145deg, #1f2937, #111827);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-width: 672px; /* Match max-w-2xl from card design */
 }
 
 /* ESC hint */
