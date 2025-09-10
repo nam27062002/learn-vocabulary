@@ -4,6 +4,8 @@
   // Existing elements
   const deckStudyOptions = document.getElementById("deckStudyOptions");
   const studyArea = document.getElementById("studyArea");
+  const cardBox = document.getElementById("cardBox");
+  const loadingIndicator = document.getElementById("loadingIndicator");
   const cardWordEl = document.getElementById("cardWord");
   const cardPhoneticEl = document.getElementById("cardPhonetic");
   const cardImageEl = document.getElementById("cardImage");
@@ -827,6 +829,16 @@
     timerText.textContent = timeString;
   }
 
+  function showLoadingState() {
+    if (loadingIndicator) loadingIndicator.style.display = "flex";
+    if (cardBox) cardBox.classList.add("loading-state");
+  }
+
+  function hideLoadingState() {
+    if (loadingIndicator) loadingIndicator.style.display = "none";
+    if (cardBox) cardBox.classList.remove("loading-state");
+  }
+
   function getNextQuestion() {
     const params = new URLSearchParams();
 
@@ -858,6 +870,7 @@
       .then((r) => r.json())
       .then((data) => {
         if (data.done) {
+          hideLoadingState();
           if (currentStudyMode === "review") {
             // Check if this is a session completion (all words resolved)
             if (data.session_completed) {
@@ -895,6 +908,7 @@
   }
 
   function renderQuestion(q) {
+    hideLoadingState();
     // Auto-stop any active recording when switching to new card
     if (typeof VoiceRecording !== 'undefined' && VoiceRecording.isRecording) {
       console.log("🛑 Auto-stopping recording for new card");
@@ -1579,7 +1593,7 @@
     console.log(`[DEBUG] ========== SUBMIT ANSWER DEBUG END ==========`);
   }
 
-  function submitGrade(grade) {
+    function submitGrade(grade) {
     console.log(`[DEBUG] ========== SUBMIT GRADE DEBUG START ==========`);
     console.log(`[DEBUG] Grade submitted: ${grade}`);
     console.log(`[DEBUG] Question Type: ${currentQuestion?.type}`);
@@ -1600,6 +1614,7 @@
     }
 
     window.submittingGrade = true;
+    showLoadingState();
     console.log(`[DEBUG] Starting grade submission process...`);
 
     // Calculate response time
