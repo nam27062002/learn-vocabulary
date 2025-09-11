@@ -27,6 +27,7 @@ class CustomUserManager(BaseUserManager):
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
     username = None  # Remove username field
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []

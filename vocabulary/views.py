@@ -42,6 +42,86 @@ from .cache_utils import (
 )
 from django.core.cache import cache
 
+# Learning Queue helpers for /study session
+def _get_learning_queue(request):
+    """Return learning queue list from session. Each item: {card_id, reask_at_index, question_type}."""
+    return request.session.get('learning_queue', [])
+
+
+def _set_learning_queue(request, queue):
+    request.session['learning_queue'] = queue
+
+
+def _get_study_index(request):
+    return int(request.session.get('study_q_index', 0))
+
+
+def _increment_study_index(request):
+    request.session['study_q_index'] = _get_study_index(request) + 1
+
+
+def _queue_remove_card(request, card_id):
+    """Remove all queued entries for a card (used when user answers correctly)."""
+    queue = _get_learning_queue(request)
+    if not queue:
+        return
+    new_queue = [item for item in queue if item.get('card_id') != card_id]
+    if len(new_queue) != len(queue):
+        _set_learning_queue(request, new_queue)
+
+
+def _queue_card_for_review(request, card_id, question_type):
+    """Queue a card to be re-asked after a short spacing using per-card repetition backoff."""
+    current_index = _get_study_index(request)
+    repeats = request.session.get('lq_repeats', {})
+    card_key = str(card_id)
+    current_repeats = int(repeats.get(card_key, 0)) + 1
+
+    # Spacing grows slightly with repeats to avoid tight loops
+    spacing = min(5, 2 + current_repeats)  # 1st:3, 2nd:4, 3rd:5, cap at 5
+    reask_at = current_index + spacing
+
+    queue = _get_learning_queue(request)
+    queue.append({'card_id': card_id, 'reask_at_index': reask_at, 'question_type': question_type})
+    _set_learning_queue(request, queue)
+
+    repeats[card_key] = current_repeats
+    request.session['lq_repeats'] = repeats
+
+
+def _pop_due_queued_card(request):
+    """Return (card_id, question_type) if any queued item is due at current index, and remove it."""
+    queue = _get_learning_queue(request)
+    if not queue:
+        return None
+    current_index = _get_study_index(request)
+    # Find first due item
+    for idx, item in enumerate(queue):
+        if int(item.get('reask_at_index', 0)) <= current_index:
+            due = queue.pop(idx)
+            _set_learning_queue(request, queue)
+            return due.get('card_id'), due.get('question_type')
+    return None
+
+
+# Study mode selection helpers
+def _get_current_session_accuracy(request):
+    """Return accuracy ratio (0..1) for current StudySession if available, else None."""
+    session_id = request.session.get('current_study_session_id')
+    if not session_id:
+        return None
+    try:
+        session = StudySession.objects.get(id=session_id, user=request.user)
+        total = getattr(session, 'total_questions', 0) or 0
+        correct = getattr(session, 'correct_answers', 0) or 0
+        if total > 0:
+            return max(0.0, min(1.0, correct / total))
+    except StudySession.DoesNotExist:
+        return None
+    except Exception:
+        return None
+    return None
+
 # Helper function to filter semantically similar distractors
 def _filter_semantic_distractors(correct_word, candidates):
     """
@@ -309,6 +389,16 @@ def api_next_question(request):
     card = None
     original_question_type = None
 
+    # 1) Serve due queued card first (learning queue)
+    due = _pop_due_queued_card(request)
+    if due:
+        from .models import Flashcard as _Flashcard
+        try:
+            queued_card_id, original_question_type = due
+            card = _Flashcard.objects.get(id=queued_card_id, user=request.user)
+        except Exception:
+            card = None  # If not found, fall through to normal selection
+
     if study_mode == 'random':
         blacklisted_card_ids = BlacklistFlashcard.objects.filter(user=request.user).values_list('flashcard_id', flat=True)
         qs = Flashcard.objects.filter(user=request.user)
@@ -352,17 +442,41 @@ def api_next_question(request):
 
     _update_card_shown_tracking(card)
 
-    # Determine question type
+    # Determine question type (bias toward type/dictation; MC only when accuracy is low)
     has_audio = card.audio_url and card.audio_url.strip()
     if original_question_type:
         mode = original_question_type
         if mode == 'dictation' and not has_audio:
             mode = 'type'  # Fallback if audio is missing
     else:
-        available_modes = ['mc', 'type']
+        # Compute session accuracy
+        session_accuracy = _get_current_session_accuracy(request)
+
+        weighted_modes = []
+        # Base preference toward active recall (type/dictation)
         if has_audio:
-            available_modes.append('dictation')
-        mode = _rnd.choice(available_modes)
+            weighted_modes.extend(['dictation'] * 3)
+        weighted_modes.extend(['type'] * 3)
+
+        # Multiple-choice only when accuracy is low; otherwise minimal or none
+        if session_accuracy is None:
+            # Unknown accuracy: keep small chance for MC
+            weighted_modes.extend(['mc'] * 1)
+        elif session_accuracy < 0.6:
+            weighted_modes.extend(['mc'] * 3)
+        elif session_accuracy < 0.8:
+            weighted_modes.extend(['mc'] * 1)
+        else:
+            # High accuracy: avoid MC entirely
+            pass
+
+        # Fallback safety
+        if not has_audio and 'dictation' in weighted_modes:
+            weighted_modes = [m for m in weighted_modes if m != 'dictation']
+            if not weighted_modes:
+                weighted_modes = ['type', 'mc']
+
+        mode = _rnd.choice(weighted_modes)
 
     # Prepare payload
     defs = list(card.definitions.values('english_definition', 'vietnamese_definition'))
@@ -395,6 +509,8 @@ def api_next_question(request):
         payload['question']['type'] = 'type'
         payload['question']['answer'] = card.word
 
+    # Increment study index for spacing logic
+    _increment_study_index(request)
     return JsonResponse(payload)
 
 
@@ -526,6 +642,16 @@ def api_submit_answer(request):
             print(f"Error in difficulty update: {e}")
             # Continue anyway - the incorrect word tracking is more important
 
+        # Learning queue integration: queue incorrect answers for short-term review
+        try:
+            if not correct:
+                _queue_card_for_review(request, card.id, mapped_question_type)
+            else:
+                _queue_remove_card(request, card.id)
+        except Exception:
+            # Non-fatal for API
+            pass
+
         return JsonResponse({'success': True})
 
     except json.JSONDecodeError:
@@ -550,6 +676,10 @@ def api_end_study_session(request):
             del request.session['current_study_session_id']
             if 'session_start_time' in request.session:
                 del request.session['session_start_time']
+            # Clear learning queue state
+            for key in ('learning_queue', 'lq_repeats', 'study_q_index'):
+                if key in request.session:
+                    del request.session[key]
 
             return JsonResponse({
                 'success': True,
@@ -1443,14 +1573,26 @@ def api_next_card(request):
     # Convert seen_card_ids to integers
     seen_card_ids = [int(cid) for cid in seen_card_ids if cid.isdigit()]
 
-    # Use enhanced card selection algorithm
-    card = _get_next_card_enhanced(request.user, deck_ids, seen_card_ids)
+    # Serve due queued card first
+    due = _pop_due_queued_card(request)
+    card = None
+    if due:
+        try:
+            queued_card_id, _qt = due
+            card = Flashcard.objects.get(id=queued_card_id, user=request.user)
+        except Exception:
+            card = None
+    # Use enhanced card selection algorithm if no queued card
+    if not card:
+        card = _get_next_card_enhanced(request.user, deck_ids, seen_card_ids)
     if not card:
         return JsonResponse({'done': True})
 
     # Update tracking when card is shown
     _update_card_shown_tracking(card)
     defs = list(card.definitions.values('english_definition', 'vietnamese_definition'))
+    # Increment study index
+    _increment_study_index(request)
     return JsonResponse({
         'done': False,
         'card': {
