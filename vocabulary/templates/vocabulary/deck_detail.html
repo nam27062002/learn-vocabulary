@@ -512,12 +512,43 @@
   }
 
   /* Fix tooltip positioning to prevent unwanted tooltips */
-  .card-view-mode [title]:not(.card-action-btn) {
+  .card-view-mode [title]:not(.card-action-btn):not(.audio-icon-tailwind) {
     pointer-events: none;
   }
 
-  .card-action-btn[title] {
+  .card-action-btn[title],
+  .audio-icon-tailwind[title] {
     pointer-events: auto;
+  }
+
+  /* Ensure audio icons are clickable and have proper z-index */
+  .audio-icon-tailwind {
+    position: relative;
+    z-index: 15;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+  }
+
+  /* Remove cursor pointer from card-view-mode to prevent confusion */
+  .card-view-mode {
+    cursor: default !important;
+  }
+
+  /* Ensure card content doesn't interfere with audio icons */
+  .card-view-mode * {
+    pointer-events: auto;
+  }
+
+  /* But disable pointer events on card background to prevent unwanted clicks */
+  .card-view-mode::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 1;
   }
 
   /* Favorite button specific styling */
