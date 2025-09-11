@@ -122,19 +122,105 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Event listener for audio icons and edit functionality
+  // Enhanced audio playback function
+  function playAudioWithDebug(audioUrl, audioIcon) {
+    console.log(`[AUDIO DEBUG] Attempting to play audio: ${audioUrl}`);
+
+    if (!audioUrl) {
+      console.error("[AUDIO DEBUG] No audio URL provided");
+      return;
+    }
+
+    try {
+      const audio = new Audio(audioUrl);
+
+      // Add comprehensive event listeners for debugging
+      audio.addEventListener('loadstart', () => {
+        console.log(`[AUDIO DEBUG] Loading started for: ${audioUrl}`);
+      });
+
+      audio.addEventListener('canplay', () => {
+        console.log(`[AUDIO DEBUG] Audio can start playing: ${audioUrl}`);
+      });
+
+      audio.addEventListener('play', () => {
+        console.log(`[AUDIO DEBUG] Audio playback started: ${audioUrl}`);
+        // Visual feedback - briefly change icon color
+        if (audioIcon) {
+          audioIcon.style.color = '#10b981'; // Green
+          setTimeout(() => {
+            audioIcon.style.color = ''; // Reset to default
+          }, 1000);
+        }
+      });
+
+      audio.addEventListener('ended', () => {
+        console.log(`[AUDIO DEBUG] Audio playback ended: ${audioUrl}`);
+      });
+
+      audio.addEventListener('error', (e) => {
+        console.error(`[AUDIO DEBUG] Audio error for ${audioUrl}:`, e);
+        console.error(`[AUDIO DEBUG] Error details:`, {
+          code: e.target?.error?.code,
+          message: e.target?.error?.message,
+          networkState: e.target?.networkState,
+          readyState: e.target?.readyState
+        });
+
+        // Visual feedback for error
+        if (audioIcon) {
+          audioIcon.style.color = '#ef4444'; // Red
+          setTimeout(() => {
+            audioIcon.style.color = ''; // Reset to default
+          }, 2000);
+        }
+      });
+
+      // Attempt to play with promise handling
+      const playPromise = audio.play();
+
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log(`[AUDIO DEBUG] Audio play() promise resolved for: ${audioUrl}`);
+          })
+          .catch((e) => {
+            console.error(`[AUDIO DEBUG] Audio playback promise rejected for ${audioUrl}:`, e);
+
+            // Handle specific autoplay policy errors
+            if (e.name === 'NotAllowedError') {
+              console.warn(`[AUDIO DEBUG] Autoplay blocked by browser policy. User interaction required.`);
+            } else if (e.name === 'NotSupportedError') {
+              console.error(`[AUDIO DEBUG] Audio format not supported.`);
+            } else if (e.name === 'AbortError') {
+              console.warn(`[AUDIO DEBUG] Audio playback aborted.`);
+            }
+          });
+      }
+
+    } catch (e) {
+      console.error(`[AUDIO DEBUG] Error creating Audio object for ${audioUrl}:`, e);
+    }
+  }
+
+  // Enhanced event listener for audio icons with better event handling
   carouselSlides.addEventListener("click", function (event) {
+    // Check for audio icon click first (highest priority)
     const audioIcon = event.target.closest(".audio-icon-tailwind");
     if (audioIcon) {
+      console.log(`[AUDIO DEBUG] Audio icon clicked`);
+
+      // Prevent event bubbling to avoid conflicts
+      event.preventDefault();
+      event.stopPropagation();
+
       const audioUrl = audioIcon.dataset.audioUrl;
+      console.log(`[AUDIO DEBUG] Audio URL from dataset:`, audioUrl);
+
       if (audioUrl) {
-        try {
-          new Audio(audioUrl)
-            .play()
-            .catch((e) => console.error("Audio playback error:", e));
-        } catch (e) {
-          console.error("Error creating Audio object:", e);
-        }
+        playAudioWithDebug(audioUrl, audioIcon);
+      } else {
+        console.error(`[AUDIO DEBUG] No audio URL found in dataset`);
       }
       return;
     }
@@ -736,9 +822,139 @@ document.addEventListener("DOMContentLoaded", function () {
     carouselSlides.style.overflowX = "auto";
   }
 
+  // Browser audio support testing
+  function testBrowserAudioSupport() {
+    console.log(`[AUDIO DEBUG] ========== TESTING BROWSER AUDIO SUPPORT ==========`);
+
+    try {
+      const testAudio = new Audio();
+      console.log(`[AUDIO DEBUG] Audio constructor supported: ✅`);
+
+      // Test audio formats
+      const formats = [
+        { ext: 'MP3', mime: 'audio/mpeg' },
+        { ext: 'WAV', mime: 'audio/wav' },
+        { ext: 'OGG', mime: 'audio/ogg' }
+      ];
+
+      formats.forEach(format => {
+        const canPlay = testAudio.canPlayType(format.mime);
+        if (canPlay === 'probably') {
+          console.log(`[AUDIO DEBUG] ${format.ext} format: Probably supported ✅`);
+        } else if (canPlay === 'maybe') {
+          console.log(`[AUDIO DEBUG] ${format.ext} format: Maybe supported ⚠️`);
+        } else {
+          console.log(`[AUDIO DEBUG] ${format.ext} format: Not supported ❌`);
+        }
+      });
+
+      // Test autoplay policy
+      testAudio.muted = true;
+      const autoplayPromise = testAudio.play();
+      if (autoplayPromise !== undefined) {
+        autoplayPromise
+          .then(() => {
+            console.log(`[AUDIO DEBUG] Autoplay allowed (muted) ✅`);
+            testAudio.pause();
+          })
+          .catch(() => {
+            console.log(`[AUDIO DEBUG] Autoplay blocked even when muted ⚠️`);
+          });
+      }
+
+    } catch (e) {
+      console.error(`[AUDIO DEBUG] Audio constructor not supported ❌:`, e);
+    }
+  }
+
+  // Audio icon debugging function
+  function debugAudioIcons() {
+    console.log(`[AUDIO DEBUG] ========== DEBUGGING AUDIO ICONS ==========`);
+
+    const audioIcons = document.querySelectorAll('.audio-icon-tailwind');
+    console.log(`[AUDIO DEBUG] Found ${audioIcons.length} audio icons`);
+
+    audioIcons.forEach((icon, index) => {
+      const audioUrl = icon.dataset.audioUrl;
+      const hasUrl = !!audioUrl;
+      console.log(`[AUDIO DEBUG] Icon ${index + 1}:`, {
+        hasAudioUrl: hasUrl,
+        audioUrl: audioUrl,
+        element: icon
+      });
+
+      // Test if the icon is clickable
+      const rect = icon.getBoundingClientRect();
+      const isVisible = rect.width > 0 && rect.height > 0;
+      console.log(`[AUDIO DEBUG] Icon ${index + 1} visibility:`, {
+        visible: isVisible,
+        width: rect.width,
+        height: rect.height,
+        top: rect.top,
+        left: rect.left
+      });
+    });
+
+    // Test if carousel slides container exists
+    const carousel = document.querySelector('#carousel-slides');
+    if (carousel) {
+      console.log(`[AUDIO DEBUG] Carousel slides container found`);
+    } else {
+      console.error(`[AUDIO DEBUG] Carousel slides container NOT found`);
+    }
+  }
+
+  // Add direct event listeners to audio icons for better reliability
+  function initializeAudioIconListeners() {
+    console.log(`[AUDIO DEBUG] ========== INITIALIZING DIRECT AUDIO ICON LISTENERS ==========`);
+
+    const audioIcons = document.querySelectorAll('.audio-icon-tailwind');
+    console.log(`[AUDIO DEBUG] Found ${audioIcons.length} audio icons for direct listeners`);
+
+    audioIcons.forEach((icon, index) => {
+      // Remove any existing listeners to avoid duplicates
+      icon.removeEventListener('click', handleAudioIconClick);
+
+      // Add new listener
+      icon.addEventListener('click', handleAudioIconClick);
+
+      console.log(`[AUDIO DEBUG] Direct listener added to icon ${index + 1}`);
+    });
+  }
+
+  // Dedicated audio icon click handler
+  function handleAudioIconClick(event) {
+    console.log(`[AUDIO DEBUG] Direct audio icon click handler triggered`);
+
+    // Prevent any event bubbling or default behavior
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    const audioIcon = event.currentTarget;
+    const audioUrl = audioIcon.dataset.audioUrl;
+
+    console.log(`[AUDIO DEBUG] Direct handler - Audio URL:`, audioUrl);
+
+    if (audioUrl) {
+      playAudioWithDebug(audioUrl, audioIcon);
+    } else {
+      console.error(`[AUDIO DEBUG] Direct handler - No audio URL found`);
+    }
+  }
+
   // Audio status functionality
   function initializeAudioStatusFeatures() {
     console.log(`[DEBUG] ========== INITIALIZING AUDIO STATUS FEATURES ==========`);
+
+    // Test browser audio support first
+    testBrowserAudioSupport();
+
+    // Debug audio icons
+    debugAudioIcons();
+
+    // Initialize direct audio icon listeners
+    initializeAudioIconListeners();
     console.log(`[DEBUG] DOM ready state: ${document.readyState}`);
     console.log(`[DEBUG] Current time: ${new Date().toISOString()}`);
 
@@ -2109,27 +2325,48 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Fix tooltip issues by removing unwanted title attributes
   function fixTooltipIssues() {
+    console.log(`[AUDIO DEBUG] ========== FIXING TOOLTIP ISSUES ==========`);
+
     // Remove title attributes from elements that shouldn't have tooltips
     const cardElements = document.querySelectorAll('.card-view-mode');
 
-    cardElements.forEach(card => {
+    cardElements.forEach((card, cardIndex) => {
       // Remove title from the card itself if it exists
       if (card.hasAttribute('title')) {
+        const removedTitle = card.getAttribute('title');
         card.removeAttribute('title');
+        console.log(`[AUDIO DEBUG] Removed card title: "${removedTitle}" from card ${cardIndex + 1}`);
       }
 
-      // Ensure only action buttons have tooltips
-      const nonButtonElements = card.querySelectorAll('*:not(.card-action-btn)[title]');
+      // Remove cursor pointer from card
+      card.style.cursor = 'default';
+
+      // Ensure only action buttons and audio icons have tooltips
+      const nonButtonElements = card.querySelectorAll('*:not(.card-action-btn):not(.audio-icon-tailwind)[title]');
       nonButtonElements.forEach(element => {
-        // Keep audio button tooltips but remove others that might interfere
-        if (!element.classList.contains('audio-icon-tailwind')) {
-          const titleValue = element.getAttribute('title');
-          if (titleValue && titleValue.toLowerCase().includes('favorite')) {
+        const titleValue = element.getAttribute('title');
+        if (titleValue) {
+          // Remove any title that mentions "favorite" or similar
+          if (titleValue.toLowerCase().includes('favorite') ||
+              titleValue.toLowerCase().includes('add to') ||
+              titleValue.toLowerCase().includes('toggle')) {
             element.removeAttribute('title');
+            console.log(`[AUDIO DEBUG] Removed unwanted title: "${titleValue}"`);
           }
         }
       });
+
+      // Ensure audio icons are properly configured
+      const audioIcons = card.querySelectorAll('.audio-icon-tailwind');
+      audioIcons.forEach((icon, iconIndex) => {
+        icon.style.cursor = 'pointer';
+        icon.style.pointerEvents = 'auto';
+        icon.style.zIndex = '15';
+        console.log(`[AUDIO DEBUG] Configured audio icon ${iconIndex + 1} in card ${cardIndex + 1}`);
+      });
     });
+
+    console.log(`[AUDIO DEBUG] Tooltip issues fixed for ${cardElements.length} cards`);
   }
 
   // Initialize tooltip fixes

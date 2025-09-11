@@ -1083,7 +1083,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // CORE LOGIC: SPELLING, SUGGESTIONS, DETAILS
     // =============================================
 
-    // 1. Check for Duplicate Words
+    // 1. Check for Duplicate Words with Real-time Validation
     function checkDuplicates(word, input, suggestionsList, card) {
         fetch(`${checkWordExistsUrl}?word=${encodeURIComponent(word)}`)
         .then(res => res.ok ? res.json() : Promise.reject('Network error'))
@@ -1093,17 +1093,53 @@ document.addEventListener('DOMContentLoaded', function() {
                 input.classList.add("duplicate-warning");
                 showDuplicateWarning(suggestionsList, word);
             } else {
-                // Word doesn't exist - remove duplicate warning and proceed normally
-                input.classList.remove("duplicate-warning");
+                // Word doesn't exist - clear duplicate warning and proceed normally
+                clearDuplicateWarning(input, suggestionsList);
                 fetchWordDetailsAndCache(word, card);
             }
         })
         .catch(err => {
             console.error("Duplicate check error:", err);
-            // On error, proceed normally without duplicate warning
-            input.classList.remove("duplicate-warning");
+            // On error, clear duplicate warning and proceed normally
+            clearDuplicateWarning(input, suggestionsList);
             fetchWordDetailsAndCache(word, card);
         });
+    }
+
+    // Clear duplicate warning and hide suggestions
+    function clearDuplicateWarning(input, suggestionsList) {
+        input.classList.remove("duplicate-warning");
+        // Only hide suggestions if they're showing duplicate warning
+        const duplicateWarningItem = suggestionsList.querySelector('.duplicate-warning-item');
+        if (duplicateWarningItem) {
+            suggestionsList.style.display = "none";
+            suggestionsList.innerHTML = "";
+        }
+    }
+
+    // Immediate validation for real-time feedback (used for instant clearing)
+    function validateWordInput(input, suggestionsList) {
+        const word = input.value.trim();
+
+        // If input is empty or too short, clear any existing warnings
+        if (word.length < 2) {
+            clearDuplicateWarning(input, suggestionsList);
+            return;
+        }
+
+        // If there's currently a duplicate warning but the word has changed,
+        // we should clear it immediately and let the debounced check handle the new validation
+        if (input.classList.contains('duplicate-warning')) {
+            // Check if this is a different word than what triggered the warning
+            const currentWarningItem = suggestionsList.querySelector('.duplicate-warning-item');
+            if (currentWarningItem) {
+                const warningText = currentWarningItem.innerHTML;
+                // If the warning doesn't contain the current word, clear it immediately
+                if (!warningText.includes(`<strong>${word}</strong>`)) {
+                    clearDuplicateWarning(input, suggestionsList);
+                }
+            }
+        }
     }
 
     // Show duplicate warning in suggestions list
@@ -1718,16 +1754,28 @@ document.addEventListener('DOMContentLoaded', function() {
         const autoAudio = card.querySelector('.auto-audio');
         const deleteBtn = card.querySelector('.delete-card-btn');
         
-        // Check for duplicates when user types
-        termInput.addEventListener('input', debounce(() => {
-            const word = termInput.value.trim();
+        // Real-time duplicate checking when user types
+        termInput.addEventListener('input', () => {
+            // Immediate validation for instant feedback
+            validateWordInput(termInput, suggestionsList);
+
+            // Debounced validation for API calls
+            debouncedDuplicateCheck(termInput, suggestionsList, card);
+        });
+
+        // Create debounced function for API calls
+        const debouncedDuplicateCheck = debounce((input, suggestionsList, card) => {
+            const word = input.value.trim();
             if (word.length >= 2) {
-                checkDuplicates(word, termInput, suggestionsList, card);
+                // Check for duplicates on every input change
+                checkDuplicates(word, input, suggestionsList, card);
             } else {
+                // Clear all warnings and suggestions for short inputs
                 suggestionsList.style.display = "none";
-                termInput.classList.remove("correct-spelling", "incorrect-spelling", "duplicate-warning");
+                suggestionsList.innerHTML = "";
+                input.classList.remove("correct-spelling", "incorrect-spelling", "duplicate-warning");
             }
-        }, 500));
+        }, 300); // Reduced debounce time for more responsive checking
         
         // Play audio
         if (autoAudio) {
