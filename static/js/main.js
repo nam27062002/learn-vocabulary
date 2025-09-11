@@ -42,6 +42,49 @@ document.addEventListener('DOMContentLoaded', function() {
     setupDropdown('user-toggle', 'user-menu');
     setupDropdown('lang-toggle', 'lang-menu');
 
+    // Avatar upload handler
+    const avatarInput = document.getElementById('avatarInput');
+    if (avatarInput) {
+        avatarInput.addEventListener('change', function() {
+            const file = this.files && this.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('avatar', file);
+
+            // Show loading overlay on avatars
+            const desktopLoading = document.getElementById('avatarLoading');
+            const mobileLoading = document.getElementById('mobileAvatarLoading');
+            if (desktopLoading) desktopLoading.classList.remove('hidden');
+            if (mobileLoading) mobileLoading.classList.remove('hidden');
+
+            fetch('/profile/avatar/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.avatar_url) {
+                    // Update avatar images on the page if present
+                    const desktopAvatar = document.querySelector('#user-toggle img');
+                    if (desktopAvatar) desktopAvatar.src = data.avatar_url;
+                    const mobileAvatar = document.querySelector('#mobile-menu img');
+                    if (mobileAvatar) mobileAvatar.src = data.avatar_url;
+                } else {
+                    console.error('Upload avatar failed:', data.error);
+                }
+            })
+            .catch(err => console.error('Upload avatar error:', err))
+            .finally(() => {
+                if (desktopLoading) desktopLoading.classList.add('hidden');
+                if (mobileLoading) mobileLoading.classList.add('hidden');
+                this.value = '';
+            });
+        });
+    }
+
     // ==========================================================================
     // Mobile Navigation
     // ==========================================================================
