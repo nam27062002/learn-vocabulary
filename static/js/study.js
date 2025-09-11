@@ -840,6 +840,13 @@
   }
 
   function getNextQuestion() {
+    // Safety mechanism: Reset seen cards if they get too large to prevent URL issues
+    // For random mode, reset after seeing a reasonable number of cards
+    if (currentStudyMode === "random" && seenCardIds.length > 150) {
+      console.log(`Resetting seen cards list (was ${seenCardIds.length} cards) to prevent URL length issues`);
+      seenCardIds = [];
+    }
+
     // Prepare request data
     let requestData = {};
 
@@ -875,8 +882,9 @@
     const baseUrlLength = STUDY_CFG.nextUrl.length;
     const estimatedParamsLength = Object.keys(requestData).reduce((total, key) => {
       if (key === 'seen_card_ids') {
-        // Each seen_card_id adds approximately 20 characters: "seen_card_ids[]=123&"
-        return total + (requestData[key].length * 20);
+        // More accurate estimation: "seen_card_ids[]=123&" = 21 chars + ID length
+        // Average ID length is 3 digits, so ~24 characters per seen_card_id
+        return total + (requestData[key].length * 24);
       } else if (key === 'deck_ids') {
         // Each deck_id adds approximately 15 characters: "deck_ids[]=1&"
         return total + (requestData[key].length * 15);
@@ -887,7 +895,10 @@
     }, 0);
 
     const estimatedUrlLength = baseUrlLength + estimatedParamsLength;
-    const MAX_SAFE_URL_LENGTH = 3500; // Conservative limit to avoid server issues
+    const MAX_SAFE_URL_LENGTH = 1500; // Very conservative limit for Render.com and other hosting services
+
+    // Additional safety check: if we have more than 50 seen cards, always use POST
+    const SEEN_CARDS_POST_THRESHOLD = 50;
 
     let fetchOptions = {
       headers: {
@@ -897,15 +908,16 @@
 
     let fetchUrl = STUDY_CFG.nextUrl;
 
-    if (estimatedUrlLength > MAX_SAFE_URL_LENGTH) {
+    if (estimatedUrlLength > MAX_SAFE_URL_LENGTH || seenCardIds.length > SEEN_CARDS_POST_THRESHOLD) {
       // Use POST request for large data
-      console.log(`Using POST request due to large data size (estimated URL length: ${estimatedUrlLength})`);
+      const reason = estimatedUrlLength > MAX_SAFE_URL_LENGTH ? 'URL too long' : 'too many seen cards';
+      console.log(`Using POST request due to ${reason} (estimated URL length: ${estimatedUrlLength}, seen cards: ${seenCardIds.length})`);
       fetchOptions.method = 'POST';
       fetchOptions.headers['Content-Type'] = 'application/json';
       fetchOptions.body = JSON.stringify(requestData);
     } else {
       // Use GET request for smaller data (backward compatibility)
-      console.log(`Using GET request (estimated URL length: ${estimatedUrlLength})`);
+      console.log(`Using GET request (estimated URL length: ${estimatedUrlLength}, seen cards: ${seenCardIds.length})`);
       const params = new URLSearchParams();
 
       if (currentStudyMode === "random") {
@@ -931,7 +943,12 @@
     }
 
     fetch(fetchUrl, fetchOptions)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) {
+          throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+        }
+        return r.json();
+      })
       .then((data) => {
         if (data.done) {
           hideLoadingState();
@@ -968,6 +985,31 @@
         }
 
         renderQuestion(data.question);
+      })
+      .catch((error) => {
+        console.error('Error fetching next question:', error);
+        hideLoadingState();
+
+        // Show user-friendly error message
+        const errorMsg = document.createElement('div');
+        errorMsg.className = 'alert alert-danger mt-3';
+        errorMsg.innerHTML = `
+          <strong>Error loading next question:</strong> ${error.message}<br>
+          <small>This might be due to a network issue or server problem. Please try refreshing the page.</small>
+        `;
+
+        // Insert error message before study area
+        const studyContainer = document.querySelector('.study-container');
+        if (studyContainer) {
+          studyContainer.insertBefore(errorMsg, studyContainer.firstChild);
+
+          // Auto-remove error message after 10 seconds
+          setTimeout(() => {
+            if (errorMsg.parentNode) {
+              errorMsg.parentNode.removeChild(errorMsg);
+            }
+          }, 10000);
+        }
       });
   }
 
