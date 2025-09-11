@@ -1620,6 +1620,68 @@
       }, 500); // Delay 500ms to let user see the answer first
     }
 
+    const isTypingMode = currentQuestion.type === "type" || currentQuestion.type === "dictation";
+
+    if (isTypingMode && !correct) {
+        const gradeButtons = document.getElementById("gradeButtons");
+        if (gradeButtons) {
+            gradeButtons.classList.remove("show");
+            gradeButtons.classList.add("hidden");
+        }
+
+        const optionsArea = document.getElementById("optionsArea");
+        if (optionsArea) {
+            optionsArea.innerHTML = '';
+
+            const retypeMessage = document.createElement('p');
+            retypeMessage.textContent = 'Type the correct answer to continue:';
+            retypeMessage.style.color = 'white';
+            retypeMessage.style.textAlign = 'center';
+            retypeMessage.style.marginBottom = '10px';
+            optionsArea.appendChild(retypeMessage);
+
+            const inputRow = document.createElement("div");
+            inputRow.className = "input-row";
+
+            const inp = document.createElement("input");
+            inp.type = "text";
+            inp.placeholder = STUDY_CFG.labels.placeholder;
+            inp.className = "type-input";
+
+            const btn = document.createElement("button");
+            btn.textContent = STUDY_CFG.labels.check;
+            btn.className = "check-btn";
+
+            inputRow.appendChild(inp);
+            inputRow.appendChild(btn);
+            optionsArea.appendChild(inputRow);
+            setTimeout(() => inp.focus(), 100);
+
+            const handleRetype = () => {
+                const retypedAnswer = inp.value.trim();
+                if (retypedAnswer.toLowerCase() === expectedAnswer.toLowerCase()) {
+                    submitGrade(0); // Grade 0 is "Again"
+                } else {
+                    inp.classList.add('shake-animation');
+                    setTimeout(() => {
+                        inp.classList.remove('shake-animation');
+                    }, 500);
+                    AudioFeedback.playIncorrect();
+                }
+            };
+
+            btn.addEventListener("click", handleRetype);
+            inp.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleRetype();
+                }
+            });
+        }
+        return;
+    }
+
+
     // Show grade buttons
     console.log(`[DEBUG] Attempting to show grade buttons...`);
     const gradeButtons = document.getElementById("gradeButtons");
@@ -3524,6 +3586,16 @@
             width: 280px !important;
             left: 10px !important;
           }
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translateX(-1px); }
+            20%, 80% { transform: translateX(2px); }
+            30%, 50%, 70% { transform: translateX(-4px); }
+            40%, 60% { transform: translateX(4px); }
+        }
+        .shake-animation {
+            animation: shake 0.5s ease-in-out;
         }
       `;
       document.head.appendChild(style);
