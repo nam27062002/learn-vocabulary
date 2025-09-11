@@ -950,8 +950,15 @@
         <div class="search-container">
           <input type="text" id="deckSearchInput" placeholder="{{ manual_texts.search_decks|default:'Search decks...' }}" class="deck-search-input">
           <i class="fas fa-search search-icon"></i>
+          <button type="button" id="clearDeckSearch" class="clear-search-btn" title="{{ manual_texts.clear|default:'Clear' }}" aria-label="Clear search">
+            <i class="fas fa-times-circle"></i>
+          </button>
         </div>
         <div class="deck-actions">
+          <button type="button" id="selectFilteredDecks" class="action-btn" title="{{ manual_texts.select_visible|default:'Select Visible' }}">
+            <i class="fas fa-check-double"></i>
+            {{ manual_texts.select_visible|default:'Select Visible' }}
+          </button>
           <button type="button" id="selectAllDecks" class="action-btn">
             <i class="fas fa-check-square"></i>
             {{ manual_texts.select_all|default:'Select All' }}
@@ -965,7 +972,8 @@
       
       <!-- Selected counter -->
       <div class="selection-info">
-        <span id="selectedCount">0</span> {{ manual_texts.decks_selected|default:'decks selected' }}
+        <span class="badge" id="selectedCount">0</span>
+        <span class="selection-label">{{ manual_texts.decks_selected|default:'decks selected' }}</span>
       </div>
 
       <!-- Deck grid -->

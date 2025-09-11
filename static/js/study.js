@@ -2362,8 +2362,10 @@
   
   const deckGrid = document.getElementById("deckGrid");
   const deckSearchInput = document.getElementById("deckSearchInput");
+  const clearDeckSearch = document.getElementById("clearDeckSearch");
   const selectAllDecks = document.getElementById("selectAllDecks");
   const deselectAllDecks = document.getElementById("deselectAllDecks");
+  const selectFilteredDecks = document.getElementById("selectFilteredDecks");
   const selectedCount = document.getElementById("selectedCount");
   const deckCheckboxes = document.querySelectorAll('.deck-checkbox');
   const deckCards = document.querySelectorAll('.deck-card');
@@ -2566,6 +2568,18 @@
     deckSearchInput.addEventListener('input', (e) => {
       filterDecks(e.target.value);
       lastClickedDeckIndex = -1; // Reset range selection when filtering
+      if (clearDeckSearch) {
+        clearDeckSearch.style.display = e.target.value ? 'block' : 'none';
+      }
+    });
+  }
+
+  if (clearDeckSearch) {
+    clearDeckSearch.addEventListener('click', () => {
+      deckSearchInput.value = '';
+      filterDecks('');
+      clearDeckSearch.style.display = 'none';
+      deckSearchInput.focus();
     });
   }
 
@@ -2588,6 +2602,18 @@
         checkbox.checked = false;
       });
       lastClickedDeckIndex = -1; // Reset range selection
+      updateDeckSelection();
+    });
+  }
+
+  if (selectFilteredDecks) {
+    selectFilteredDecks.addEventListener('click', () => {
+      const visibleCards = getVisibleDeckCards();
+      visibleCards.forEach(card => {
+        const checkbox = card.querySelector('.deck-checkbox');
+        if (checkbox) checkbox.checked = true;
+      });
+      lastClickedDeckIndex = -1;
       updateDeckSelection();
     });
   }
