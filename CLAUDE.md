@@ -54,9 +54,15 @@ python manage.py collectstatic
 
 ### Key Models
 - **Flashcard**: Core vocabulary card with word, definitions, phonetics, images, and difficulty tracking
+- **Definition**: Related English and Vietnamese definitions for each flashcard
 - **Deck**: Organization system for grouping related flashcards
 - **StudySession**: Tracks individual study sessions and progress
-- **WeeklyStatistics**: Aggregates learning statistics and progress tracking
+- **StudySessionAnswer**: Individual answers within study sessions with response times
+- **DailyStatistics**: Daily aggregated learning metrics for users
+- **WeeklyStatistics**: Weekly aggregated learning statistics and progress tracking
+- **IncorrectWordReview**: Tracks words that need additional review
+- **FavoriteFlashcard**: User's favorite flashcards for targeted study
+- **BlacklistFlashcard**: Cards excluded from study sessions
 
 ### Learning System
 The app uses a **difficulty-based system** instead of traditional SM-2 spaced repetition:
@@ -77,8 +83,10 @@ The app uses a **difficulty-based system** instead of traditional SM-2 spaced re
 - Enhanced statistics dashboard
 
 ### Database
-- Development: SQLite (`db.sqlite3`)
-- Production: PostgreSQL (configured in `settings_production.py`)
+- Development: SQLite (`db.sqlite3`) or PostgreSQL (configurable via environment)
+- Production: PostgreSQL with connection pooling and SSL
+- Database caching enabled using Django's database cache backend
+- Comprehensive indexing for performance optimization
 
 ### Authentication
 - Email-based authentication using django-allauth
@@ -88,26 +96,32 @@ The app uses a **difficulty-based system** instead of traditional SM-2 spaced re
 ### Important Files
 - `vocabulary/models.py`: Core data models and business logic
 - `vocabulary/views.py`: Main application views and study logic  
-- `vocabulary/api_services.py`: External API integrations
+- `vocabulary/api_services.py`: External API integrations (Datamuse, LanguageTool)
 - `vocabulary/audio_service.py`: Audio handling and pronunciation features
 - `vocabulary/statistics_utils.py`: Statistics calculation and tracking
+- `vocabulary/word_details_service.py`: Word lookup and definition services
+- `vocabulary/cache_utils.py`: Caching utilities for performance optimization
+- `vocabulary/context_processors.py`: Hybrid i18n translation system
+- `accounts/models.py`: Custom User model with email-based authentication
 - `static/js/study.js`: Frontend study session management
 - `templates/vocabulary/study.html`: Main study interface
 
 ### Settings Configuration
-- `settings.py`: Development settings
-- `settings_production.py`: Production configuration
-- `settings_minimal.py`: Minimal setup for testing
+- `learn_english_project/settings.py`: Main development settings with PostgreSQL configuration
+- Environment variables configured via python-decouple in `.env` file
 
 ### Key Features
 - Flashcard CRUD operations with rich media (images, audio)
-- Deck-based organization system
-- Difficulty-based spaced repetition learning
-- Multi-modal study (multiple choice, typing, favorites)
-- Progress tracking and statistics
-- Random study mode across all vocabulary
-- Audio pronunciation support
-- Image associations for better memory retention
+- Deck-based organization system with user-specific collections
+- Difficulty-based spaced repetition learning (not traditional SM-2)
+- Multi-modal study (multiple choice, typing, favorites, random)
+- Comprehensive progress tracking and statistics (daily/weekly aggregation)
+- Random study mode across entire vocabulary
+- Audio pronunciation support with multiple audio sources
+- Image associations for better memory retention via Unsplash API
+- Favorites and blacklist system for personalized learning
+- Real-time word suggestions and spell checking
+- Vietnamese-English translation integration
 
 ### Testing Structure
 - Unit tests in `vocabulary/tests.py` and `vocabulary/tests_enhanced_audio.py`
@@ -119,3 +133,13 @@ The app uses a **difficulty-based system** instead of traditional SM-2 spaced re
 - The project uses a hybrid translation system through context processors
 - Media files are stored in `media/flashcard_images/`
 - Static files are organized in `static/` with CSS, JS, and audio assets
+- Environment variables managed via python-decouple for configuration
+- Database connection pooling enabled for production performance
+- Comprehensive caching system implemented for API responses and database queries
+- Custom management commands available for data analysis and debugging
+
+### Performance Optimizations
+- Database indexing on frequently queried fields
+- Caching layer for flashcards, study sessions, and API responses
+- Connection pooling for database efficiency
+- Static file compression and optimization

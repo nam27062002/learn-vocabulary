@@ -162,13 +162,7 @@
                   >
                     <span class="sr-only">Open user menu</span>
                     <div id="avatarNode" class="relative">
-                      {% if user.avatar %}
-                      <img src="{{ user.avatar.url }}" alt="avatar" class="h-8 w-8 rounded-full object-cover" />
-                      {% else %}
-                      <div class="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">
-                        {{ user.email|slice:":1"|upper }}
-                      </div>
-                      {% endif %}
+                      <img src="{{ user.avatar_url }}" alt="avatar" class="h-8 w-8 rounded-full object-cover" />
                       <div id="avatarLoading" class="hidden absolute inset-0 bg-black bg-opacity-30 rounded-full flex items-center justify-center">
                         <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -383,13 +377,7 @@
           <div class="flex items-center px-5">
             <div class="flex-shrink-0">
               <div id="mobileAvatarNode" class="relative">
-                {% if user.avatar %}
-                <img src="{{ user.avatar.url }}" alt="avatar" class="h-10 w-10 rounded-full object-cover" />
-                {% else %}
-                <div class="h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold">
-                  {{ user.email|slice:":1"|upper }}
-                </div>
-                {% endif %}
+                <img src="{{ user.avatar_url }}" alt="avatar" class="h-10 w-10 rounded-full object-cover" />
                 <div id="mobileAvatarLoading" class="hidden absolute inset-0 bg-black bg-opacity-30 rounded-full flex items-center justify-center">
                   <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

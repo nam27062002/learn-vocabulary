@@ -35,4 +35,11 @@ class CustomUser(AbstractUser):
     objects = CustomUserManager()
     
     def __str__(self):
-        return self.email 
+        return self.email
+    
+    @property
+    def avatar_url(self):
+        """Return avatar URL or default avatar if none exists."""
+        if self.avatar and hasattr(self.avatar, 'url'):
+            return self.avatar.url
+        return '/static/images/default-avatar.png'  # Default avatar fallback 
