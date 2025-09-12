@@ -1,3 +1,6 @@
+python-decouple
+lxml
+psycopg2
 # Core Django dependencies
 Django==5.2.1
 django-allauth==65.10.0
