@@ -161,10 +161,14 @@
                     aria-haspopup="true"
                   >
                     <span class="sr-only">Open user menu</span>
-                    <div
-                      class="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold"
-                    >
-                      {{ user.email|slice:":1"|upper }}
+                    <div id="avatarNode" class="relative">
+                      <img src="{{ user.avatar_url }}" alt="avatar" class="h-8 w-8 rounded-full object-cover" />
+                      <div id="avatarLoading" class="hidden absolute inset-0 bg-black bg-opacity-30 rounded-full flex items-center justify-center">
+                        <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                      </div>
                     </div>
                   </button>
                 </div>
@@ -188,15 +192,10 @@
                       {{ user.email }}
                     </p>
                   </div>
-                  <a
-                    href="#"
-                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
-                    role="menuitem"
-                    tabindex="-1"
-                    id="nav-profile"
-                  >
-                    <span>👤</span> {{ manual_texts.profile }}
-                  </a>
+                  <label class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
+                    <input type="file" id="avatarInput" accept="image/*" class="hidden" />
+                    <span>🖼️</span> {{ manual_texts.change_avatar|default:'Change Avatar' }}
+                  </label>
                   <a
                     href="{% url 'account_logout' %}"
                     class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
@@ -377,10 +376,14 @@
         <div class="pt-4 pb-3 border-t border-gray-700">
           <div class="flex items-center px-5">
             <div class="flex-shrink-0">
-              <div
-                class="h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold"
-              >
-                {{ user.email|slice:":1"|upper }}
+              <div id="mobileAvatarNode" class="relative">
+                <img src="{{ user.avatar_url }}" alt="avatar" class="h-10 w-10 rounded-full object-cover" />
+                <div id="mobileAvatarLoading" class="hidden absolute inset-0 bg-black bg-opacity-30 rounded-full flex items-center justify-center">
+                  <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  </svg>
+                </div>
               </div>
             </div>
             <div class="ml-3">

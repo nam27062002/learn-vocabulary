@@ -23,6 +23,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),
+    path('profile/', include('accounts.urls')),
     # No i18n URLs or JS catalog since i18n is disabled
 
     # API endpoints
