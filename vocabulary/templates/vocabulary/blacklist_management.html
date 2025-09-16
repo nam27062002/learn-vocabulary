@@ -81,8 +81,25 @@
   .card-part-of-speech {
       font-size: 0.85rem;
       color: #93c5fd;
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.5rem;
       font-style: italic;
+  }
+
+  /* CEFR Level Badge Styles */
+  .cefr-level-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.2s ease;
+    margin-bottom: 0.75rem;
+  }
+
+  .cefr-level-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   }
   
   .card-deck {
@@ -264,6 +281,54 @@
     border: 1px solid #3a3a5c;
     border-radius: 12px;
     padding: 1.5rem;
+  }
+
+  /* Filter Section Styles */
+  .filter-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .cefr-filter-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .filter-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #e5e7eb;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .filter-label i {
+    color: #667eea;
+  }
+
+  .filter-select {
+    background: #1a1a2e;
+    border: 1px solid #3a3a5c;
+    border-radius: 8px;
+    color: #e5e7eb;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .filter-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+  }
+
+  .filter-select:hover {
+    border-color: #667eea;
   }
 
   .search-section {
@@ -1116,6 +1181,25 @@
       <div class="search-status" id="search-status"></div>
     </div>
 
+    <div class="filter-section">
+      <div class="cefr-filter-wrapper">
+        <label for="cefr-filter" class="filter-label">
+          <i class="fas fa-graduation-cap"></i>
+          CEFR Level:
+        </label>
+        <select id="cefr-filter" class="filter-select">
+          <option value="">All Levels</option>
+          <option value="A1">A1 - Beginner</option>
+          <option value="A2">A2 - Elementary</option>
+          <option value="B1">B1 - Intermediate</option>
+          <option value="B2">B2 - Upper Intermediate</option>
+          <option value="C1">C1 - Advanced</option>
+          <option value="C2">C2 - Proficient</option>
+          <option value="N/A">N/A - Not classified</option>
+        </select>
+      </div>
+    </div>
+
     <div class="action-section">
       <div class="selection-controls">
         <button id="select-all-global" class="action-btn select-all-btn" title="{{ manual_texts.select_all|default:'Select all blacklisted words across all pages' }}">
@@ -1302,6 +1386,31 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+  // CEFR Level helper functions
+  function getCefrLevelColor(level) {
+    const colors = {
+      'A1': '#4CAF50',  // Green - Beginner
+      'A2': '#8BC34A',  // Light Green - Elementary
+      'B1': '#FFC107',  // Amber - Intermediate
+      'B2': '#FF9800',  // Orange - Upper Intermediate
+      'C1': '#FF5722',  // Deep Orange - Advanced
+      'C2': '#F44336',  // Red - Proficient
+    };
+    return colors[level] || '#9E9E9E';
+  }
+
+  function getCefrLevelDescription(level) {
+    const descriptions = {
+      'A1': 'Beginner',
+      'A2': 'Elementary', 
+      'B1': 'Intermediate',
+      'B2': 'Upper Intermediate',
+      'C1': 'Advanced',
+      'C2': 'Proficient'
+    };
+    return descriptions[level] || 'Unknown';
+  }
+
   // Localization object
   const i18n = {
     searchingFor: "{{ manual_texts.searching_for|default:'Searching for \"{query}\" - {count} results found' }}",
@@ -1328,6 +1437,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const tableBody = document.getElementById('table-body');
   const selectAllCheckbox = document.getElementById('select-all-checkbox');
   const selectAllGlobalBtn = document.getElementById('select-all-global');
+  const cefrFilter = document.getElementById('cefr-filter');
   const selectNoneBtn = document.getElementById('select-none');
   const bulkRemoveBtn = document.getElementById('bulk-remove-btn');
   const confirmBulkRemoveBtn = document.getElementById('confirm-bulk-remove');
@@ -1367,6 +1477,7 @@ document.addEventListener('DOMContentLoaded', () => {
     totalItems: 0,
     filteredItems: 0,
     searchQuery: '',
+    cefrFilter: '',
     sortBy: '-blacklisted_at',
     pageSize: 20,
     selectedIds: new Set(),
@@ -1387,6 +1498,10 @@ document.addEventListener('DOMContentLoaded', () => {
       q: state.searchQuery,
       page_size: state.pageSize,
     });
+
+    if (state.cefrFilter) {
+      params.append('cefr_level', state.cefrFilter);
+    }
 
     try {
       const response = await fetch(`/api/blacklist/?${params.toString()}`);
@@ -1521,6 +1636,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="card-word-details">
                     <div class="card-word">${escapeHtml(item.word)}</div>
                     ${item.part_of_speech ? `<div class="card-part-of-speech">${escapeHtml(item.part_of_speech)}</div>` : ''}
+                    ${item.cefr_level ? `<div class="cefr-level-badge inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold text-white" style="background-color: ${getCefrLevelColor(item.cefr_level)};" title="CEFR Level: ${getCefrLevelDescription(item.cefr_level)}">${item.cefr_level}</div>` : '<div class="cefr-level-badge inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold text-white" style="background-color: #9E9E9E;" title="CEFR Level: Not classified">N/A</div>'}
                 </div>
                 <input type="checkbox" class="card-checkbox row-checkbox" data-id="${item.flashcard_id}" ${isSelected ? 'checked' : ''}>
             </div>
@@ -1716,6 +1832,14 @@ document.addEventListener('DOMContentLoaded', () => {
     state.searchQuery = '';
     state.currentPage = 1;
     clearSearchBtn.style.display = 'none';
+    fetchData();
+  };
+
+  const handleCefrFilter = (e) => {
+    state.cefrFilter = e.target.value;
+    state.currentPage = 1;
+    state.selectedIds.clear();
+    state.globalSelectAll = false;
     fetchData();
   };
 
@@ -1975,6 +2099,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Enhanced event listeners
   searchInput.addEventListener('input', handleSearch);
   clearSearchBtn.addEventListener('click', clearSearch);
+  cefrFilter.addEventListener('change', handleCefrFilter);
   selectAllGlobalBtn.addEventListener('click', handleGlobalSelectAll);
   selectNoneBtn.addEventListener('click', handleSelectNone);
   bulkRemoveBtn.addEventListener('click', handleBulkRemove);

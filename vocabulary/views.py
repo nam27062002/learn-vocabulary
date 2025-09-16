@@ -2403,6 +2403,7 @@ def api_blacklist(request):
 
         # Regular pagination request
         search_query = request.GET.get('q', '')
+        cefr_filter = request.GET.get('cefr_level', '')
         sort_by = request.GET.get('sort', '-blacklisted_at')
         page_number = request.GET.get('page', 1)
         page_size = int(request.GET.get('page_size', 20))
@@ -2416,6 +2417,14 @@ def api_blacklist(request):
                 Q(flashcard__word__icontains=search_query) |
                 Q(flashcard__deck__name__icontains=search_query)
             )
+
+        if cefr_filter:
+            if cefr_filter == 'N/A':
+                blacklist_qs = blacklist_qs.filter(
+                    Q(flashcard__cefr_level__isnull=True) | Q(flashcard__cefr_level='')
+                )
+            else:
+                blacklist_qs = blacklist_qs.filter(flashcard__cefr_level=cefr_filter)
 
         valid_sort_fields = ['flashcard__word', '-flashcard__word', 'flashcard__deck__name', '-flashcard__deck__name', 'blacklisted_at', '-blacklisted_at']
         if sort_by not in valid_sort_fields:
@@ -2433,6 +2442,7 @@ def api_blacklist(request):
                 'word': item.flashcard.word,
                 'deck': item.flashcard.deck.name if item.flashcard.deck else 'N/A',
                 'part_of_speech': item.flashcard.part_of_speech or 'N/A',
+                'cefr_level': item.flashcard.cefr_level,
                 'blacklisted_at': item.blacklisted_at.strftime('%Y-%m-%d %H:%M')
             } for item in page_obj.object_list],
             'pagination': {
