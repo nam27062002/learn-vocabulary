@@ -1022,6 +1022,10 @@ def save_flashcards(request):
                 defaults=defaults
             )
 
+            # Update CEFR level for new or updated flashcards
+            if created or not flashcard.cefr_level:
+                flashcard.update_cefr_level(save=True)
+
             # Clear old definitions and create new one(s)
             flashcard.definitions.all().delete()
             Definition.objects.create(
@@ -2463,6 +2467,84 @@ def api_blacklist(request):
 def blacklist_page(request):
     """Display the new dynamic blacklist management page."""
     return render(request, 'vocabulary/blacklist_management.html')
+
+
+# CEFR Level API Endpoints
+
+@login_required
+@require_GET
+def api_get_cefr_level(request):
+    """Get CEFR level for a word."""
+    try:
+        word = request.GET.get('word')
+        if not word:
+            return JsonResponse({'success': False, 'error': 'Word parameter is required'}, status=400)
+
+        from .cefr_service import get_word_cefr_level, get_cefr_level_info
+
+        level = get_word_cefr_level(word)
+        if level:
+            level_info = get_cefr_level_info(level)
+            return JsonResponse({
+                'success': True,
+                'word': word,
+                'cefr_level': level,
+                'level_info': level_info
+            })
+        else:
+            return JsonResponse({
+                'success': True,
+                'word': word,
+                'cefr_level': None,
+                'level_info': None
+            })
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def api_update_cefr_level(request):
+    """Update CEFR level for a flashcard."""
+    try:
+        data = json.loads(request.body)
+        card_id = data.get('card_id')
+
+        if not card_id:
+            return JsonResponse({'success': False, 'error': 'Card ID is required'}, status=400)
+
+        try:
+            flashcard = Flashcard.objects.get(id=card_id, user=request.user)
+        except Flashcard.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Flashcard not found'}, status=404)
+
+        # Update CEFR level
+        updated = flashcard.update_cefr_level(save=True)
+
+        if updated:
+            level_info = flashcard.cefr_level_info
+            return JsonResponse({
+                'success': True,
+                'card_id': card_id,
+                'cefr_level': flashcard.cefr_level,
+                'level_info': level_info,
+                'auto_detected': flashcard.cefr_level_auto
+            })
+        else:
+            return JsonResponse({
+                'success': True,
+                'card_id': card_id,
+                'cefr_level': None,
+                'level_info': None,
+                'message': 'No CEFR level found for this word'
+            })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 
 
 def debug_study_template(request):

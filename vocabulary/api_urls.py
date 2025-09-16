@@ -53,6 +53,10 @@ urlpatterns = [
     path('api/blacklist/count/', views.api_get_blacklist_count, name='api_get_blacklist_count'),
     path('api/blacklist/check/', views.api_check_blacklist_status, name='api_check_blacklist_status'),
 
+    # CEFR Level APIs
+    path('api/cefr/get-level/', views.api_get_cefr_level, name='api_get_cefr_level'),
+    path('api/cefr/update-level/', views.api_update_cefr_level, name='api_update_cefr_level'),
+
     # Language (manual language switch without Django i18n)
     path('api/set-language/', views.api_set_language, name='api_set_language'),
 ]

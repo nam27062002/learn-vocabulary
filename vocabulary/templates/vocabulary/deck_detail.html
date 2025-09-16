@@ -234,11 +234,28 @@
               >{{ card.word }}</a
             >
           </div>
-          {% if card.part_of_speech %}
-          <div class="text-lg text-gray-400 mb-2 italic">
-            ({{ card.part_of_speech }})
+          <div class="flex items-center gap-3 mb-2">
+            {% if card.part_of_speech %}
+            <div class="text-lg text-gray-400 italic">
+              ({{ card.part_of_speech }})
+            </div>
+            {% endif %}
+
+            <!-- Always show CEFR level badge -->
+            {% if card.cefr_level %}
+            <div class="cefr-level-badge inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold text-white"
+                 style="background-color: {{ card.cefr_level_info.color }};"
+                 title="CEFR Level: {{ card.cefr_level_info.description }}">
+              {{ card.cefr_level }}
+            </div>
+            {% else %}
+            <div class="cefr-level-badge inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold text-white"
+                 style="background-color: #9E9E9E;"
+                 title="CEFR Level: Not classified">
+              N/A
+            </div>
+            {% endif %}
           </div>
-          {% endif %}
 
           {% if card.phonetic %}
           <div class="text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2">
@@ -340,6 +357,31 @@
                   class="edit-part-of-speech w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent"
                   value="{{ card.part_of_speech|default:'' }}"
                 />
+              </div>
+
+              <!-- CEFR Level (Read-only display) -->
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-1"
+                  >CEFR Level</label
+                >
+                <div class="flex items-center gap-2">
+                  {% if card.cefr_level %}
+                  <div class="cefr-level-badge inline-flex items-center px-3 py-2 rounded-md text-sm font-semibold text-white"
+                       style="background-color: {{ card.cefr_level_info.color }};">
+                    {{ card.cefr_level }}
+                  </div>
+                  <span class="text-sm text-gray-400">{{ card.cefr_level_info.description }}</span>
+                  {% if card.cefr_level_auto %}
+                  <span class="text-xs text-gray-500">(Auto-detected)</span>
+                  {% endif %}
+                  {% else %}
+                  <div class="cefr-level-badge inline-flex items-center px-3 py-2 rounded-md text-sm font-semibold text-white"
+                       style="background-color: #9E9E9E;">
+                    N/A
+                  </div>
+                  <span class="text-sm text-gray-400">Not classified</span>
+                  {% endif %}
+                </div>
               </div>
 
               <!-- Audio URL -->
@@ -763,6 +805,22 @@
     max-width: 672px; /* Match max-w-2xl */
     background: linear-gradient(145deg, #1f2937, #111827);
     border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* CEFR Level Badge Styles */
+  .cefr-level-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.2s ease;
+  }
+
+  .cefr-level-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   }
 
   /* Delete Card Confirmation Modal */
