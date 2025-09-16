@@ -920,10 +920,12 @@
     let requestData = {};
 
     if (currentStudyMode === "random") {
+      const selectedCefrLevels = getSelectedCefrLevels();
       requestData = {
         study_mode: "random",
         word_count: wordCount,
-        seen_card_ids: seenCardIds
+        seen_card_ids: seenCardIds,
+        cefr_levels: selectedCefrLevels
       };
     } else if (currentStudyMode === "review") {
       requestData = {
@@ -993,6 +995,9 @@
         params.append("study_mode", "random");
         params.append("word_count", wordCount);
         seenCardIds.forEach((id) => params.append("seen_card_ids[]", id));
+        // Add CEFR levels to GET request
+        const selectedCefrLevels = getSelectedCefrLevels();
+        selectedCefrLevels.forEach((level) => params.append("cefr_levels[]", level));
       } else if (currentStudyMode === "review") {
         params.append("study_mode", "review");
         seenCardIds.forEach((id) => params.append("seen_card_ids[]", id));
@@ -2258,6 +2263,62 @@
     randomWordCountInput.addEventListener("input", (e) => {
       wordCount = parseInt(e.target.value) || 10;
     });
+  }
+
+  // CEFR Filter Logic
+  const cefrFilterModeRadios = document.querySelectorAll('input[name="cefrFilterMode"]');
+  const cefrLevelsGrid = document.getElementById('cefrLevelsGrid');
+  const cefrQuickFilters = document.getElementById('cefrQuickFilters');
+  const cefrLevelCheckboxes = document.querySelectorAll('input[name="cefrLevels"]');
+  const quickFilterBtns = document.querySelectorAll('.quick-filter-btn');
+
+  // Handle CEFR filter mode toggle
+  cefrFilterModeRadios.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      if (e.target.value === 'specific') {
+        cefrLevelsGrid.style.display = 'grid';
+        cefrQuickFilters.style.display = 'flex';
+      } else {
+        cefrLevelsGrid.style.display = 'none';
+        cefrQuickFilters.style.display = 'none';
+        // Clear all selections when switching to "any"
+        cefrLevelCheckboxes.forEach(cb => cb.checked = false);
+      }
+    });
+  });
+
+  // Handle quick filter buttons
+  quickFilterBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const levels = e.target.dataset.levels;
+      
+      if (levels === '') {
+        // Clear all
+        cefrLevelCheckboxes.forEach(cb => cb.checked = false);
+      } else if (levels === 'all') {
+        // Select all
+        cefrLevelCheckboxes.forEach(cb => cb.checked = true);
+      } else {
+        // Clear first, then select specific levels
+        cefrLevelCheckboxes.forEach(cb => cb.checked = false);
+        const levelArray = levels.split(',');
+        levelArray.forEach(level => {
+          const checkbox = document.querySelector(`input[name="cefrLevels"][value="${level}"]`);
+          if (checkbox) checkbox.checked = true;
+        });
+      }
+    });
+  });
+
+  // Function to get selected CEFR levels
+  function getSelectedCefrLevels() {
+    const anyModeRadio = document.querySelector('input[name="cefrFilterMode"][value="any"]');
+    if (anyModeRadio && anyModeRadio.checked) {
+      return []; // Empty array means no filter (any level)
+    }
+    
+    const checkedBoxes = document.querySelectorAll('input[name="cefrLevels"]:checked');
+    return Array.from(checkedBoxes).map(cb => cb.value);
   }
 
   // Handle start buttons

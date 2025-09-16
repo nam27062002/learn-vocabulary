@@ -358,7 +358,8 @@ def api_next_question(request):
         study_mode = request.GET.get('study_mode', 'decks')
         word_count = int(request.GET.get('word_count', 10))
         seen_card_ids = request.GET.getlist('seen_card_ids[]')
-        logger.info(f"GET request: study_mode={study_mode}, seen_cards_count={len(seen_card_ids)}")
+        cefr_levels = request.GET.getlist('cefr_levels[]')
+        logger.info(f"GET request: study_mode={study_mode}, seen_cards_count={len(seen_card_ids)}, cefr_levels={cefr_levels}")
     elif request.method == 'POST':
         # POST request - extract parameters from request body
         try:
@@ -367,7 +368,8 @@ def api_next_question(request):
             study_mode = data.get('study_mode', 'decks')
             word_count = int(data.get('word_count', 10))
             seen_card_ids = data.get('seen_card_ids', [])
-            logger.info(f"POST request: study_mode={study_mode}, seen_cards_count={len(seen_card_ids)}")
+            cefr_levels = data.get('cefr_levels', [])
+            logger.info(f"POST request: study_mode={study_mode}, seen_cards_count={len(seen_card_ids)}, cefr_levels={cefr_levels}")
         except (json.JSONDecodeError, ValueError) as e:
             logger.error(f"Invalid JSON in POST request: {e}")
             return JsonResponse({'error': 'Invalid JSON data or parameters'}, status=400)
@@ -406,6 +408,13 @@ def api_next_question(request):
             qs = qs.exclude(id__in=seen_card_ids)
         if blacklisted_card_ids.exists():
             qs = qs.exclude(id__in=blacklisted_card_ids)
+        
+        # Apply CEFR level filter if specified
+        if cefr_levels:
+            # Filter by CEFR levels if specific levels are selected
+            qs = qs.filter(cefr_level__in=cefr_levels)
+            logger.info(f"Applied CEFR filter for levels: {cefr_levels}")
+        
         card = qs.order_by('?').first()
 
     elif study_mode == 'favorites':

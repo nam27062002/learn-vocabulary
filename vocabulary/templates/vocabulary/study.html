@@ -614,6 +614,79 @@
         />
       </div>
 
+      <!-- CEFR Level Filter -->
+      <div class="cefr-filter-section">
+        <label class="filter-label">{{ manual_texts.cefr_level_filter|default:'CEFR Level Filter' }}</label>
+        <div class="cefr-filter-options">
+          <div class="filter-mode-toggle">
+            <label class="toggle-option">
+              <input type="radio" name="cefrFilterMode" value="any" checked>
+              <span class="toggle-text">{{ manual_texts.any_level|default:'Any Level' }}</span>
+            </label>
+            <label class="toggle-option">
+              <input type="radio" name="cefrFilterMode" value="specific">
+              <span class="toggle-text">{{ manual_texts.specific_levels|default:'Specific Levels' }}</span>
+            </label>
+          </div>
+          
+          <div class="cefr-levels-grid" id="cefrLevelsGrid" style="display: none;">
+            <label class="cefr-level-option">
+              <input type="checkbox" name="cefrLevels" value="A1">
+              <span class="cefr-badge cefr-a1">A1</span>
+              <span class="level-description">{{ manual_texts.cefr_a1_desc|default:'Beginner' }}</span>
+            </label>
+            
+            <label class="cefr-level-option">
+              <input type="checkbox" name="cefrLevels" value="A2">
+              <span class="cefr-badge cefr-a2">A2</span>
+              <span class="level-description">{{ manual_texts.cefr_a2_desc|default:'Elementary' }}</span>
+            </label>
+            
+            <label class="cefr-level-option">
+              <input type="checkbox" name="cefrLevels" value="B1">
+              <span class="cefr-badge cefr-b1">B1</span>
+              <span class="level-description">{{ manual_texts.cefr_b1_desc|default:'Intermediate' }}</span>
+            </label>
+            
+            <label class="cefr-level-option">
+              <input type="checkbox" name="cefrLevels" value="B2">
+              <span class="cefr-badge cefr-b2">B2</span>
+              <span class="level-description">{{ manual_texts.cefr_b2_desc|default:'Upper Intermediate' }}</span>
+            </label>
+            
+            <label class="cefr-level-option">
+              <input type="checkbox" name="cefrLevels" value="C1">
+              <span class="cefr-badge cefr-c1">C1</span>
+              <span class="level-description">{{ manual_texts.cefr_c1_desc|default:'Advanced' }}</span>
+            </label>
+            
+            <label class="cefr-level-option">
+              <input type="checkbox" name="cefrLevels" value="C2">
+              <span class="cefr-badge cefr-c2">C2</span>
+              <span class="level-description">{{ manual_texts.cefr_c2_desc|default:'Proficiency' }}</span>
+            </label>
+          </div>
+          
+          <div class="cefr-quick-filters" id="cefrQuickFilters" style="display: none;">
+            <button type="button" class="quick-filter-btn" data-levels="A1,A2">
+              {{ manual_texts.beginner_levels|default:'Beginner (A1-A2)' }}
+            </button>
+            <button type="button" class="quick-filter-btn" data-levels="B1,B2">
+              {{ manual_texts.intermediate_levels|default:'Intermediate (B1-B2)' }}
+            </button>
+            <button type="button" class="quick-filter-btn" data-levels="C1,C2">
+              {{ manual_texts.advanced_levels|default:'Advanced (C1-C2)' }}
+            </button>
+            <button type="button" class="quick-filter-btn" data-levels="all">
+              {{ manual_texts.select_all|default:'Select All' }}
+            </button>
+            <button type="button" class="quick-filter-btn clear-all" data-levels="">
+              {{ manual_texts.clear_all|default:'Clear All' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="available-words-info">
         <span class="info-label">{{ manual_texts.available_words }}:</span>
         <span id="totalWordsAvailable" class="info-value"
