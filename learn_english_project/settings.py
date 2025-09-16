@@ -1,5 +1,14 @@
 from pathlib import Path
-from decouple import config
+try:
+    from decouple import config
+except ImportError:
+    # Fallback if decouple is not available
+    def config(key, default=None, cast=str):
+        import os
+        value = os.environ.get(key, default)
+        if cast == bool and isinstance(value, str):
+            return value.lower() in ('true', '1', 'yes', 'on')
+        return cast(value) if value is not None else default
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent

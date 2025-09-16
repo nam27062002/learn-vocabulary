@@ -485,7 +485,7 @@ def api_next_question(request):
         'question': {
             'id': card.id, 'word': card.word, 'phonetic': card.phonetic,
             'part_of_speech': card.part_of_speech, 'image_url': card.image.url if card.image else card.related_image_url,
-            'audio_url': card.audio_url, 'definitions': defs,
+            'audio_url': card.audio_url, 'definitions': defs, 'cefr_level': card.cefr_level,
         }
     }
 
@@ -1607,6 +1607,7 @@ def api_next_card(request):
             'audio_url': card.audio_url,
             'image_url': card.image.url if card.image else card.related_image_url,
             'definitions': defs,
+            'cefr_level': card.cefr_level,
         }
     })
 
@@ -1712,6 +1713,7 @@ def api_update_flashcard(request):
                 'general_antonyms': card.general_antonyms,
                 'definitions': definitions,
                 'image_url': card.image.url if card.image else card.related_image_url,
+                'cefr_level': card.cefr_level,
             }
         })
 
