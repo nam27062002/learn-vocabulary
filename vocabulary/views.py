@@ -2426,7 +2426,7 @@ def api_blacklist(request):
             else:
                 blacklist_qs = blacklist_qs.filter(flashcard__cefr_level=cefr_filter)
 
-        valid_sort_fields = ['flashcard__word', '-flashcard__word', 'flashcard__deck__name', '-flashcard__deck__name', 'blacklisted_at', '-blacklisted_at']
+        valid_sort_fields = ['flashcard__word', '-flashcard__word', 'flashcard__deck__name', '-flashcard__deck__name', 'flashcard__cefr_level', '-flashcard__cefr_level', 'blacklisted_at', '-blacklisted_at']
         if sort_by not in valid_sort_fields:
             sort_by = '-blacklisted_at'
 
