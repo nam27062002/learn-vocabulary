@@ -8,6 +8,7 @@
   const loadingIndicator = document.getElementById("loadingIndicator");
   const cardWordEl = document.getElementById("cardWord");
   const cardPhoneticEl = document.getElementById("cardPhonetic");
+  const cardCefrLevelEl = document.getElementById("cardCefrLevel");
   const cardImageEl = document.getElementById("cardImage");
   const cardDefsEl = document.getElementById("cardDefs");
   const favoriteButton = document.getElementById("favoriteButton");
@@ -65,6 +66,74 @@
     
     const lower = partOfSpeech.toLowerCase();
     return abbreviations[lower] || partOfSpeech;
+  }
+
+  // Function to get CEFR level info
+  function getCefrLevelInfo(level) {
+    if (!level) return null;
+    
+    const cefrColors = {
+      'A1': '#4CAF50',  // Green - Beginner
+      'A2': '#8BC34A',  // Light Green - Elementary
+      'B1': '#FFC107',  // Amber - Intermediate
+      'B2': '#FF9800',  // Orange - Upper Intermediate
+      'C1': '#FF5722',  // Deep Orange - Advanced
+      'C2': '#F44336',  // Red - Proficient
+    };
+    
+    const cefrDescriptions = {
+      'A1': 'Beginner',
+      'A2': 'Elementary', 
+      'B1': 'Intermediate',
+      'B2': 'Upper Intermediate',
+      'C1': 'Advanced',
+      'C2': 'Proficient'
+    };
+    
+    return {
+      level: level,
+      color: cefrColors[level] || '#9E9E9E',
+      description: cefrDescriptions[level] || 'Unknown'
+    };
+  }
+
+  // Function to display CEFR level badge
+  function displayCefrLevel(level, showImmediately = false) {
+    if (!cardCefrLevelEl) return;
+    
+    if (level) {
+      const cefrInfo = getCefrLevelInfo(level);
+      cardCefrLevelEl.innerHTML = `
+        <div class="cefr-level-badge" 
+             style="background-color: ${cefrInfo.color};"
+             title="CEFR Level: ${cefrInfo.description}">
+          ${cefrInfo.level}
+        </div>
+      `;
+    } else {
+      cardCefrLevelEl.innerHTML = `
+        <div class="cefr-level-badge" 
+             style="background-color: #9E9E9E;"
+             title="CEFR Level: Not classified">
+          N/A
+        </div>
+      `;
+    }
+    
+    // Only show immediately if explicitly requested (like after editing)
+    if (showImmediately) {
+      cardCefrLevelEl.style.display = 'block';
+    } else {
+      // Hide initially, will be shown after answer
+      cardCefrLevelEl.style.display = 'none';
+    }
+  }
+
+  // Function to show CEFR level after answer
+  function showCefrLevelAfterAnswer() {
+    if (cardCefrLevelEl) {
+      cardCefrLevelEl.style.display = 'block';
+    }
   }
 
   // Progress bar functions
@@ -1058,6 +1127,9 @@
     if (cardPhoneticEl) {
       cardPhoneticEl.style.display = "none";
     }
+    if (cardCefrLevelEl) {
+      cardCefrLevelEl.style.display = "none";
+    }
     if (cardDefsEl) {
       cardDefsEl.className = "card-definitions";
     }
@@ -1162,6 +1234,9 @@
     if (optionsArea) {
       optionsArea.innerHTML = "";
     }
+
+    // Display CEFR level for all question types
+    displayCefrLevel(q.cefr_level);
 
     // Handle different question types
     if (q.type === "mc") {
@@ -1556,6 +1631,9 @@
       cardPhoneticEl.textContent = `/${currentQuestion.phonetic}/`;
       cardPhoneticEl.style.display = "block";
     }
+
+    // Show CEFR level after answer is revealed
+    showCefrLevelAfterAnswer();
 
     // Show and setup favorite button
     let currentFavoriteButton = favoriteButton;
@@ -2340,6 +2418,7 @@
       // Reset study area content
       if (cardWordEl) cardWordEl.innerHTML = "";
       if (cardPhoneticEl) cardPhoneticEl.style.display = "none";
+      if (cardCefrLevelEl) cardCefrLevelEl.style.display = "none";
       if (cardImageEl) cardImageEl.style.display = "none";
       if (cardDefsEl) cardDefsEl.innerHTML = "";
       if (optionsArea) optionsArea.innerHTML = "";
@@ -4487,6 +4566,9 @@
         }
       }
     }
+
+    // Update CEFR level display (show immediately since card is already revealed)
+    displayCefrLevel(updatedCard.cefr_level, true);
 
     // Update phonetic display
     const cardPhoneticEl = document.getElementById('cardPhonetic');

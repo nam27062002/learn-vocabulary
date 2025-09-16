@@ -44,6 +44,10 @@ class Flashcard(models.Model):
     total_reviews = models.PositiveIntegerField(default=0, help_text="Total number of times reviewed")
     correct_reviews = models.PositiveIntegerField(default=0, help_text="Number of correct reviews")
 
+    # CEFR Level Classification
+    cefr_level = models.CharField(max_length=2, blank=True, null=True, help_text="CEFR level (A1, A2, B1, B2, C1, C2)")
+    cefr_level_auto = models.BooleanField(default=False, help_text="Whether CEFR level was automatically determined")
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -72,6 +76,28 @@ class Flashcard(models.Model):
         if self.total_reviews == 0:
             return 0
         return round((self.correct_reviews / self.total_reviews) * 100, 1)
+
+    @property
+    def cefr_level_info(self):
+        """Return CEFR level information including color and description."""
+        if not self.cefr_level:
+            return None
+
+        from .cefr_service import get_cefr_level_info
+        return get_cefr_level_info(self.cefr_level)
+
+    def update_cefr_level(self, save=True):
+        """Update CEFR level for this flashcard using the CEFR service."""
+        from .cefr_service import get_word_cefr_level
+
+        level = get_word_cefr_level(self.word)
+        if level:
+            self.cefr_level = level
+            self.cefr_level_auto = True
+            if save:
+                self.save(update_fields=['cefr_level', 'cefr_level_auto'])
+            return True
+        return False
 
     def save(self, *args, **kwargs):
         # Xóa file cũ khi update với hình ảnh mới

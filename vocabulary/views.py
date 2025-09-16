@@ -485,7 +485,7 @@ def api_next_question(request):
         'question': {
             'id': card.id, 'word': card.word, 'phonetic': card.phonetic,
             'part_of_speech': card.part_of_speech, 'image_url': card.image.url if card.image else card.related_image_url,
-            'audio_url': card.audio_url, 'definitions': defs,
+            'audio_url': card.audio_url, 'definitions': defs, 'cefr_level': card.cefr_level,
         }
     }
 
@@ -1021,6 +1021,10 @@ def save_flashcards(request):
                 word=word,
                 defaults=defaults
             )
+
+            # Update CEFR level for new or updated flashcards
+            if created or not flashcard.cefr_level:
+                flashcard.update_cefr_level(save=True)
 
             # Clear old definitions and create new one(s)
             flashcard.definitions.all().delete()
@@ -1603,6 +1607,7 @@ def api_next_card(request):
             'audio_url': card.audio_url,
             'image_url': card.image.url if card.image else card.related_image_url,
             'definitions': defs,
+            'cefr_level': card.cefr_level,
         }
     })
 
@@ -1708,6 +1713,7 @@ def api_update_flashcard(request):
                 'general_antonyms': card.general_antonyms,
                 'definitions': definitions,
                 'image_url': card.image.url if card.image else card.related_image_url,
+                'cefr_level': card.cefr_level,
             }
         })
 
@@ -2397,6 +2403,7 @@ def api_blacklist(request):
 
         # Regular pagination request
         search_query = request.GET.get('q', '')
+        cefr_filter = request.GET.get('cefr_level', '')
         sort_by = request.GET.get('sort', '-blacklisted_at')
         page_number = request.GET.get('page', 1)
         page_size = int(request.GET.get('page_size', 20))
@@ -2411,7 +2418,15 @@ def api_blacklist(request):
                 Q(flashcard__deck__name__icontains=search_query)
             )
 
-        valid_sort_fields = ['flashcard__word', '-flashcard__word', 'flashcard__deck__name', '-flashcard__deck__name', 'blacklisted_at', '-blacklisted_at']
+        if cefr_filter:
+            if cefr_filter == 'N/A':
+                blacklist_qs = blacklist_qs.filter(
+                    Q(flashcard__cefr_level__isnull=True) | Q(flashcard__cefr_level='')
+                )
+            else:
+                blacklist_qs = blacklist_qs.filter(flashcard__cefr_level=cefr_filter)
+
+        valid_sort_fields = ['flashcard__word', '-flashcard__word', 'flashcard__deck__name', '-flashcard__deck__name', 'flashcard__cefr_level', '-flashcard__cefr_level', 'blacklisted_at', '-blacklisted_at']
         if sort_by not in valid_sort_fields:
             sort_by = '-blacklisted_at'
 
@@ -2427,6 +2442,7 @@ def api_blacklist(request):
                 'word': item.flashcard.word,
                 'deck': item.flashcard.deck.name if item.flashcard.deck else 'N/A',
                 'part_of_speech': item.flashcard.part_of_speech or 'N/A',
+                'cefr_level': item.flashcard.cefr_level,
                 'blacklisted_at': item.blacklisted_at.strftime('%Y-%m-%d %H:%M')
             } for item in page_obj.object_list],
             'pagination': {
@@ -2463,6 +2479,84 @@ def api_blacklist(request):
 def blacklist_page(request):
     """Display the new dynamic blacklist management page."""
     return render(request, 'vocabulary/blacklist_management.html')
+
+
+# CEFR Level API Endpoints
+
+@login_required
+@require_GET
+def api_get_cefr_level(request):
+    """Get CEFR level for a word."""
+    try:
+        word = request.GET.get('word')
+        if not word:
+            return JsonResponse({'success': False, 'error': 'Word parameter is required'}, status=400)
+
+        from .cefr_service import get_word_cefr_level, get_cefr_level_info
+
+        level = get_word_cefr_level(word)
+        if level:
+            level_info = get_cefr_level_info(level)
+            return JsonResponse({
+                'success': True,
+                'word': word,
+                'cefr_level': level,
+                'level_info': level_info
+            })
+        else:
+            return JsonResponse({
+                'success': True,
+                'word': word,
+                'cefr_level': None,
+                'level_info': None
+            })
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def api_update_cefr_level(request):
+    """Update CEFR level for a flashcard."""
+    try:
+        data = json.loads(request.body)
+        card_id = data.get('card_id')
+
+        if not card_id:
+            return JsonResponse({'success': False, 'error': 'Card ID is required'}, status=400)
+
+        try:
+            flashcard = Flashcard.objects.get(id=card_id, user=request.user)
+        except Flashcard.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Flashcard not found'}, status=404)
+
+        # Update CEFR level
+        updated = flashcard.update_cefr_level(save=True)
+
+        if updated:
+            level_info = flashcard.cefr_level_info
+            return JsonResponse({
+                'success': True,
+                'card_id': card_id,
+                'cefr_level': flashcard.cefr_level,
+                'level_info': level_info,
+                'auto_detected': flashcard.cefr_level_auto
+            })
+        else:
+            return JsonResponse({
+                'success': True,
+                'card_id': card_id,
+                'cefr_level': None,
+                'level_info': None,
+                'message': 'No CEFR level found for this word'
+            })
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 
 
 def debug_study_template(request):
