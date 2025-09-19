@@ -33,16 +33,44 @@ python manage.py test tests.test_specific_module
 The app includes several custom management commands in `vocabulary/management/commands/`:
 ```bash
 python manage.py analyze_study_algorithm
-python manage.py diagnose_statistics  
+python manage.py diagnose_statistics
 python manage.py fix_statistics
 python manage.py populate_statistics
 python manage.py test_enhanced_audio_api
 python manage.py test_statistics
+python manage.py load_cefr_wordlist
+python manage.py populate_cefr_data
+python manage.py update_all_cefr_levels
+```
+
+The `accounts/` app also includes utility commands:
+```bash
+python manage.py delete_user
+python manage.py cleanup_avatars
 ```
 
 ### Static Files
 ```bash
 python manage.py collectstatic
+```
+
+### Environment and Development Setup
+```bash
+# Environment variables are required - copy .env.example to .env if it exists
+# Key environment variables include:
+# - SECRET_KEY: Django secret key
+# - DEBUG: True/False for development/production
+# - DATABASE_URL: PostgreSQL connection string (optional, defaults to SQLite)
+# - ALLOWED_HOSTS: Comma-separated list of allowed hosts
+
+# Django shell for debugging
+python manage.py shell
+
+# Database shell access
+python manage.py dbshell
+
+# Check for common issues
+python manage.py check
 ```
 
 ## Architecture Overview
@@ -69,6 +97,7 @@ The app uses a **difficulty-based system** instead of traditional SM-2 spaced re
 - Cards are shown based on difficulty scores (0.0=Again, 0.33=Hard, 0.67=Good, 1.0=Easy)
 - Daily repetition limits prevent overwhelming users
 - Progress is tracked through statistics and review counts
+- CEFR (Common European Framework of Reference) levels are used for vocabulary classification and filtering
 
 ### External APIs
 - **Datamuse API**: Word definitions, synonyms, antonyms
@@ -137,6 +166,8 @@ The app uses a **difficulty-based system** instead of traditional SM-2 spaced re
 - Database connection pooling enabled for production performance
 - Comprehensive caching system implemented for API responses and database queries
 - Custom management commands available for data analysis and debugging
+- Current branch: `deploy_to_render` (deployment branch)
+- Deployed at: https://learn-english-app-4o7h.onrender.com/
 
 ### Performance Optimizations
 - Database indexing on frequently queried fields
