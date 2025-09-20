@@ -134,17 +134,19 @@ class DatabaseSyncGUI(QMainWindow):
         progress.show()
         QApplication.processEvents()
 
-        self.log("🚀 Performing initial auto-setup...")
-        
-        # Step 1: Discover tables (which includes testing connections)
-        self.update_status("Discovering tables...")
-        self.discover_tables()
+        self.log("🚀 Performing initial setup...")
+
+        # Step 1: Test connections only (don't auto-sync)
+        self.update_status("Testing connections...")
+        results = self.db_manager.test_connections()
         QApplication.processEvents()
 
-        # Step 2: Refresh table info
-        self.update_status("Fetching table statistics...")
-        self.refresh_table_info()
-        QApplication.processEvents()
+        if results['server'] and results['local']:
+            self.update_status("Connections successful - Ready to use")
+            self.log("✅ Database connections established successfully")
+        else:
+            self.update_status("Connection issues detected")
+            self.log("⚠️ Some database connections failed - check settings")
 
         progress.close()
         self.log("✅ Initial setup complete.")
@@ -354,6 +356,24 @@ class DatabaseSyncGUI(QMainWindow):
         self.local_status_label.setStyleSheet("padding: 5px; border-radius: 4px; font-weight: bold;")
         
         self.test_conn_btn = QPushButton("🔌 Test Connections")
+        self.test_conn_btn.setMinimumWidth(180)
+        self.test_conn_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #27ae60;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #2ecc71;
+            }
+            QPushButton:pressed {
+                background-color: #229954;
+            }
+        """)
         self.test_conn_btn.clicked.connect(self.test_connections)
         self.test_conn_btn.clicked.connect(lambda: self.animate_button_click(self.test_conn_btn))
 
@@ -426,8 +446,23 @@ class DatabaseSyncGUI(QMainWindow):
         self.no_tables_label.setStyleSheet("color: #95a5a6; font-style: italic; padding: 20px;")
         self.tables_container.addWidget(self.no_tables_label)
 
+        # Add helpful instruction
+        instruction_label = QLabel("💡 Tip: Use '🔌 Test Connections' first, then '🔍 Discover Tables' to start syncing")
+        instruction_label.setStyleSheet("""
+            QLabel {
+                color: #7f8c8d;
+                font-size: 10px;
+                font-style: italic;
+                padding: 5px;
+                background-color: rgba(127, 140, 141, 0.1);
+                border-radius: 3px;
+            }
+        """)
+        instruction_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        table_layout.addWidget(instruction_label)
+
         # Keyboard shortcuts hint
-        shortcuts_hint = QLabel("💡 Keyboard shortcuts: Ctrl+T (Test), Ctrl+D (Discover), Ctrl+R (Refresh), Ctrl+F (Search)")
+        shortcuts_hint = QLabel("⌨️ Shortcuts: Ctrl+T (Test), Ctrl+D (Discover), Ctrl+R (Refresh), Ctrl+F (Search)")
         shortcuts_hint.setStyleSheet("""
             QLabel {
                 color: #7f8c8d;
