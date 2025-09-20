@@ -154,8 +154,9 @@ class DatabaseManager:
 
                 # Build INSERT statement for PostgreSQL
                 columns = list(data[0].keys())
+                quoted_columns = [f'"{col}"' for col in columns]
                 placeholders = ["%s"] * len(columns)
-                query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
+                query = f"INSERT INTO {table_name} ({', '.join(quoted_columns)}) VALUES ({', '.join(placeholders)})"
 
                 for row in data:
                     values = [row.get(col) for col in columns]
@@ -169,8 +170,9 @@ class DatabaseManager:
 
                 # Build INSERT statement for SQLite
                 columns = list(data[0].keys())
+                quoted_columns = [f'"{col}"' for col in columns]
                 placeholders = ["?"] * len(columns)
-                query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
+                query = f"INSERT INTO {table_name} ({', '.join(quoted_columns)}) VALUES ({', '.join(placeholders)})"
 
                 for row in data:
                     values = [row.get(col) for col in columns]

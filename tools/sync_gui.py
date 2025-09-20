@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget,
     QPushButton, QLabel, QTextEdit, QProgressBar, QGroupBox,
     QCheckBox, QMessageBox, QSplitter, QTableWidget, QTableWidgetItem,
-    QHeaderView, QFrame, QScrollArea
+    QHeaderView, QFrame, QScrollArea, QProgressDialog
 )
 from PyQt6.QtCore import QThread, pyqtSignal, Qt, QTimer
 from PyQt6.QtGui import QFont, QIcon, QPalette, QColor
@@ -118,17 +118,30 @@ class DatabaseSyncGUI(QMainWindow):
         QTimer.singleShot(100, self.initial_setup)
 
     def initial_setup(self):
-        """Runs initial setup tasks after a short delay."""
+        """Runs initial setup tasks with a loading dialog."""
+        progress = QProgressDialog("Initializing application...", None, 0, 0, self)
+        progress.setModal(True)
+        progress.setCancelButton(None)
+        progress.setWindowFlags(progress.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
+        progress.setWindowTitle("Loading...")
+        progress.show()
+        QApplication.processEvents()
+
         self.log("🚀 Performing initial auto-setup...")
-        self.test_conn_btn.setEnabled(False)
-        self.discover_tables_btn.setEnabled(False)
         
-        # This will also test connections
+        # Step 1: Discover tables (which includes testing connections)
+        self.update_status("Discovering tables...")
         self.discover_tables()
-        
-        self.test_conn_btn.setEnabled(True)
-        self.discover_tables_btn.setEnabled(True)
+        QApplication.processEvents()
+
+        # Step 2: Refresh table info
+        self.update_status("Fetching table statistics...")
+        self.refresh_table_info()
+        QApplication.processEvents()
+
+        progress.close()
         self.log("✅ Initial setup complete.")
+        self.update_status("Ready")
 
     def init_ui(self):
         """Initialize the user interface"""
