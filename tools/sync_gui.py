@@ -163,14 +163,16 @@ class DatabaseSyncGUI(QMainWindow):
         self.setWindowTitle("🔄 Database Sync Tool - Learn English App")
         self.setGeometry(100, 100, 1600, 1000)
         self.setMinimumSize(1400, 800)
-        self.setMaximumSize(2560, 1440)
+        # Remove maximum size restriction for fullscreen support
         self.setFont(QFont('Inter', 10))  # Modern font
 
-        # Enable window resizing and set modern flags
+        # Enable all window controls including fullscreen
         self.setWindowFlags(
-            self.windowFlags() |
+            Qt.WindowType.Window |
+            Qt.WindowType.WindowMinimizeButtonHint |
             Qt.WindowType.WindowMaximizeButtonHint |
-            Qt.WindowType.WindowCloseButtonHint
+            Qt.WindowType.WindowCloseButtonHint |
+            Qt.WindowType.WindowFullscreenButtonHint
         )
 
         # Set modern application style with enhanced design
@@ -591,7 +593,7 @@ class DatabaseSyncGUI(QMainWindow):
         table_layout.addWidget(instruction_label)
 
         # Keyboard shortcuts hint
-        shortcuts_hint = QLabel("⌨️ Shortcuts: Ctrl+T (Test), Ctrl+D (Discover), Ctrl+R (Refresh), Ctrl+F (Search)")
+        shortcuts_hint = QLabel("⌨️ Shortcuts: Ctrl+T (Test), Ctrl+D (Discover), Ctrl+R (Refresh), Ctrl+F (Search), F11 (Fullscreen)")
         shortcuts_hint.setStyleSheet("""
             QLabel {
                 color: #7f8c8d;
@@ -829,21 +831,48 @@ class DatabaseSyncGUI(QMainWindow):
         select_all_shortcut = QShortcut(QKeySequence("Ctrl+A"), self)
         select_all_shortcut.activated.connect(self.select_all_tables)
 
-        # Escape key to close dialogs
+        # Escape key to close dialogs or exit fullscreen
         escape_shortcut = QShortcut(QKeySequence("Escape"), self)
-        escape_shortcut.activated.connect(self.close_active_dialogs)
+        escape_shortcut.activated.connect(self.handle_escape_key)
+
+        # F11 key to toggle fullscreen
+        fullscreen_shortcut = QShortcut(QKeySequence("F11"), self)
+        fullscreen_shortcut.activated.connect(self.toggle_fullscreen)
+        fullscreen_shortcut.activated.connect(lambda: self.log("⌨️ Keyboard shortcut: Toggle Fullscreen"))
+
+        # Alt+Enter alternative for fullscreen
+        fullscreen_alt_shortcut = QShortcut(QKeySequence("Alt+Return"), self)
+        fullscreen_alt_shortcut.activated.connect(self.toggle_fullscreen)
 
         # Store shortcuts for cleanup if needed
         self.shortcuts = [
             test_conn_shortcut, discover_shortcut, refresh_shortcut,
             sync_server_shortcut, sync_local_shortcut, clear_logs_shortcut,
-            focus_search_shortcut, preview_shortcut, select_all_shortcut, escape_shortcut
+            focus_search_shortcut, preview_shortcut, select_all_shortcut,
+            escape_shortcut, fullscreen_shortcut, fullscreen_alt_shortcut
         ]
 
     def close_active_dialogs(self):
         """Close any active dialogs"""
         # This method can be extended to close specific dialogs
         pass
+
+    def handle_escape_key(self):
+        """Handle escape key - exit fullscreen or close dialogs"""
+        if self.isFullScreen():
+            self.toggle_fullscreen()
+            self.log("⌨️ Exited fullscreen mode")
+        else:
+            self.close_active_dialogs()
+
+    def toggle_fullscreen(self):
+        """Toggle between fullscreen and windowed mode"""
+        if self.isFullScreen():
+            self.showNormal()
+            self.log("🪟 Switched to windowed mode")
+        else:
+            self.showFullScreen()
+            self.log("🖥️ Switched to fullscreen mode")
 
     def test_connections(self):
         """Test database connections and update UI."""
