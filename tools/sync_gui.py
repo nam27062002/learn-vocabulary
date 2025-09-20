@@ -1,5 +1,5 @@
 """
-PyQt6 GUI for Database Sync Tool
+PyQt6 GUI for Database Sync Tool - Modern UI Version
 """
 import sys
 import os
@@ -10,8 +10,14 @@ from PyQt6.QtWidgets import (
     QHeaderView, QFrame, QScrollArea, QProgressDialog, QLineEdit,
     QHBoxLayout, QVBoxLayout, QGridLayout
 )
-from PyQt6.QtCore import QThread, pyqtSignal, Qt, QTimer, QEasingCurve, QPropertyAnimation, QByteArray
-from PyQt6.QtGui import QFont, QIcon, QPalette, QColor, QShortcut, QKeySequence
+from PyQt6.QtCore import (
+    QThread, pyqtSignal, Qt, QTimer, QEasingCurve, QPropertyAnimation,
+    QByteArray, QParallelAnimationGroup, QSequentialAnimationGroup, QRect
+)
+from PyQt6.QtGui import (
+    QFont, QIcon, QPalette, QColor, QShortcut, QKeySequence,
+    QLinearGradient, QPainter, QPen, QBrush, QPixmap
+)
 from database_manager import DatabaseManager
 import logging
 from datetime import datetime
@@ -153,162 +159,248 @@ class DatabaseSyncGUI(QMainWindow):
         self.update_status("Ready")
 
     def init_ui(self):
-        """Initialize the user interface"""
-        self.setWindowTitle("Database Sync Tool - Learn English App")
-        self.setGeometry(100, 100, 1400, 900)
-        self.setMinimumSize(1200, 700)
-        self.setMaximumSize(1920, 1080)
-        self.setFont(QFont('Segoe UI', 9))
+        """Initialize the modern user interface"""
+        self.setWindowTitle("🔄 Database Sync Tool - Learn English App")
+        self.setGeometry(100, 100, 1600, 1000)
+        self.setMinimumSize(1400, 800)
+        self.setMaximumSize(2560, 1440)
+        self.setFont(QFont('Inter', 10))  # Modern font
 
-        # Enable window resizing
-        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
+        # Enable window resizing and set modern flags
+        self.setWindowFlags(
+            self.windowFlags() |
+            Qt.WindowType.WindowMaximizeButtonHint |
+            Qt.WindowType.WindowCloseButtonHint
+        )
 
-        # Set application style (Dark Theme)
+        # Set modern application style with enhanced design
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #2c3e50;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #1a1a2e, stop:1 #16213e);
             }
             QWidget {
-                background-color: #2c3e50;
-                color: #ecf0f1;
-                font-family: 'Segoe UI', sans-serif;
+                background-color: transparent;
+                color: #e8e9ea;
+                font-family: 'Inter', 'Segoe UI', sans-serif;
+                font-weight: 400;
             }
+
+            /* Modern Card-style GroupBox */
             QGroupBox {
-                font-weight: bold;
-                font-size: 13px;
-                border: 1px solid #34495e;
-                border-radius: 8px;
-                margin-top: 10px;
-                padding: 20px 5px 5px 5px;
-                background-color: #34495e;
+                font-weight: 600;
+                font-size: 14px;
+                border: none;
+                border-radius: 16px;
+                margin-top: 12px;
+                padding: 24px 16px 16px 16px;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 rgba(255,255,255,0.08), stop:1 rgba(255,255,255,0.04));
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255,255,255,0.1);
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
                 subcontrol-position: top left;
-                left: 15px;
-                padding: 2px 8px;
-                background-color: #5dade2;
+                left: 20px;
+                top: 8px;
+                padding: 8px 16px;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #667eea, stop:1 #764ba2);
                 color: #ffffff;
-                border-radius: 4px;
-                font-size: 12px;
+                border-radius: 20px;
+                font-size: 13px;
+                font-weight: 600;
+                letter-spacing: 0.5px;
             }
+
+            /* Modern Button Design */
             QPushButton {
-                background-color: #5dade2;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #667eea, stop:1 #764ba2);
                 color: white;
                 border: none;
-                padding: 10px 20px;
-                border-radius: 6px;
-                font-weight: bold;
-                font-size: 12px;
+                padding: 14px 28px;
+                border-radius: 12px;
+                font-weight: 600;
+                font-size: 13px;
+                letter-spacing: 0.5px;
+                text-transform: uppercase;
             }
             QPushButton:hover {
-                background-color: #8ec3e8;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #7c89f0, stop:1 #8a5cb8);
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
             }
             QPushButton:pressed {
-                background-color: #2c81ba;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #5a6fd8, stop:1 #6b4396);
+                transform: translateY(0px);
             }
             QPushButton:disabled {
-                background-color: #566573;
-                color: #99a3a4;
+                background: rgba(255,255,255,0.1);
+                color: rgba(255,255,255,0.3);
             }
+
+            /* Modern Checkbox */
             QCheckBox {
-                font-size: 12px;
-                color: #ecf0f1;
-                spacing: 8px;
-                padding: 5px;
+                font-size: 13px;
+                color: #e8e9ea;
+                spacing: 12px;
+                padding: 8px;
+                font-weight: 500;
             }
             QCheckBox::indicator {
-                width: 18px;
-                height: 18px;
-                border: 2px solid #566573;
-                border-radius: 4px;
-                background-color: #2c3e50;
+                width: 20px;
+                height: 20px;
+                border: 2px solid rgba(255,255,255,0.3);
+                border-radius: 6px;
+                background: rgba(255,255,255,0.05);
             }
             QCheckBox::indicator:hover {
-                border-color: #5dade2;
+                border-color: #667eea;
+                background: rgba(102, 126, 234, 0.1);
             }
             QCheckBox::indicator:checked {
-                background-color: #5dade2;
-                border-color: #5dade2;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #667eea, stop:1 #764ba2);
+                border-color: #667eea;
                 image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQiIGhlaWdodD0iMTQiIHZpZXdCb3g9IjAgMCAxNCAxNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTExLjY2NjcgMy41TDUuMjUgOS45MTY2N0wyLjMzMzMzIDYiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjwvc3ZnPgo=);
             }
+
+            /* Modern Labels */
             QLabel {
-                color: #ecf0f1;
-                font-size: 12px;
-                padding: 2px;
+                color: #e8e9ea;
+                font-size: 13px;
+                padding: 4px;
+                font-weight: 500;
             }
+
+            /* Modern Text Input */
+            QLineEdit {
+                padding: 12px 16px;
+                border: 2px solid rgba(255,255,255,0.1);
+                border-radius: 10px;
+                background: rgba(255,255,255,0.05);
+                color: #e8e9ea;
+                font-size: 13px;
+                font-weight: 500;
+            }
+            QLineEdit:focus {
+                border-color: #667eea;
+                background: rgba(102, 126, 234, 0.1);
+                outline: none;
+            }
+
+            /* Modern Text Area */
             QTextEdit {
-                background-color: #283747;
-                border: 1px solid #34495e;
-                border-radius: 6px;
-                color: #ecf0f1;
-                font-family: 'Consolas', 'Courier New', monospace;
-                font-size: 11px;
-                padding: 8px;
-                selection-background-color: #5dade2;
-            }
-            QTableWidget {
-                background-color: #34495e;
-                border: 1px solid #4a6572;
-                border-radius: 6px;
-                gridline-color: #4a6572;
-                color: #ecf0f1;
+                background: rgba(0,0,0,0.3);
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 12px;
+                color: #e8e9ea;
+                font-family: 'JetBrains Mono', 'Consolas', monospace;
                 font-size: 12px;
-                alternate-background-color: #3a5063;
+                padding: 16px;
+                selection-background-color: #667eea;
+                line-height: 1.5;
+            }
+
+            /* Modern Table */
+            QTableWidget {
+                background: rgba(255,255,255,0.05);
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 12px;
+                gridline-color: rgba(255,255,255,0.08);
+                color: #e8e9ea;
+                font-size: 13px;
+                font-weight: 500;
+                alternate-background-color: rgba(255,255,255,0.02);
             }
             QTableWidget::item {
-                padding: 10px;
-                border-bottom: 1px solid #4a6572;
+                padding: 16px 12px;
+                border-bottom: 1px solid rgba(255,255,255,0.05);
             }
             QTableWidget::item:selected {
-                background-color: #5dade2; /* Solid accent color */
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 rgba(102, 126, 234, 0.3), stop:1 rgba(118, 75, 162, 0.3));
                 color: #ffffff;
-                font-weight: bold;
+                font-weight: 600;
             }
             QHeaderView::section {
-                background-color: #2c3e50;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 rgba(102, 126, 234, 0.2), stop:1 rgba(118, 75, 162, 0.2));
                 color: white;
-                padding: 10px;
+                padding: 16px 12px;
                 border: none;
-                border-bottom: 2px solid #5dade2;
-                font-weight: bold;
-                font-size: 12px;
+                border-bottom: 2px solid #667eea;
+                font-weight: 600;
+                font-size: 13px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
             }
+
+            /* Modern Progress Bar */
             QProgressBar {
-                border: 1px solid #34495e;
-                border-radius: 6px;
+                border: none;
+                border-radius: 8px;
                 text-align: center;
-                background-color: #2c3e50;
-                color: #ecf0f1;
-                font-weight: bold;
+                background: rgba(255,255,255,0.1);
+                color: #e8e9ea;
+                font-weight: 600;
+                height: 16px;
             }
             QProgressBar::chunk {
-                background-color: #5dade2;
-                border-radius: 5px;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #667eea, stop:1 #764ba2);
+                border-radius: 8px;
             }
+
+            /* Modern Splitter */
             QSplitter::handle {
-                background-color: #4a6572;
-                width: 4px;
+                background: rgba(255,255,255,0.1);
+                width: 2px;
+                border-radius: 1px;
             }
             QSplitter::handle:hover {
-                background-color: #5dade2;
+                background: #667eea;
+                width: 4px;
             }
+
+            /* Modern Scroll Area */
             QScrollArea {
                 border: none;
-                background-color: #34495e;
+                background: transparent;
+                border-radius: 12px;
             }
-            /* Status-specific button styles */
+            QScrollArea QWidget {
+                background: transparent;
+            }
+
+            /* Status-specific button styles with modern gradients */
+            QPushButton[class="success"] {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #56ab2f, stop:1 #a8e6cf);
+            }
+            QPushButton[class="success"]:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #6bc03e, stop:1 #b8f0df);
+            }
             QPushButton[class="warning"] {
-                background-color: #f39c12;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #f093fb, stop:1 #f5576c);
             }
             QPushButton[class="warning"]:hover {
-                background-color: #f5b041;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #f2a3fc, stop:1 #f6677c);
             }
             QPushButton[class="danger"] {
-                background-color: #e74c3c;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #ff416c, stop:1 #ff4b2b);
             }
             QPushButton[class="danger"]:hover {
-                background-color: #ec7063;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #ff517c, stop:1 #ff5b3b);
             }
         """)
 
@@ -316,9 +408,10 @@ class DatabaseSyncGUI(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
-        # Main layout
+        # Main layout with modern spacing
         main_layout = QHBoxLayout(central_widget)
-        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(16)
 
         # Left panel - Controls
         left_panel = self.create_left_panel()
@@ -326,27 +419,48 @@ class DatabaseSyncGUI(QMainWindow):
         # Right panel - Logs and status
         right_panel = self.create_right_panel()
 
-        # Splitter with responsive behavior
+        # Modern splitter with enhanced responsive behavior
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.addWidget(left_panel)
         splitter.addWidget(right_panel)
-        splitter.setSizes([500, 900])  # Better proportions
-        splitter.setHandleWidth(6)
+
+        # Responsive sizing based on window size
+        total_width = self.width()
+        left_width = min(450, int(total_width * 0.35))  # 35% but max 450px
+        right_width = total_width - left_width - 40  # Account for margins
+
+        splitter.setSizes([left_width, right_width])
+        splitter.setHandleWidth(3)
         splitter.setCollapsible(0, False)  # Left panel not collapsible
         splitter.setCollapsible(1, False)  # Right panel not collapsible
         splitter.setStretchFactor(0, 0)   # Left panel fixed ratio
         splitter.setStretchFactor(1, 1)   # Right panel stretchable
 
+        # Store splitter for responsive updates
+        self.main_splitter = splitter
+
         main_layout.addWidget(splitter)
+
+    def resizeEvent(self, event):
+        """Handle window resize for responsive design"""
+        super().resizeEvent(event)
+        if hasattr(self, 'main_splitter'):
+            # Adjust splitter sizes on window resize
+            total_width = self.width()
+            left_width = min(450, int(total_width * 0.35))
+            right_width = total_width - left_width - 60  # Account for margins and splitter
+
+            self.main_splitter.setSizes([left_width, right_width])
 
     def create_left_panel(self):
         """Create left control panel"""
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
-        left_layout.setContentsMargins(0, 0, 5, 0)
+        left_layout.setContentsMargins(0, 0, 8, 0)
+        left_layout.setSpacing(16)
 
-        # Connection status
-        conn_group = QGroupBox("Database Connections")
+        # Connection status with modern styling
+        conn_group = QGroupBox("🔗 Database Connections")
         conn_layout = QVBoxLayout(conn_group)
 
         self.server_status_label = QLabel("⚪ Server: Not tested")
@@ -359,19 +473,27 @@ class DatabaseSyncGUI(QMainWindow):
         self.test_conn_btn.setMinimumWidth(180)
         self.test_conn_btn.setStyleSheet("""
             QPushButton {
-                background-color: #27ae60;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #56ab2f, stop:1 #a8e6cf);
                 color: white;
                 border: none;
-                padding: 12px 24px;
-                border-radius: 6px;
-                font-weight: bold;
-                font-size: 12px;
+                padding: 14px 28px;
+                border-radius: 12px;
+                font-weight: 600;
+                font-size: 13px;
+                letter-spacing: 0.5px;
+                text-transform: uppercase;
             }
             QPushButton:hover {
-                background-color: #2ecc71;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #6bc03e, stop:1 #b8f0df);
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(86, 171, 47, 0.3);
             }
             QPushButton:pressed {
-                background-color: #229954;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #4a932a, stop:1 #98d6bf);
+                transform: translateY(0px);
             }
         """)
         self.test_conn_btn.clicked.connect(self.test_connections)
@@ -381,8 +503,8 @@ class DatabaseSyncGUI(QMainWindow):
         conn_layout.addWidget(self.local_status_label)
         conn_layout.addWidget(self.test_conn_btn)
 
-        # Table selection
-        table_group = QGroupBox("Select Tables to Sync")
+        # Table selection with modern styling
+        table_group = QGroupBox("📋 Select Tables to Sync")
         table_layout = QVBoxLayout(table_group)
 
         # Search and control buttons
@@ -393,15 +515,22 @@ class DatabaseSyncGUI(QMainWindow):
         self.table_search_input.setPlaceholderText("🔍 Search tables...")
         self.table_search_input.setStyleSheet("""
             QLineEdit {
-                padding: 8px 12px;
-                border: 1px solid #566573;
-                border-radius: 4px;
-                background-color: #2c3e50;
-                color: #ecf0f1;
-                font-size: 11px;
+                padding: 12px 16px;
+                border: 2px solid rgba(255,255,255,0.1);
+                border-radius: 10px;
+                background: rgba(255,255,255,0.05);
+                color: #e8e9ea;
+                font-size: 13px;
+                font-weight: 500;
             }
             QLineEdit:focus {
-                border-color: #5dade2;
+                border-color: #667eea;
+                background: rgba(102, 126, 234, 0.1);
+                outline: none;
+            }
+            QLineEdit:hover {
+                border-color: rgba(255,255,255,0.2);
+                background: rgba(255,255,255,0.08);
             }
         """)
         self.table_search_input.textChanged.connect(self.filter_tables)
@@ -476,8 +605,8 @@ class DatabaseSyncGUI(QMainWindow):
         shortcuts_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
         table_layout.addWidget(shortcuts_hint)
 
-        # Sync controls
-        sync_group = QGroupBox("Sync Operations")
+        # Sync controls with modern styling
+        sync_group = QGroupBox("⚡ Sync Operations")
         sync_layout = QVBoxLayout(sync_group)
 
         self.server_to_local_btn = QPushButton("📥 Server → Local")
@@ -532,8 +661,8 @@ class DatabaseSyncGUI(QMainWindow):
         right_layout = QVBoxLayout(right_widget)
         right_layout.setContentsMargins(5, 0, 0, 0)
 
-        # Status display
-        status_group = QGroupBox("Current Status")
+        # Status display with modern styling
+        status_group = QGroupBox("📊 Current Status")
         status_layout = QVBoxLayout(status_group)
 
         self.status_label = QLabel("Ready")
@@ -548,8 +677,8 @@ class DatabaseSyncGUI(QMainWindow):
         """)
         status_layout.addWidget(self.status_label)
 
-        # Table information
-        info_group = QGroupBox("Table Information")
+        # Table information with modern styling
+        info_group = QGroupBox("📈 Table Information")
         info_layout = QVBoxLayout(info_group)
 
         # Preview button
@@ -592,8 +721,8 @@ class DatabaseSyncGUI(QMainWindow):
         table_scroll.setWidget(self.info_table)
         info_layout.addWidget(table_scroll)
 
-        # Log display
-        log_group = QGroupBox("Sync Logs")
+        # Log display with modern styling
+        log_group = QGroupBox("📝 Sync Logs")
         log_layout = QVBoxLayout(log_group)
 
         # Log display with scroll area
@@ -959,28 +1088,146 @@ class DatabaseSyncGUI(QMainWindow):
         return animation
 
     def animate_button_click(self, button: QPushButton):
-        """Animate button click with scale effect"""
-        # Scale down animation
-        scale_down = self.create_button_animation(button, "maximumHeight", button.height(), button.height() - 2)
-        scale_down.start()
+        """Enhanced button click animation with modern effects"""
+        # Create animation group for simultaneous effects
+        self.animation_group = QParallelAnimationGroup()
 
-        # Scale back up after delay
-        QTimer.singleShot(150, lambda: self.animate_button_restore(button))
+        # Scale animation
+        scale_animation = QPropertyAnimation(button, b"geometry")
+        scale_animation.setDuration(200)
+        current_rect = button.geometry()
 
-    def animate_button_restore(self, button: QPushButton):
-        """Restore button to original size"""
-        scale_up = self.create_button_animation(button, "maximumHeight", button.height() - 2, button.height())
-        scale_up.start()
+        # Slightly shrink the button
+        shrunk_rect = QRect(
+            current_rect.x() + 2,
+            current_rect.y() + 2,
+            current_rect.width() - 4,
+            current_rect.height() - 4
+        )
+
+        scale_animation.setStartValue(current_rect)
+        scale_animation.setEndValue(shrunk_rect)
+        scale_animation.setEasingCurve(QEasingCurve.Type.OutQuart)
+
+        self.animation_group.addAnimation(scale_animation)
+        self.animation_group.start()
+
+        # Restore animation after delay
+        QTimer.singleShot(150, lambda: self.animate_button_restore(button, current_rect))
+
+    def animate_button_restore(self, button: QPushButton, original_rect):
+        """Restore button to original size with bounce effect"""
+        restore_animation = QPropertyAnimation(button, b"geometry")
+        restore_animation.setDuration(250)
+        restore_animation.setStartValue(button.geometry())
+        restore_animation.setEndValue(original_rect)
+        restore_animation.setEasingCurve(QEasingCurve.Type.OutBounce)
+        restore_animation.start()
+
+    def create_fade_animation(self, widget, start_opacity: float, end_opacity: float, duration: int = 500):
+        """Create fade in/out animation"""
+        effect = widget.graphicsEffect()
+        if not effect:
+            from PyQt6.QtWidgets import QGraphicsOpacityEffect
+            effect = QGraphicsOpacityEffect()
+            widget.setGraphicsEffect(effect)
+
+        animation = QPropertyAnimation(effect, b"opacity")
+        animation.setDuration(duration)
+        animation.setStartValue(start_opacity)
+        animation.setEndValue(end_opacity)
+        animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        return animation
+
+    def create_slide_animation(self, widget, start_pos, end_pos, duration: int = 400):
+        """Create sliding animation"""
+        animation = QPropertyAnimation(widget, b"pos")
+        animation.setDuration(duration)
+        animation.setStartValue(start_pos)
+        animation.setEndValue(end_pos)
+        animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        return animation
 
     def add_pulse_effect(self, widget):
-        """Add pulse effect to widget"""
+        """Enhanced pulse effect with modern styling"""
         original_style = widget.styleSheet()
 
         def pulse():
-            widget.setStyleSheet(original_style + "border: 2px solid #5dade2; background-color: rgba(93, 173, 226, 0.2);")
-            QTimer.singleShot(200, lambda: widget.setStyleSheet(original_style))
+            # Modern pulse effect with gradient glow
+            pulse_style = original_style + """
+                border: 2px solid #667eea;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 rgba(102, 126, 234, 0.3), stop:1 rgba(118, 75, 162, 0.3));
+                box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+            """
+            widget.setStyleSheet(pulse_style)
+
+            # Create pulsing animation
+            self.pulse_animation = QPropertyAnimation(widget, b"geometry")
+            self.pulse_animation.setDuration(300)
+            current_rect = widget.geometry()
+            expanded_rect = QRect(
+                current_rect.x() - 2,
+                current_rect.y() - 2,
+                current_rect.width() + 4,
+                current_rect.height() + 4
+            )
+            self.pulse_animation.setStartValue(current_rect)
+            self.pulse_animation.setEndValue(expanded_rect)
+            self.pulse_animation.setEasingCurve(QEasingCurve.Type.OutQuad)
+            self.pulse_animation.start()
+
+            # Restore after animation
+            QTimer.singleShot(400, lambda: self.restore_from_pulse(widget, original_style, current_rect))
 
         return pulse
+
+    def restore_from_pulse(self, widget, original_style, original_rect):
+        """Restore widget from pulse effect"""
+        widget.setStyleSheet(original_style)
+        restore_animation = QPropertyAnimation(widget, b"geometry")
+        restore_animation.setDuration(200)
+        restore_animation.setStartValue(widget.geometry())
+        restore_animation.setEndValue(original_rect)
+        restore_animation.setEasingCurve(QEasingCurve.Type.InQuad)
+        restore_animation.start()
+
+    def show_loading_indicator(self, widget, message="Loading..."):
+        """Show modern loading indicator"""
+        from PyQt6.QtWidgets import QGraphicsOpacityEffect
+
+        # Create loading overlay
+        self.loading_widget = QWidget(widget)
+        self.loading_widget.setStyleSheet("""
+            QWidget {
+                background: rgba(0, 0, 0, 0.7);
+                border-radius: 12px;
+            }
+            QLabel {
+                color: #e8e9ea;
+                font-size: 14px;
+                font-weight: 600;
+            }
+        """)
+
+        layout = QVBoxLayout(self.loading_widget)
+        label = QLabel(message)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(label)
+
+        self.loading_widget.setGeometry(widget.rect())
+        self.loading_widget.show()
+
+        # Fade in animation
+        fade_in = self.create_fade_animation(self.loading_widget, 0.0, 1.0, 300)
+        fade_in.start()
+
+    def hide_loading_indicator(self):
+        """Hide loading indicator with fade out"""
+        if hasattr(self, 'loading_widget'):
+            fade_out = self.create_fade_animation(self.loading_widget, 1.0, 0.0, 200)
+            fade_out.finished.connect(lambda: self.loading_widget.deleteLater())
+            fade_out.start()
 
     def sync_finished(self, success: bool, message: str):
         """Handle sync completion"""
