@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget,
     QPushButton, QLabel, QTextEdit, QProgressBar, QGroupBox,
     QCheckBox, QMessageBox, QSplitter, QTableWidget, QTableWidgetItem,
-    QHeaderView, QFrame
+    QHeaderView, QFrame, QScrollArea
 )
 from PyQt6.QtCore import QThread, pyqtSignal, Qt, QTimer
 from PyQt6.QtGui import QFont, QIcon, QPalette, QColor
@@ -115,150 +115,173 @@ class DatabaseSyncGUI(QMainWindow):
         self.available_tables = []
         self.init_ui()
         self.setup_logging()
+        QTimer.singleShot(100, self.initial_setup)
+
+    def initial_setup(self):
+        """Runs initial setup tasks after a short delay."""
+        self.log("🚀 Performing initial auto-setup...")
+        self.test_conn_btn.setEnabled(False)
+        self.discover_tables_btn.setEnabled(False)
+        
+        # This will also test connections
+        self.discover_tables()
+        
+        self.test_conn_btn.setEnabled(True)
+        self.discover_tables_btn.setEnabled(True)
+        self.log("✅ Initial setup complete.")
 
     def init_ui(self):
         """Initialize the user interface"""
         self.setWindowTitle("Database Sync Tool - Learn English App")
-        self.setGeometry(100, 100, 1200, 800)
+        self.setGeometry(100, 100, 1300, 850)
+        self.setFont(QFont('Segoe UI', 9))
 
-        # Set application style
+        # Set application style (Dark Theme)
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #ffffff;
-                color: #333333;
+                background-color: #2c3e50;
             }
             QWidget {
-                background-color: #ffffff;
-                color: #333333;
+                background-color: #2c3e50;
+                color: #ecf0f1;
+                font-family: 'Segoe UI', sans-serif;
             }
             QGroupBox {
                 font-weight: bold;
-                font-size: 12px;
-                border: 2px solid #e0e0e0;
+                font-size: 13px;
+                border: 1px solid #34495e;
                 border-radius: 8px;
-                margin: 10px 5px;
-                padding: 15px 5px 5px 5px;
-                background-color: #fafafa;
-                color: #2c3e50;
+                margin-top: 10px;
+                padding: 20px 5px 5px 5px;
+                background-color: #34495e;
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
+                subcontrol-position: top left;
                 left: 15px;
-                padding: 0 8px 0 8px;
-                background-color: #fafafa;
-                color: #2c3e50;
+                padding: 2px 8px;
+                background-color: #5dade2;
+                color: #ffffff;
+                border-radius: 4px;
+                font-size: 12px;
             }
             QPushButton {
-                background-color: #3498db;
+                background-color: #5dade2;
                 color: white;
                 border: none;
                 padding: 10px 20px;
                 border-radius: 6px;
                 font-weight: bold;
-                font-size: 11px;
-                min-height: 20px;
+                font-size: 12px;
             }
             QPushButton:hover {
-                background-color: #2980b9;
+                background-color: #8ec3e8;
             }
             QPushButton:pressed {
-                background-color: #21618c;
+                background-color: #2c81ba;
             }
             QPushButton:disabled {
-                background-color: #bdc3c7;
-                color: #7f8c8d;
+                background-color: #566573;
+                color: #99a3a4;
             }
             QCheckBox {
-                font-size: 11px;
-                color: #2c3e50;
+                font-size: 12px;
+                color: #ecf0f1;
                 spacing: 8px;
-                padding: 3px;
+                padding: 5px;
             }
             QCheckBox::indicator {
-                width: 16px;
-                height: 16px;
-                border: 2px solid #bdc3c7;
-                border-radius: 3px;
-                background-color: white;
+                width: 18px;
+                height: 18px;
+                border: 2px solid #566573;
+                border-radius: 4px;
+                background-color: #2c3e50;
+            }
+            QCheckBox::indicator:hover {
+                border-color: #5dade2;
             }
             QCheckBox::indicator:checked {
-                background-color: #3498db;
-                border-color: #2980b9;
-                image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEwIDNMNC41IDguNUwyIDYiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjwvc3ZnPgo=);
+                background-color: #5dade2;
+                border-color: #5dade2;
+                image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQiIGhlaWdodD0iMTQiIHZpZXdCb3g9IjAgMCAxNCAxNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTExLjY2NjcgMy41TDUuMjUgOS45MTY2N0wyLjMzMzMzIDYiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjwvc3ZnPgo=);
             }
             QLabel {
-                color: #2c3e50;
-                font-size: 11px;
+                color: #ecf0f1;
+                font-size: 12px;
                 padding: 2px;
             }
             QTextEdit {
-                background-color: white;
-                border: 2px solid #e0e0e0;
+                background-color: #283747;
+                border: 1px solid #34495e;
                 border-radius: 6px;
-                color: #2c3e50;
+                color: #ecf0f1;
                 font-family: 'Consolas', 'Courier New', monospace;
-                font-size: 10px;
+                font-size: 11px;
                 padding: 8px;
-                selection-background-color: #3498db;
+                selection-background-color: #5dade2;
             }
             QTableWidget {
-                background-color: white;
-                border: 2px solid #e0e0e0;
+                background-color: #34495e;
+                border: 1px solid #4a6572;
                 border-radius: 6px;
-                gridline-color: #ecf0f1;
-                color: #2c3e50;
-                font-size: 11px;
-                alternate-background-color: #f8f9fa;
+                gridline-color: #4a6572;
+                color: #ecf0f1;
+                font-size: 12px;
+                alternate-background-color: #3a5063;
             }
             QTableWidget::item {
-                padding: 8px;
-                border-bottom: 1px solid #ecf0f1;
+                padding: 10px;
+                border-bottom: 1px solid #4a6572;
             }
             QTableWidget::item:selected {
-                background-color: #ebf3fd;
-                color: #2c3e50;
+                background-color: #5dade2; /* Solid accent color */
+                color: #ffffff;
+                font-weight: bold;
             }
             QHeaderView::section {
-                background-color: #34495e;
+                background-color: #2c3e50;
                 color: white;
-                padding: 8px;
+                padding: 10px;
                 border: none;
+                border-bottom: 2px solid #5dade2;
                 font-weight: bold;
-                font-size: 11px;
+                font-size: 12px;
             }
             QProgressBar {
-                border: 2px solid #e0e0e0;
+                border: 1px solid #34495e;
                 border-radius: 6px;
                 text-align: center;
-                background-color: #ecf0f1;
-                color: #2c3e50;
+                background-color: #2c3e50;
+                color: #ecf0f1;
                 font-weight: bold;
             }
             QProgressBar::chunk {
-                background-color: #3498db;
-                border-radius: 4px;
+                background-color: #5dade2;
+                border-radius: 5px;
             }
             QSplitter::handle {
-                background-color: #bdc3c7;
-                width: 3px;
+                background-color: #4a6572;
+                width: 4px;
             }
             QSplitter::handle:hover {
-                background-color: #95a5a6;
+                background-color: #5dade2;
+            }
+            QScrollArea {
+                border: none;
+                background-color: #34495e;
             }
             /* Status-specific button styles */
             QPushButton[class="warning"] {
                 background-color: #f39c12;
-                color: white;
             }
             QPushButton[class="warning"]:hover {
-                background-color: #e67e22;
+                background-color: #f5b041;
             }
             QPushButton[class="danger"] {
                 background-color: #e74c3c;
-                color: white;
             }
             QPushButton[class="danger"]:hover {
-                background-color: #c0392b;
+                background-color: #ec7063;
             }
         """)
 
@@ -268,6 +291,7 @@ class DatabaseSyncGUI(QMainWindow):
 
         # Main layout
         main_layout = QHBoxLayout(central_widget)
+        main_layout.setContentsMargins(10, 10, 10, 10)
 
         # Left panel - Controls
         left_panel = self.create_left_panel()
@@ -279,7 +303,8 @@ class DatabaseSyncGUI(QMainWindow):
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.addWidget(left_panel)
         splitter.addWidget(right_panel)
-        splitter.setSizes([400, 800])
+        splitter.setSizes([450, 850])
+        splitter.setHandleWidth(5)
 
         main_layout.addWidget(splitter)
 
@@ -287,35 +312,19 @@ class DatabaseSyncGUI(QMainWindow):
         """Create left control panel"""
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 5, 0)
 
         # Connection status
         conn_group = QGroupBox("Database Connections")
         conn_layout = QVBoxLayout(conn_group)
 
         self.server_status_label = QLabel("⚪ Server: Not tested")
-        self.server_status_label.setStyleSheet("""
-            QLabel {
-                color: #7f8c8d;
-                font-weight: bold;
-                padding: 5px;
-                background-color: #ecf0f1;
-                border-radius: 4px;
-                border: 1px solid #bdc3c7;
-            }
-        """)
+        self.server_status_label.setStyleSheet("padding: 5px; border-radius: 4px; font-weight: bold;")
 
         self.local_status_label = QLabel("⚪ Local: Not tested")
-        self.local_status_label.setStyleSheet("""
-            QLabel {
-                color: #7f8c8d;
-                font-weight: bold;
-                padding: 5px;
-                background-color: #ecf0f1;
-                border-radius: 4px;
-                border: 1px solid #bdc3c7;
-            }
-        """)
-        self.test_conn_btn = QPushButton("Test Connections")
+        self.local_status_label.setStyleSheet("padding: 5px; border-radius: 4px; font-weight: bold;")
+        
+        self.test_conn_btn = QPushButton("🔌 Test Connections")
         self.test_conn_btn.clicked.connect(self.test_connections)
 
         conn_layout.addWidget(self.server_status_label)
@@ -328,42 +337,44 @@ class DatabaseSyncGUI(QMainWindow):
 
         # Control buttons
         button_layout = QHBoxLayout()
-        self.select_all_btn = QPushButton("Select All")
+        self.select_all_btn = QPushButton("Select / Deselect All")
         self.select_all_btn.clicked.connect(self.select_all_tables)
 
-        self.discover_tables_btn = QPushButton("Discover Tables")
+        self.discover_tables_btn = QPushButton("🔍 Discover Tables")
         self.discover_tables_btn.clicked.connect(self.discover_tables)
 
         button_layout.addWidget(self.select_all_btn)
         button_layout.addWidget(self.discover_tables_btn)
         table_layout.addLayout(button_layout)
 
-        # Tables container
+        # Tables container with ScrollArea
         self.table_checkboxes = {}
-        self.tables_container = QVBoxLayout()
-        table_layout.addLayout(self.tables_container)
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setMinimumHeight(200)
+        
+        tables_widget = QWidget()
+        self.tables_container = QVBoxLayout(tables_widget) # Keep the name
+        self.tables_container.setAlignment(Qt.AlignmentFlag.AlignTop)
+        
+        scroll_area.setWidget(tables_widget)
+        table_layout.addWidget(scroll_area)
 
         # Add placeholder text
-        self.no_tables_label = QLabel("Click 'Discover Tables' to load available tables")
-        self.no_tables_label.setStyleSheet("""
-            QLabel {
-                color: #7f8c8d;
-                font-style: italic;
-                padding: 20px;
-                text-align: center;
-            }
-        """)
+        self.no_tables_label = QLabel("Click '🔍 Discover Tables' to load tables.")
+        self.no_tables_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.no_tables_label.setStyleSheet("color: #95a5a6; font-style: italic; padding: 20px;")
         self.tables_container.addWidget(self.no_tables_label)
 
         # Sync controls
         sync_group = QGroupBox("Sync Operations")
         sync_layout = QVBoxLayout(sync_group)
 
-        self.server_to_local_btn = QPushButton("Server → Local")
+        self.server_to_local_btn = QPushButton("📥 Server → Local")
         self.server_to_local_btn.clicked.connect(lambda: self.start_sync('server_to_local'))
         self.server_to_local_btn.setProperty("class", "warning")
 
-        self.local_to_server_btn = QPushButton("Local → Server")
+        self.local_to_server_btn = QPushButton("📤 Local → Server")
         self.local_to_server_btn.clicked.connect(lambda: self.start_sync('local_to_server'))
         self.local_to_server_btn.setProperty("class", "danger")
 
@@ -386,21 +397,21 @@ class DatabaseSyncGUI(QMainWindow):
         """Create right panel with logs and status"""
         right_widget = QWidget()
         right_layout = QVBoxLayout(right_widget)
+        right_layout.setContentsMargins(5, 0, 0, 0)
 
         # Status display
         status_group = QGroupBox("Current Status")
         status_layout = QVBoxLayout(status_group)
 
         self.status_label = QLabel("Ready")
-        self.status_label.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
+        self.status_label.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.status_label.setStyleSheet("""
-            QLabel {
-                background-color: #ecf0f1;
-                color: #2c3e50;
-                padding: 10px;
-                border-radius: 6px;
-                border: 2px solid #bdc3c7;
-            }
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #5dade2;
         """)
         status_layout.addWidget(self.status_label)
 
@@ -415,9 +426,10 @@ class DatabaseSyncGUI(QMainWindow):
         self.info_table.setAlternatingRowColors(True)
         self.info_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.info_table.setMinimumHeight(200)
+        self.info_table.itemSelectionChanged.connect(self.update_selection_icons)
         info_layout.addWidget(self.info_table)
 
-        self.refresh_info_btn = QPushButton("Refresh Table Info")
+        self.refresh_info_btn = QPushButton("🔄 Refresh Table Info")
         self.refresh_info_btn.clicked.connect(self.refresh_table_info)
         info_layout.addWidget(self.refresh_info_btn)
 
@@ -427,12 +439,10 @@ class DatabaseSyncGUI(QMainWindow):
 
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
-        self.log_text.setFont(QFont("Consolas", 10))
-        self.log_text.setMinimumHeight(200)
         self.log_text.setPlaceholderText("Sync logs will appear here...")
         log_layout.addWidget(self.log_text)
 
-        self.clear_log_btn = QPushButton("Clear Logs")
+        self.clear_log_btn = QPushButton("🗑️ Clear Logs")
         self.clear_log_btn.clicked.connect(self.clear_logs)
         log_layout.addWidget(self.clear_log_btn)
 
@@ -442,6 +452,28 @@ class DatabaseSyncGUI(QMainWindow):
 
         return right_widget
 
+    def update_selection_icons(self):
+        """Adds or removes a checkmark prefix based on row selection state."""
+        selected_rows = {index.row() for index in self.info_table.selectedIndexes()}
+        
+        for i in range(self.info_table.rowCount()):
+            item = self.info_table.item(i, 0)
+            if item is None:
+                continue
+
+            text = item.text()
+            # Remove existing checkmark to handle deselection or text updates
+            if text.startswith('✓ '):
+                text = text[2:]
+
+            if i in selected_rows:
+                # Add checkmark if not already present
+                if not text.startswith('✓ '):
+                    item.setText(f'✓ {text}')
+            else:
+                # Set text back to original (without checkmark)
+                item.setText(text)
+
     def setup_logging(self):
         """Setup logging to display in GUI"""
         self.log_handler = GuiLogHandler(self.log_text)
@@ -450,70 +482,68 @@ class DatabaseSyncGUI(QMainWindow):
         logger.setLevel(logging.INFO)
 
     def test_connections(self):
-        """Test database connections"""
+        """Test database connections and update UI."""
         self.log("Testing database connections...")
         results = self.db_manager.test_connections()
 
         if results['server']:
             self.server_status_label.setText("🟢 Server: Connected")
             self.server_status_label.setStyleSheet("""
-                QLabel {
-                    color: #27ae60;
-                    font-weight: bold;
-                    padding: 5px;
-                    background-color: #d5f4e6;
-                    border-radius: 4px;
-                    border: 1px solid #27ae60;
-                }
+                color: #2ecc71;
+                background-color: #2c3e50;
+                padding: 5px;
+                border-radius: 4px;
+                border: 1px solid #2ecc71;
+                font-weight: bold;
             """)
         else:
             self.server_status_label.setText("🔴 Server: Failed")
             self.server_status_label.setStyleSheet("""
-                QLabel {
-                    color: #e74c3c;
-                    font-weight: bold;
-                    padding: 5px;
-                    background-color: #fadbd8;
-                    border-radius: 4px;
-                    border: 1px solid #e74c3c;
-                }
+                color: #e74c3c;
+                background-color: #2c3e50;
+                padding: 5px;
+                border-radius: 4px;
+                border: 1px solid #e74c3c;
+                font-weight: bold;
             """)
 
         if results['local']:
             self.local_status_label.setText("🟢 Local: Connected")
             self.local_status_label.setStyleSheet("""
-                QLabel {
-                    color: #27ae60;
-                    font-weight: bold;
-                    padding: 5px;
-                    background-color: #d5f4e6;
-                    border-radius: 4px;
-                    border: 1px solid #27ae60;
-                }
+                color: #2ecc71;
+                background-color: #2c3e50;
+                padding: 5px;
+                border-radius: 4px;
+                border: 1px solid #2ecc71;
+                font-weight: bold;
             """)
         else:
             self.local_status_label.setText("🔴 Local: Failed")
             self.local_status_label.setStyleSheet("""
-                QLabel {
-                    color: #e74c3c;
-                    font-weight: bold;
-                    padding: 5px;
-                    background-color: #fadbd8;
-                    border-radius: 4px;
-                    border: 1px solid #e74c3c;
-                }
+                color: #e74c3c;
+                background-color: #2c3e50;
+                padding: 5px;
+                border-radius: 4px;
+                border: 1px solid #e74c3c;
+                font-weight: bold;
             """)
+        return results
 
     def discover_tables(self):
         """Discover available tables from both databases"""
-        self.log("Discovering tables from databases...")
+        self.update_status("Step 1: Testing connections...")
+        QApplication.processEvents()
 
         # Test connections first
-        results = self.db_manager.test_connections()
+        results = self.test_connections()
         if not results['server'] or not results['local']:
             QMessageBox.warning(self, "Connection Error",
-                              "Please test connections first. Both databases must be accessible.")
+                              "Please ensure both database connections are successful before discovering tables.")
+            self.update_status("Connection test failed. Please check settings.")
             return
+
+        self.update_status("Step 2: Discovering tables...")
+        QApplication.processEvents()
 
         # Get tables from both databases
         server_tables = set(self.db_manager.get_all_tables(from_server=True))
@@ -524,47 +554,40 @@ class DatabaseSyncGUI(QMainWindow):
         server_only = server_tables - local_tables
         local_only = local_tables - server_tables
 
-        self.log(f"Found {len(server_tables)} tables in server, {len(local_tables)} in local")
-        self.log(f"Common tables: {len(common_tables)}")
+        self.log(f"Found {len(server_tables)} tables in server, {len(local_tables)} in local.")
+        self.log(f"Found {len(common_tables)} common tables.")
 
         if server_only:
-            self.log(f"Server only: {', '.join(sorted(server_only))}")
+            self.log(f"Server-only tables: {', '.join(sorted(server_only))}")
         if local_only:
-            self.log(f"Local only: {', '.join(sorted(local_only))}")
+            self.log(f"Local-only tables: {', '.join(sorted(local_only))}")
 
         # Update available tables
         self.available_tables = sorted(list(common_tables))
         self.update_table_checkboxes()
+        
+        self.update_status(f"Found {len(self.available_tables)} common tables.")
 
     def update_table_checkboxes(self):
         """Update table selection checkboxes"""
-        # Clear existing checkboxes
+        # Clear existing checkboxes from layout
         for checkbox in self.table_checkboxes.values():
+            self.tables_container.removeWidget(checkbox)
             checkbox.setParent(None)
         self.table_checkboxes.clear()
 
-        # Remove placeholder
-        if hasattr(self, 'no_tables_label') and self.no_tables_label:
-            self.no_tables_label.setParent(None)
-
         # Add new checkboxes
-        for table in self.available_tables:
-            checkbox = QCheckBox(table)
-            checkbox.setChecked(True)
-            self.table_checkboxes[table] = checkbox
-            self.tables_container.addWidget(checkbox)
-
-        if not self.available_tables:
-            no_common_label = QLabel("No common tables found between databases")
-            no_common_label.setStyleSheet("""
-                QLabel {
-                    color: #e74c3c;
-                    font-style: italic;
-                    padding: 20px;
-                    text-align: center;
-                }
-            """)
-            self.tables_container.addWidget(no_common_label)
+        if self.available_tables:
+            self.no_tables_label.setVisible(False)
+            for table in self.available_tables:
+                checkbox = QCheckBox(table)
+                checkbox.setChecked(True)
+                self.table_checkboxes[table] = checkbox
+                self.tables_container.addWidget(checkbox)
+        else:
+            # Show placeholder again if no tables
+            self.no_tables_label.setText("No common tables found.")
+            self.no_tables_label.setVisible(True)
 
     def select_all_tables(self):
         """Toggle select all tables"""
@@ -649,12 +672,13 @@ class DatabaseSyncGUI(QMainWindow):
         self.log("Refreshing table information...")
 
         if not self.available_tables:
-            self.log("No tables available. Please discover tables first.")
+            self.log("No tables available. Discover tables first.")
+            self.info_table.setRowCount(0)
             return
 
         results = self.db_manager.test_connections()
         if not results['server'] or not results['local']:
-            self.log("Cannot refresh: Database connections failed")
+            self.log("Cannot refresh: Database connections failed.")
             return
 
         self.info_table.setRowCount(len(self.available_tables))
@@ -663,16 +687,29 @@ class DatabaseSyncGUI(QMainWindow):
             server_count = self.db_manager.get_table_count(table, from_server=True)
             local_count = self.db_manager.get_table_count(table, from_server=False)
 
-            self.info_table.setItem(i, 0, QTableWidgetItem(table))
-            self.info_table.setItem(i, 1, QTableWidgetItem(str(server_count)))
-            self.info_table.setItem(i, 2, QTableWidgetItem(str(local_count)))
+            # Create and set items
+            item_table = QTableWidgetItem(table)
+            item_server = QTableWidgetItem(str(server_count))
+            item_local = QTableWidgetItem(str(local_count))
+
+            # Center align count columns
+            item_server.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            item_local.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            self.info_table.setItem(i, 0, item_table)
+            self.info_table.setItem(i, 1, item_server)
+            self.info_table.setItem(i, 2, item_local)
 
             # Color code rows based on count differences
+            highlight_color = QColor("#574B2B") # Dark yellow for differences
+            transparent_color = QColor("transparent")
+
             if server_count != local_count:
                 for col in range(3):
-                    item = self.info_table.item(i, col)
-                    if item:
-                        item.setBackground(QColor("#fff2cc"))  # Light yellow for differences
+                    self.info_table.item(i, col).setBackground(highlight_color)
+            else:
+                for col in range(3):
+                    self.info_table.item(i, col).setBackground(transparent_color)
 
     def clear_logs(self):
         """Clear log display"""
