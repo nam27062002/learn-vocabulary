@@ -22,7 +22,14 @@ class DatabaseManager:
     def __init__(self):
         self.server_conn = None
         self.local_conn = None
+        self.target_server_conn = None  # For PostgreSQL to PostgreSQL sync
         self._connection_lock = None
+
+        # Configuration storage
+        self.server_config = None
+        self.local_config = None
+        self.target_server_config = None
+
         self._initialize_threading()
 
     def _initialize_threading(self):
@@ -52,12 +59,21 @@ class DatabaseManager:
                     pass
                 self.server_conn = None
 
+            # Use custom config if set, otherwise use default
+            config = self.server_config or {
+                'host': SERVER_DB_CONFIG['HOST'],
+                'database': SERVER_DB_CONFIG['NAME'],
+                'user': SERVER_DB_CONFIG['USER'],
+                'password': SERVER_DB_CONFIG['PASSWORD'],
+                'port': SERVER_DB_CONFIG['PORT']
+            }
+
             self.server_conn = psycopg2.connect(
-                host=SERVER_DB_CONFIG['HOST'],
-                database=SERVER_DB_CONFIG['NAME'],
-                user=SERVER_DB_CONFIG['USER'],
-                password=SERVER_DB_CONFIG['PASSWORD'],
-                port=SERVER_DB_CONFIG['PORT'],
+                host=config['host'],
+                database=config['database'],
+                user=config['user'],
+                password=config['password'],
+                port=config['port'],
                 connect_timeout=10  # Add timeout
             )
             logger.info("Connected to PostgreSQL server successfully")
@@ -586,9 +602,103 @@ class DatabaseManager:
                 finally:
                     self.local_conn = None
 
+            if self.target_server_conn:
+                try:
+                    self.target_server_conn.close()
+                except Exception as e:
+                    logger.warning(f"Error closing target server connection: {e}")
+                finally:
+                    self.target_server_conn = None
+
             logger.info("All database connections closed")
         except Exception as e:
             logger.error(f"Error in close_connections: {e}")
+
+    def connect_target_server(self) -> bool:
+        """Connect to target PostgreSQL server for PostgreSQL-to-PostgreSQL sync"""
+        if not self.target_server_config:
+            logger.error("Target server configuration not set")
+            return False
+
+        if self._connection_lock:
+            with self._connection_lock:
+                return self._connect_target_server_unsafe()
+        else:
+            return self._connect_target_server_unsafe()
+
+    def _connect_target_server_unsafe(self) -> bool:
+        """Internal target server connection method"""
+        try:
+            # Close existing connection if any
+            if self.target_server_conn:
+                try:
+                    self.target_server_conn.close()
+                except:
+                    pass
+                self.target_server_conn = None
+
+            config = self.target_server_config
+            # Check if this is Render.com server (requires SSL)
+            requires_ssl = 'render.com' in config['host']
+
+            connect_params = {
+                'host': config['host'],
+                'database': config['database'],
+                'user': config['user'],
+                'password': config['password'],
+                'port': config['port'],
+                'connect_timeout': 10
+            }
+
+            if requires_ssl:
+                connect_params['sslmode'] = 'require'
+
+            self.target_server_conn = psycopg2.connect(**connect_params)
+            logger.info("Connected to target PostgreSQL server successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to connect to target PostgreSQL server: {e}")
+            self.target_server_conn = None
+            return False
+
+    def connect_local_postgresql(self) -> bool:
+        """Connect to local PostgreSQL database"""
+        if not self.local_config or self.local_config.get('type') != 'PostgreSQL':
+            logger.error("Local PostgreSQL configuration not set or not PostgreSQL type")
+            return False
+
+        if self._connection_lock:
+            with self._connection_lock:
+                return self._connect_local_postgresql_unsafe()
+        else:
+            return self._connect_local_postgresql_unsafe()
+
+    def _connect_local_postgresql_unsafe(self) -> bool:
+        """Internal local PostgreSQL connection method"""
+        try:
+            # Close existing connection if any
+            if self.local_conn:
+                try:
+                    self.local_conn.close()
+                except:
+                    pass
+                self.local_conn = None
+
+            config = self.local_config
+            self.local_conn = psycopg2.connect(
+                host=config['host'],
+                database=config['database'],
+                user=config['user'],
+                password=config['password'],
+                port=config['port'],
+                connect_timeout=10  # Add timeout
+            )
+            logger.info("Connected to local PostgreSQL database successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to connect to local PostgreSQL database: {e}")
+            self.local_conn = None
+            return False
 
     def __del__(self):
         """Destructor to ensure connections are closed"""

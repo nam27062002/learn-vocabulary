@@ -8,10 +8,11 @@ from PyQt6.QtWidgets import (
     QPushButton, QLabel, QTextEdit, QProgressBar, QGroupBox,
     QCheckBox, QMessageBox, QSplitter, QTableWidget, QTableWidgetItem,
     QHeaderView, QFrame, QScrollArea, QProgressDialog, QLineEdit,
-    QHBoxLayout, QVBoxLayout, QGridLayout
+    QHBoxLayout, QVBoxLayout, QGridLayout, QComboBox, QSpinBox,
+    QTabWidget, QFormLayout, QDialog, QDialogButtonBox
 )
 from PyQt6.QtCore import (
-    QThread, pyqtSignal, Qt, QTimer, QEasingCurve, QPropertyAnimation,
+    Qt, QTimer, QEasingCurve, QPropertyAnimation,
     QByteArray, QParallelAnimationGroup, QSequentialAnimationGroup, QRect
 )
 from PyQt6.QtGui import (
@@ -23,13 +24,332 @@ from sync_worker import SafeSyncWorker
 import logging
 from datetime import datetime
 
+class DatabaseConfigDialog(QDialog):
+    """Dialog for configuring database connection settings"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Database Configuration")
+        self.setModal(True)
+        self.resize(600, 500)
+        self.setup_ui()
+        self.load_current_config()
+
+    def setup_ui(self):
+        """Setup the configuration dialog UI"""
+        layout = QVBoxLayout(self)
+
+        # Create tab widget
+        self.tab_widget = QTabWidget()
+        layout.addWidget(self.tab_widget)
+
+        # PostgreSQL Server Tab
+        self.server_tab = QWidget()
+        self.setup_server_tab()
+        self.tab_widget.addTab(self.server_tab, "PostgreSQL Server")
+
+        # Local Database Tab
+        self.local_tab = QWidget()
+        self.setup_local_tab()
+        self.tab_widget.addTab(self.local_tab, "Local Database")
+
+        # Target PostgreSQL Server Tab (for PG to PG sync)
+        self.target_server_tab = QWidget()
+        self.setup_target_server_tab()
+        self.tab_widget.addTab(self.target_server_tab, "Target PostgreSQL Server")
+
+        # Buttons
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok |
+            QDialogButtonBox.StandardButton.Cancel |
+            QDialogButtonBox.StandardButton.Apply
+        )
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        button_box.button(QDialogButtonBox.StandardButton.Apply).clicked.connect(self.apply_config)
+
+        test_btn = QPushButton("Test Connections")
+        test_btn.clicked.connect(self.test_connections)
+        button_box.addButton(test_btn, QDialogButtonBox.ButtonRole.ActionRole)
+
+        layout.addWidget(button_box)
+
+        # Apply modern styling
+        self.setStyleSheet("""
+            QDialog {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #1a1a2e, stop:1 #16213e);
+                color: white;
+            }
+            QTabWidget::pane {
+                border: 1px solid rgba(255,255,255,0.2);
+                border-radius: 8px;
+                background: rgba(255,255,255,0.05);
+            }
+            QTabBar::tab {
+                background: rgba(255,255,255,0.1);
+                color: white;
+                padding: 8px 16px;
+                margin: 2px;
+                border-radius: 6px;
+            }
+            QTabBar::tab:selected {
+                background: rgba(255,255,255,0.2);
+            }
+            QLineEdit, QSpinBox, QComboBox {
+                background: rgba(255,255,255,0.1);
+                border: 1px solid rgba(255,255,255,0.3);
+                border-radius: 6px;
+                padding: 8px;
+                color: white;
+            }
+            QLabel {
+                color: white;
+            }
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #4facfe, stop:1 #00f2fe);
+                border: none;
+                border-radius: 8px;
+                padding: 10px 20px;
+                color: white;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #6fc5ff, stop:1 #2af5ff);
+            }
+        """)
+
+    def setup_server_tab(self):
+        """Setup PostgreSQL server configuration tab"""
+        layout = QFormLayout(self.server_tab)
+
+        self.server_host = QLineEdit()
+        self.server_port = QSpinBox()
+        self.server_port.setRange(1, 65535)
+        self.server_port.setValue(5432)
+        self.server_db = QLineEdit()
+        self.server_user = QLineEdit()
+        self.server_password = QLineEdit()
+        self.server_password.setEchoMode(QLineEdit.EchoMode.Password)
+
+        layout.addRow("Host:", self.server_host)
+        layout.addRow("Port:", self.server_port)
+        layout.addRow("Database:", self.server_db)
+        layout.addRow("Username:", self.server_user)
+        layout.addRow("Password:", self.server_password)
+
+    def setup_local_tab(self):
+        """Setup local database configuration tab"""
+        layout = QFormLayout(self.local_tab)
+
+        self.local_type = QComboBox()
+        self.local_type.addItems(["SQLite", "PostgreSQL"])
+        self.local_type.currentTextChanged.connect(self.on_local_type_changed)
+
+        self.local_path = QLineEdit()
+
+        # PostgreSQL fields (initially hidden)
+        self.local_host = QLineEdit()
+        self.local_port = QSpinBox()
+        self.local_port.setRange(1, 65535)
+        self.local_port.setValue(5432)
+        self.local_db = QLineEdit()
+        self.local_user = QLineEdit()
+        self.local_password = QLineEdit()
+        self.local_password.setEchoMode(QLineEdit.EchoMode.Password)
+
+        layout.addRow("Database Type:", self.local_type)
+        layout.addRow("SQLite File Path:", self.local_path)
+
+        # PostgreSQL fields
+        self.local_host_row = layout.addRow("Host:", self.local_host)
+        self.local_port_row = layout.addRow("Port:", self.local_port)
+        self.local_db_row = layout.addRow("Database:", self.local_db)
+        self.local_user_row = layout.addRow("Username:", self.local_user)
+        self.local_password_row = layout.addRow("Password:", self.local_password)
+
+        # Initially hide PostgreSQL fields
+        self.on_local_type_changed("SQLite")
+
+    def setup_target_server_tab(self):
+        """Setup target PostgreSQL server configuration tab"""
+        layout = QFormLayout(self.target_server_tab)
+
+        self.target_host = QLineEdit()
+        self.target_port = QSpinBox()
+        self.target_port.setRange(1, 65535)
+        self.target_port.setValue(5432)
+        self.target_db = QLineEdit()
+        self.target_user = QLineEdit()
+        self.target_password = QLineEdit()
+        self.target_password.setEchoMode(QLineEdit.EchoMode.Password)
+
+        layout.addRow("Host:", self.target_host)
+        layout.addRow("Port:", self.target_port)
+        layout.addRow("Database:", self.target_db)
+        layout.addRow("Username:", self.target_user)
+        layout.addRow("Password:", self.target_password)
+
+        info_label = QLabel("Configure target PostgreSQL server for PostgreSQL-to-PostgreSQL sync")
+        info_label.setWordWrap(True)
+        info_label.setStyleSheet("color: #4facfe; font-style: italic;")
+        layout.addRow(info_label)
+
+    def on_local_type_changed(self, db_type):
+        """Handle local database type change"""
+        is_sqlite = db_type == "SQLite"
+
+        # Show/hide SQLite fields
+        self.local_path.setVisible(is_sqlite)
+        local_layout = self.local_tab.layout()
+        if local_layout:
+            label = local_layout.labelForField(self.local_path)
+            if label:
+                label.setVisible(is_sqlite)
+
+        # Show/hide PostgreSQL fields
+        self.local_host.setVisible(not is_sqlite)
+        self.local_port.setVisible(not is_sqlite)
+        self.local_db.setVisible(not is_sqlite)
+        self.local_user.setVisible(not is_sqlite)
+        self.local_password.setVisible(not is_sqlite)
+
+        # Find and hide/show labels
+        layout = self.local_tab.layout()
+        for i in range(layout.rowCount()):
+            item = layout.itemAt(i, QFormLayout.ItemRole.LabelRole)
+            if item:
+                label = item.widget()
+                if label and isinstance(label, QLabel):
+                    text = label.text()
+                    if text in ["Host:", "Port:", "Database:", "Username:", "Password:"]:
+                        label.setVisible(not is_sqlite)
+
+    def load_current_config(self):
+        """Load current database configuration"""
+        # Load from environment or default values
+        import os
+
+        # Server config
+        self.server_host.setText(os.getenv('DB_HOST', 'localhost'))
+        self.server_port.setValue(int(os.getenv('DB_PORT', '5432')))
+        self.server_db.setText(os.getenv('DB_NAME', 'learn_english_db'))
+        self.server_user.setText(os.getenv('DB_USER', 'postgres'))
+        self.server_password.setText(os.getenv('DB_PASSWORD', ''))
+
+        # Local config
+        self.local_path.setText('db.sqlite3')
+
+        # Target server config (default to render.com PostgreSQL)
+        self.target_host.setText('dpg-d32033juibrs739dn540-a.oregon-postgres.render.com')
+        self.target_port.setValue(5432)
+        self.target_db.setText('learn_english_db_wuep')
+        self.target_user.setText('learn_english_db_wuep_user')
+        self.target_password.setText('RSZefSFspMPlsqz5MnxJeeUkKueWjSLH')
+
+    def get_config(self):
+        """Get current configuration"""
+        return {
+            'server': {
+                'host': self.server_host.text(),
+                'port': self.server_port.value(),
+                'database': self.server_db.text(),
+                'user': self.server_user.text(),
+                'password': self.server_password.text()
+            },
+            'local': {
+                'type': self.local_type.currentText(),
+                'path': self.local_path.text(),
+                'host': self.local_host.text(),
+                'port': self.local_port.value(),
+                'database': self.local_db.text(),
+                'user': self.local_user.text(),
+                'password': self.local_password.text()
+            },
+            'target_server': {
+                'host': self.target_host.text(),
+                'port': self.target_port.value(),
+                'database': self.target_db.text(),
+                'user': self.target_user.text(),
+                'password': self.target_password.text()
+            }
+        }
+
+    def apply_config(self):
+        """Apply configuration without closing dialog"""
+        config = self.get_config()
+        if hasattr(self.parent(), 'apply_database_config'):
+            self.parent().apply_database_config(config)
+        QMessageBox.information(self, "Configuration", "Database configuration applied successfully!")
+
+    def test_connections(self):
+        """Test database connections"""
+        config = self.get_config()
+        results = []
+
+        # Test server connection
+        try:
+            from database_manager import DatabaseManager
+            db_manager = DatabaseManager()
+
+            # Override config temporarily for testing
+            db_manager.server_config = config['server']
+            if db_manager.connect_server():
+                results.append("✅ PostgreSQL Server: Connection successful")
+                db_manager.close_connections()
+            else:
+                results.append("❌ PostgreSQL Server: Connection failed")
+        except Exception as e:
+            results.append(f"❌ PostgreSQL Server: {str(e)}")
+
+        # Test local connection
+        try:
+            if config['local']['type'] == 'SQLite':
+                results.append("✅ Local SQLite: Configuration valid")
+            else:
+                # Test PostgreSQL local connection
+                db_manager = DatabaseManager()
+                db_manager.local_config = config['local']
+                if hasattr(db_manager, 'connect_local_postgresql'):
+                    if db_manager.connect_local_postgresql():
+                        results.append("✅ Local PostgreSQL: Connection successful")
+                        db_manager.close_connections()
+                    else:
+                        results.append("❌ Local PostgreSQL: Connection failed")
+                else:
+                    results.append("⚠️ Local PostgreSQL: Feature not implemented yet")
+        except Exception as e:
+            results.append(f"❌ Local Database: {str(e)}")
+
+        # Test target server connection (if configured)
+        if config['target_server']['host']:
+            try:
+                db_manager = DatabaseManager()
+                db_manager.target_server_config = config['target_server']
+                if hasattr(db_manager, 'connect_target_server'):
+                    if db_manager.connect_target_server():
+                        results.append("✅ Target PostgreSQL Server: Connection successful")
+                        db_manager.close_connections()
+                    else:
+                        results.append("❌ Target PostgreSQL Server: Connection failed")
+                else:
+                    results.append("⚠️ Target PostgreSQL Server: Feature not implemented yet")
+            except Exception as e:
+                results.append(f"❌ Target PostgreSQL Server: {str(e)}")
+
+        QMessageBox.information(self, "Connection Test Results", "\n".join(results))
+
 class DatabaseSyncGUI(QMainWindow):
     def __init__(self):
         super().__init__()
         self.db_manager = DatabaseManager()
         self.sync_worker = None
+        self.sync_timer = None
         self.available_tables = []
         self.button_animations = {}  # Store button animations
+        self.database_config = None  # Store database configuration
         self.init_ui()
         self.setup_logging()
         self.setup_keyboard_shortcuts()
@@ -533,6 +853,105 @@ class DatabaseSyncGUI(QMainWindow):
         shortcuts_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
         table_layout.addWidget(shortcuts_hint)
 
+        # Database Configuration group
+        config_group = QGroupBox("⚙️ Database Configuration")
+        config_layout = QVBoxLayout(config_group)
+
+        self.config_db_btn = QPushButton("🔧 Configure Databases")
+        self.config_db_btn.setMinimumWidth(140)
+        self.config_db_btn.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #667eea, stop:1 #764ba2);
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 12px;
+                letter-spacing: 0.3px;
+                text-transform: uppercase;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #7c8ff4, stop:1 #8662c4);
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            }
+            QPushButton:pressed {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #5a74d6, stop:1 #6a4499);
+                transform: translateY(0px);
+            }
+        """)
+        self.config_db_btn.clicked.connect(self.open_database_config)
+        self.config_db_btn.clicked.connect(lambda: self.animate_button_click(self.config_db_btn))
+
+        config_layout.addWidget(self.config_db_btn)
+
+        # Sync Destination group
+        dest_group = QGroupBox("🎯 Sync Destination")
+        dest_layout = QVBoxLayout(dest_group)
+
+        # Destination type selection
+        self.destination_type = QComboBox()
+        self.destination_type.addItems([
+            "PostgreSQL → SQLite (Local)",
+            "SQLite → PostgreSQL (Server)",
+            "PostgreSQL → PostgreSQL (Server)"
+        ])
+        self.destination_type.setStyleSheet("""
+            QComboBox {
+                background: rgba(255,255,255,0.1);
+                border: 2px solid rgba(255,255,255,0.2);
+                border-radius: 8px;
+                padding: 8px 12px;
+                color: white;
+                font-weight: 500;
+                min-height: 20px;
+            }
+            QComboBox:hover {
+                border-color: #667eea;
+                background: rgba(102, 126, 234, 0.1);
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 30px;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid white;
+                margin-right: 5px;
+            }
+            QComboBox QAbstractItemView {
+                background: #2c3e50;
+                border: 1px solid rgba(255,255,255,0.2);
+                border-radius: 8px;
+                color: white;
+                selection-background-color: #667eea;
+            }
+        """)
+        self.destination_type.currentTextChanged.connect(self.on_destination_changed)
+
+        dest_layout.addWidget(self.destination_type)
+
+        # Status label for destination
+        self.destination_status = QLabel("📊 Standard sync to SQLite local database")
+        self.destination_status.setStyleSheet("""
+            QLabel {
+                color: #95a5a6;
+                font-size: 11px;
+                font-style: italic;
+                padding: 5px;
+                background-color: rgba(149, 165, 166, 0.1);
+                border-radius: 4px;
+            }
+        """)
+        self.destination_status.setWordWrap(True)
+        dest_layout.addWidget(self.destination_status)
+
         # Sync controls with modern styling
         sync_group = QGroupBox("⚡ Sync Operations")
         sync_layout = QVBoxLayout(sync_group)
@@ -577,6 +996,8 @@ class DatabaseSyncGUI(QMainWindow):
         sync_layout.addLayout(progress_layout)
 
         left_layout.addWidget(conn_group)
+        left_layout.addWidget(config_group)
+        left_layout.addWidget(dest_group)
         left_layout.addWidget(table_group)
         left_layout.addWidget(sync_group)
         left_layout.addStretch()
@@ -681,6 +1102,35 @@ class DatabaseSyncGUI(QMainWindow):
         right_layout.addWidget(log_group)
 
         return right_widget
+
+    def on_destination_changed(self, destination_text):
+        """Handle destination type change"""
+        if "PostgreSQL → SQLite" in destination_text:
+            self.destination_status.setText("📊 Standard sync from PostgreSQL server to local SQLite database")
+            self.server_to_local_btn.setText("📥 Server → Local (SQLite)")
+            self.local_to_server_btn.setText("📤 Local (SQLite) → Server")
+
+        elif "SQLite → PostgreSQL" in destination_text:
+            self.destination_status.setText("📤 Upload sync from local SQLite to PostgreSQL server")
+            self.server_to_local_btn.setText("📥 Server → Local (SQLite)")
+            self.local_to_server_btn.setText("📤 Local (SQLite) → Server")
+
+        elif "PostgreSQL → PostgreSQL" in destination_text:
+            self.destination_status.setText("🔄 Advanced sync between two PostgreSQL servers. Configure target server in Database Configuration.")
+            self.server_to_local_btn.setText("📥 Source Server → Target Server")
+            self.local_to_server_btn.setText("📤 Target Server → Source Server")
+
+        self.log(f"Sync destination changed to: {destination_text}")
+
+    def get_current_sync_mode(self):
+        """Get current sync mode based on destination selection"""
+        dest_text = self.destination_type.currentText()
+        if "PostgreSQL → PostgreSQL" in dest_text:
+            return "postgresql_to_postgresql"
+        elif "SQLite → PostgreSQL" in dest_text:
+            return "sqlite_to_postgresql"
+        else:
+            return "postgresql_to_sqlite"
 
     def update_selection_icons(self):
         """Adds or removes a checkmark prefix based on row selection state."""
@@ -989,9 +1439,33 @@ class DatabaseSyncGUI(QMainWindow):
                               "or use the search box to find specific tables.")
             return
 
-        # Confirmation dialog
-        direction_text = "Server → Local" if direction == 'server_to_local' else "Local → Server"
-        target = "local" if direction == 'server_to_local' else "server"
+        # Get current sync mode
+        sync_mode = self.get_current_sync_mode()
+
+        # Check if target server is configured for PostgreSQL to PostgreSQL sync
+        if sync_mode == "postgresql_to_postgresql":
+            if not (self.database_config and
+                    self.database_config.get('target_server') and
+                    self.database_config['target_server'].get('host')):
+                QMessageBox.warning(self, "Target Server Not Configured",
+                                  "PostgreSQL to PostgreSQL sync requires a target server to be configured.\n\n"
+                                  "Please click '🔧 Configure Databases' and set up the Target PostgreSQL Server.")
+                return
+
+        # Build confirmation dialog based on sync mode
+        if sync_mode == "postgresql_to_postgresql":
+            if direction == 'server_to_local':
+                direction_text = "Source Server → Target Server"
+                target = "target server"
+            else:
+                direction_text = "Target Server → Source Server"
+                target = "source server"
+        elif sync_mode == "sqlite_to_postgresql":
+            direction_text = "SQLite Local → PostgreSQL Server" if direction == 'local_to_server' else "PostgreSQL Server → SQLite Local"
+            target = "server" if direction == 'local_to_server' else "local SQLite"
+        else:  # postgresql_to_sqlite (default)
+            direction_text = "PostgreSQL Server → SQLite Local" if direction == 'server_to_local' else "SQLite Local → PostgreSQL Server"
+            target = "local SQLite" if direction == 'server_to_local' else "server"
 
         reply = QMessageBox.question(
             self,
@@ -999,15 +1473,16 @@ class DatabaseSyncGUI(QMainWindow):
             f"Are you sure you want to sync {direction_text}?\n\n"
             f"This will COMPLETELY CLEAR all data in the {target} database tables:\n"
             f"{', '.join(selected_tables)}\n\n"
+            f"Sync Mode: {sync_mode.replace('_', ' ').title()}\n"
             f"This operation cannot be undone!",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            self._execute_sync(direction, selected_tables)
+            self._execute_sync(direction, selected_tables, sync_mode)
 
-    def _execute_sync(self, direction: str, selected_tables: list):
+    def _execute_sync(self, direction: str, selected_tables: list, sync_mode: str = "postgresql_to_sqlite"):
         """Execute the sync operation using safe multiprocessing"""
         # Disable buttons
         self.server_to_local_btn.setEnabled(False)
@@ -1024,8 +1499,12 @@ class DatabaseSyncGUI(QMainWindow):
                 callback_finished=self.sync_finished
             )
 
-            # Start sync in separate process
-            self.sync_worker.start_sync(selected_tables, direction)
+            # Apply current database configuration to sync worker
+            if self.database_config:
+                self.sync_worker.set_database_config(self.database_config)
+
+            # Start sync in separate process with sync mode
+            self.sync_worker.start_sync(selected_tables, direction, sync_mode)
 
             # Start timer to check for results from the multiprocessing worker
             self.sync_timer = QTimer()
@@ -1389,6 +1868,31 @@ class DatabaseSyncGUI(QMainWindow):
         timestamp = datetime.now().strftime("%H:%M:%S")
         self.log_text.append(f"[{timestamp}] {message}")
         self.log_text.ensureCursorVisible()
+
+    def apply_database_config(self, config):
+        """Apply database configuration to DatabaseManager"""
+        self.database_config = config
+
+        # Apply server config
+        if config['server']:
+            self.db_manager.server_config = config['server']
+
+        # Apply local config
+        if config['local']:
+            self.db_manager.local_config = config['local']
+
+        # Apply target server config
+        if config['target_server'] and config['target_server']['host']:
+            self.db_manager.target_server_config = config['target_server']
+
+        self.log(f"Database configuration applied successfully")
+
+    def open_database_config(self):
+        """Open database configuration dialog"""
+        dialog = DatabaseConfigDialog(self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            config = dialog.get_config()
+            self.apply_database_config(config)
 
 class GuiLogHandler(logging.Handler):
     """Custom log handler for GUI display"""
