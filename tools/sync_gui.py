@@ -161,9 +161,9 @@ class DatabaseSyncGUI(QMainWindow):
     def init_ui(self):
         """Initialize the modern user interface"""
         self.setWindowTitle("🔄 Database Sync Tool - Learn English App")
-        self.setGeometry(100, 100, 1600, 1000)
-        self.setMinimumSize(1400, 800)
-        # Remove maximum size restriction for fullscreen support
+        self.setGeometry(100, 100, 1200, 750)
+        self.setMinimumSize(1000, 600)
+        self.setMaximumSize(1400, 900)  # Compact but not too restrictive
         self.setFont(QFont('Inter', 10))  # Modern font
 
         # Enable all window controls including fullscreen
@@ -188,14 +188,14 @@ class DatabaseSyncGUI(QMainWindow):
                 font-weight: 400;
             }
 
-            /* Modern Card-style GroupBox */
+            /* Compact Card-style GroupBox */
             QGroupBox {
                 font-weight: 600;
-                font-size: 14px;
+                font-size: 13px;
                 border: none;
-                border-radius: 16px;
-                margin-top: 12px;
-                padding: 24px 16px 16px 16px;
+                border-radius: 12px;
+                margin-top: 8px;
+                padding: 16px 12px 12px 12px;
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 rgba(255,255,255,0.08), stop:1 rgba(255,255,255,0.04));
                 backdrop-filter: blur(10px);
@@ -204,29 +204,29 @@ class DatabaseSyncGUI(QMainWindow):
             QGroupBox::title {
                 subcontrol-origin: margin;
                 subcontrol-position: top left;
-                left: 20px;
-                top: 8px;
-                padding: 8px 16px;
+                left: 16px;
+                top: 6px;
+                padding: 6px 12px;
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 #667eea, stop:1 #764ba2);
                 color: #ffffff;
-                border-radius: 20px;
-                font-size: 13px;
+                border-radius: 16px;
+                font-size: 12px;
                 font-weight: 600;
-                letter-spacing: 0.5px;
+                letter-spacing: 0.3px;
             }
 
-            /* Modern Button Design */
+            /* Compact Button Design */
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 #667eea, stop:1 #764ba2);
                 color: white;
                 border: none;
-                padding: 14px 28px;
-                border-radius: 12px;
+                padding: 10px 20px;
+                border-radius: 8px;
                 font-weight: 600;
-                font-size: 13px;
-                letter-spacing: 0.5px;
+                font-size: 12px;
+                letter-spacing: 0.3px;
                 text-transform: uppercase;
             }
             QPushButton:hover {
@@ -245,19 +245,19 @@ class DatabaseSyncGUI(QMainWindow):
                 color: rgba(255,255,255,0.3);
             }
 
-            /* Modern Checkbox */
+            /* Compact Checkbox */
             QCheckBox {
-                font-size: 13px;
+                font-size: 12px;
                 color: #e8e9ea;
-                spacing: 12px;
-                padding: 8px;
+                spacing: 8px;
+                padding: 4px;
                 font-weight: 500;
             }
             QCheckBox::indicator {
-                width: 20px;
-                height: 20px;
+                width: 16px;
+                height: 16px;
                 border: 2px solid rgba(255,255,255,0.3);
-                border-radius: 6px;
+                border-radius: 4px;
                 background: rgba(255,255,255,0.05);
             }
             QCheckBox::indicator:hover {
@@ -279,14 +279,14 @@ class DatabaseSyncGUI(QMainWindow):
                 font-weight: 500;
             }
 
-            /* Modern Text Input */
+            /* Compact Text Input */
             QLineEdit {
-                padding: 12px 16px;
+                padding: 8px 12px;
                 border: 2px solid rgba(255,255,255,0.1);
-                border-radius: 10px;
+                border-radius: 6px;
                 background: rgba(255,255,255,0.05);
                 color: #e8e9ea;
-                font-size: 13px;
+                font-size: 12px;
                 font-weight: 500;
             }
             QLineEdit:focus {
@@ -295,32 +295,32 @@ class DatabaseSyncGUI(QMainWindow):
                 outline: none;
             }
 
-            /* Modern Text Area */
+            /* Compact Text Area */
             QTextEdit {
                 background: rgba(0,0,0,0.3);
                 border: 1px solid rgba(255,255,255,0.1);
-                border-radius: 12px;
+                border-radius: 8px;
                 color: #e8e9ea;
                 font-family: 'JetBrains Mono', 'Consolas', monospace;
-                font-size: 12px;
-                padding: 16px;
+                font-size: 11px;
+                padding: 12px;
                 selection-background-color: #667eea;
-                line-height: 1.5;
+                line-height: 1.4;
             }
 
-            /* Modern Table */
+            /* Compact Table */
             QTableWidget {
                 background: rgba(255,255,255,0.05);
                 border: 1px solid rgba(255,255,255,0.1);
-                border-radius: 12px;
+                border-radius: 8px;
                 gridline-color: rgba(255,255,255,0.08);
                 color: #e8e9ea;
-                font-size: 13px;
+                font-size: 12px;
                 font-weight: 500;
                 alternate-background-color: rgba(255,255,255,0.02);
             }
             QTableWidget::item {
-                padding: 16px 12px;
+                padding: 8px 6px;
                 border-bottom: 1px solid rgba(255,255,255,0.05);
             }
             QTableWidget::item:selected {
@@ -333,13 +333,13 @@ class DatabaseSyncGUI(QMainWindow):
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 rgba(102, 126, 234, 0.2), stop:1 rgba(118, 75, 162, 0.2));
                 color: white;
-                padding: 16px 12px;
+                padding: 8px 6px;
                 border: none;
                 border-bottom: 2px solid #667eea;
                 font-weight: 600;
-                font-size: 13px;
+                font-size: 11px;
                 text-transform: uppercase;
-                letter-spacing: 0.5px;
+                letter-spacing: 0.3px;
             }
 
             /* Modern Progress Bar */
@@ -410,10 +410,10 @@ class DatabaseSyncGUI(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
-        # Main layout with modern spacing
+        # Main layout with compact spacing
         main_layout = QHBoxLayout(central_widget)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(16)
+        main_layout.setContentsMargins(12, 12, 12, 12)
+        main_layout.setSpacing(8)
 
         # Left panel - Controls
         left_panel = self.create_left_panel()
@@ -426,10 +426,10 @@ class DatabaseSyncGUI(QMainWindow):
         splitter.addWidget(left_panel)
         splitter.addWidget(right_panel)
 
-        # Responsive sizing based on window size
+        # Compact responsive sizing
         total_width = self.width()
-        left_width = min(450, int(total_width * 0.35))  # 35% but max 450px
-        right_width = total_width - left_width - 40  # Account for margins
+        left_width = min(350, int(total_width * 0.4))  # 40% but max 350px for compact design
+        right_width = total_width - left_width - 32  # Account for margins
 
         splitter.setSizes([left_width, right_width])
         splitter.setHandleWidth(3)
@@ -447,10 +447,10 @@ class DatabaseSyncGUI(QMainWindow):
         """Handle window resize for responsive design"""
         super().resizeEvent(event)
         if hasattr(self, 'main_splitter'):
-            # Adjust splitter sizes on window resize
+            # Adjust splitter sizes on window resize (compact)
             total_width = self.width()
-            left_width = min(450, int(total_width * 0.35))
-            right_width = total_width - left_width - 60  # Account for margins and splitter
+            left_width = min(350, int(total_width * 0.4))
+            right_width = total_width - left_width - 32  # Account for margins and splitter
 
             self.main_splitter.setSizes([left_width, right_width])
 
@@ -458,8 +458,8 @@ class DatabaseSyncGUI(QMainWindow):
         """Create left control panel"""
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
-        left_layout.setContentsMargins(0, 0, 8, 0)
-        left_layout.setSpacing(16)
+        left_layout.setContentsMargins(0, 0, 6, 0)
+        left_layout.setSpacing(10)
 
         # Connection status with modern styling
         conn_group = QGroupBox("🔗 Database Connections")
@@ -472,18 +472,18 @@ class DatabaseSyncGUI(QMainWindow):
         self.local_status_label.setStyleSheet("padding: 5px; border-radius: 4px; font-weight: bold;")
         
         self.test_conn_btn = QPushButton("🔌 Test Connections")
-        self.test_conn_btn.setMinimumWidth(180)
+        self.test_conn_btn.setMinimumWidth(140)
         self.test_conn_btn.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 #56ab2f, stop:1 #a8e6cf);
                 color: white;
                 border: none;
-                padding: 14px 28px;
-                border-radius: 12px;
+                padding: 10px 20px;
+                border-radius: 8px;
                 font-weight: 600;
-                font-size: 13px;
-                letter-spacing: 0.5px;
+                font-size: 12px;
+                letter-spacing: 0.3px;
                 text-transform: uppercase;
             }
             QPushButton:hover {
@@ -543,12 +543,12 @@ class DatabaseSyncGUI(QMainWindow):
         button_layout.setSpacing(10)
 
         self.select_all_btn = QPushButton("Select / Deselect All")
-        self.select_all_btn.setMinimumWidth(150)
+        self.select_all_btn.setMinimumWidth(120)
         self.select_all_btn.clicked.connect(self.select_all_tables)
         self.select_all_btn.clicked.connect(lambda: self.animate_button_click(self.select_all_btn))
 
         self.discover_tables_btn = QPushButton("🔍 Discover Tables")
-        self.discover_tables_btn.setMinimumWidth(150)
+        self.discover_tables_btn.setMinimumWidth(120)
         self.discover_tables_btn.clicked.connect(self.discover_tables)
         self.discover_tables_btn.clicked.connect(lambda: self.animate_button_click(self.discover_tables_btn))
 
@@ -562,7 +562,7 @@ class DatabaseSyncGUI(QMainWindow):
         self.table_checkboxes = {}
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        scroll_area.setMinimumHeight(200)
+        scroll_area.setMinimumHeight(150)
         
         tables_widget = QWidget()
         self.tables_container = QVBoxLayout(tables_widget) # Keep the name
@@ -612,13 +612,13 @@ class DatabaseSyncGUI(QMainWindow):
         sync_layout = QVBoxLayout(sync_group)
 
         self.server_to_local_btn = QPushButton("📥 Server → Local")
-        self.server_to_local_btn.setMinimumWidth(180)
+        self.server_to_local_btn.setMinimumWidth(140)
         self.server_to_local_btn.clicked.connect(lambda: self.start_sync('server_to_local'))
         self.server_to_local_btn.clicked.connect(lambda: self.animate_button_click(self.server_to_local_btn))
         self.server_to_local_btn.setProperty("class", "warning")
 
         self.local_to_server_btn = QPushButton("📤 Local → Server")
-        self.local_to_server_btn.setMinimumWidth(180)
+        self.local_to_server_btn.setMinimumWidth(140)
         self.local_to_server_btn.clicked.connect(lambda: self.start_sync('local_to_server'))
         self.local_to_server_btn.clicked.connect(lambda: self.animate_button_click(self.local_to_server_btn))
         self.local_to_server_btn.setProperty("class", "danger")
@@ -699,7 +699,7 @@ class DatabaseSyncGUI(QMainWindow):
         # Table with scroll area for better responsiveness
         table_scroll = QScrollArea()
         table_scroll.setWidgetResizable(True)
-        table_scroll.setMinimumHeight(250)
+        table_scroll.setMinimumHeight(180)
         table_scroll.setStyleSheet("""
             QScrollArea {
                 border: 1px solid #34495e;
@@ -730,7 +730,7 @@ class DatabaseSyncGUI(QMainWindow):
         # Log display with scroll area
         log_scroll = QScrollArea()
         log_scroll.setWidgetResizable(True)
-        log_scroll.setMinimumHeight(200)
+        log_scroll.setMinimumHeight(150)
         log_scroll.setStyleSheet("""
             QScrollArea {
                 border: 1px solid #34495e;
