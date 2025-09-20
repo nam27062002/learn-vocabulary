@@ -25,10 +25,11 @@ class SyncWorker(QThread):
         super().__init__()
         self.sync_direction = sync_direction  # 'server_to_local' or 'local_to_server'
         self.selected_tables = selected_tables
-        self.db_manager = DatabaseManager()
+        self.db_manager = None  # Initialize as None
 
     def run(self):
         """Execute sync operation"""
+        self.db_manager = DatabaseManager()  # Create instance inside the thread
         try:
             success = True
             message = ""
