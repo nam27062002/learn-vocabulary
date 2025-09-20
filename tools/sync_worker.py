@@ -1,0 +1,224 @@
+"""
+Standalone sync worker to avoid Qt threading issues
+"""
+import sys
+import os
+import multiprocessing
+import json
+import traceback
+from typing import List, Dict, Any
+from database_manager import DatabaseManager
+import logging
+
+def sync_tables_process(tables: List[str], direction: str, result_queue):
+    """
+    Standalone process for syncing tables
+    This runs in a separate process to avoid memory corruption
+    """
+    try:
+        # Setup logging for this process
+        logging.basicConfig(level=logging.INFO)
+        logger = logging.getLogger(__name__)
+
+        logger.info(f"Starting sync process: {direction}, tables: {tables}")
+
+        db_manager = DatabaseManager()
+        total_tables = len(tables)
+
+        for i, table in enumerate(tables):
+            try:
+                result_queue.put({
+                    'type': 'progress',
+                    'table': table,
+                    'current': i + 1,
+                    'total': total_tables,
+                    'message': f"Processing table {i+1} of {total_tables}: {table}"
+                })
+
+                if direction == 'server_to_local':
+                    success = _sync_table_to_local(db_manager, table)
+                else:
+                    success = _sync_table_to_server(db_manager, table)
+
+                if not success:
+                    result_queue.put({
+                        'type': 'error',
+                        'table': table,
+                        'message': f"Failed to sync table: {table}"
+                    })
+                    continue
+
+                # Send progress update
+                progress = int(((i + 1) / total_tables) * 100)
+                result_queue.put({
+                    'type': 'progress_percent',
+                    'progress': progress
+                })
+
+            except Exception as e:
+                logger.error(f"Error syncing table {table}: {e}")
+                result_queue.put({
+                    'type': 'error',
+                    'table': table,
+                    'message': f"Error syncing {table}: {str(e)}"
+                })
+                continue
+
+        # Final success message
+        result_queue.put({
+            'type': 'success',
+            'message': f"Successfully synced {total_tables} tables"
+        })
+
+    except Exception as e:
+        result_queue.put({
+            'type': 'fatal_error',
+            'message': f"Fatal sync error: {str(e)}\n{traceback.format_exc()}"
+        })
+    finally:
+        try:
+            db_manager.close_connections()
+        except:
+            pass
+
+def _sync_table_to_local(db_manager: DatabaseManager, table: str) -> bool:
+    """Sync single table from server to local"""
+    try:
+        # Clear local table
+        if not db_manager.clear_table(table, target_server=False):
+            return False
+
+        # Get data from server
+        data = db_manager.get_table_data(table, from_server=True)
+        if not data:
+            return True  # Empty table is OK
+
+        # Clean and insert data
+        cleaned_data = db_manager.validate_and_clean_data(table, data)
+        if not cleaned_data:
+            return True  # No valid data is OK
+
+        return db_manager.insert_data(table, cleaned_data, target_server=False)
+
+    except Exception as e:
+        logging.error(f"Error syncing table {table}: {e}")
+        return False
+
+def _sync_table_to_server(db_manager: DatabaseManager, table: str) -> bool:
+    """Sync single table from local to server"""
+    try:
+        # Clear server table
+        if not db_manager.clear_table(table, target_server=True):
+            return False
+
+        # Get data from local
+        data = db_manager.get_table_data(table, from_server=False)
+        if not data:
+            return True  # Empty table is OK
+
+        return db_manager.insert_data(table, data, target_server=True)
+
+    except Exception as e:
+        logging.error(f"Error syncing table {table}: {e}")
+        return False
+
+class SafeSyncWorker:
+    """Safe sync worker using multiprocessing instead of threading"""
+
+    def __init__(self, callback_progress=None, callback_status=None, callback_finished=None):
+        self.callback_progress = callback_progress
+        self.callback_status = callback_status
+        self.callback_finished = callback_finished
+        self.process = None
+        self.result_queue = None
+
+    def start_sync(self, tables: List[str], direction: str):
+        """Start sync in separate process"""
+        try:
+            # Create multiprocessing queue for communication
+            self.result_queue = multiprocessing.Queue()
+
+            # Start sync process
+            self.process = multiprocessing.Process(
+                target=sync_tables_process,
+                args=(tables, direction, self.result_queue),
+                daemon=True  # Die when main process dies
+            )
+            self.process.start()
+
+            # Start monitoring results
+            self._monitor_results()
+
+        except Exception as e:
+            if self.callback_finished:
+                self.callback_finished(False, f"Failed to start sync: {str(e)}")
+
+    def _monitor_results(self):
+        """Monitor results from sync process (called by QTimer)"""
+        # This will be called by QTimer, not in a loop
+        pass
+
+    def check_results(self):
+        """Check for new results (called by QTimer)"""
+        try:
+            if not self.process or not self.process.is_alive():
+                # Process finished, check for any remaining messages
+                while not self.result_queue.empty():
+                    try:
+                        result = self.result_queue.get_nowait()
+                        self._handle_result(result)
+                    except:
+                        break
+
+                # Process is done, stop checking
+                return False
+
+            # Check for new results
+            try:
+                result = self.result_queue.get_nowait()
+                self._handle_result(result)
+                return True  # Continue checking
+            except:
+                return True  # No new results, continue checking
+
+        except Exception as e:
+            if self.callback_finished:
+                self.callback_finished(False, f"Error monitoring sync: {str(e)}")
+            return False
+
+    def _handle_result(self, result: Dict[str, Any]):
+        """Handle result from sync process"""
+        try:
+            result_type = result.get('type')
+
+            if result_type == 'progress':
+                if self.callback_status:
+                    self.callback_status(result.get('message', ''))
+
+            elif result_type == 'progress_percent':
+                if self.callback_progress:
+                    self.callback_progress(result.get('progress', 0))
+
+            elif result_type == 'error':
+                if self.callback_status:
+                    self.callback_status(f"Error: {result.get('message', '')}")
+
+            elif result_type == 'success':
+                if self.callback_finished:
+                    self.callback_finished(True, result.get('message', 'Sync completed'))
+
+            elif result_type == 'fatal_error':
+                if self.callback_finished:
+                    self.callback_finished(False, result.get('message', 'Fatal error'))
+
+        except Exception as e:
+            if self.callback_finished:
+                self.callback_finished(False, f"Error handling result: {str(e)}")
+
+    def stop(self):
+        """Stop sync process"""
+        if self.process and self.process.is_alive():
+            self.process.terminate()
+            self.process.join(timeout=5)
+            if self.process.is_alive():
+                self.process.kill()

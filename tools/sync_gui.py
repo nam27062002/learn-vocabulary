@@ -19,104 +19,9 @@ from PyQt6.QtGui import (
     QLinearGradient, QPainter, QPen, QBrush, QPixmap
 )
 from database_manager import DatabaseManager
+from sync_worker import SafeSyncWorker
 import logging
 from datetime import datetime
-
-class SyncWorker(QThread):
-    """Worker thread for database sync operations"""
-    progress = pyqtSignal(int)
-    status = pyqtSignal(str)
-    progress_details = pyqtSignal(str)
-    finished = pyqtSignal(bool, str)
-
-    def __init__(self, sync_direction: str, selected_tables: list):
-        super().__init__()
-        self.sync_direction = sync_direction  # 'server_to_local' or 'local_to_server'
-        self.selected_tables = selected_tables
-        self.db_manager = None  # Initialize as None
-
-    def run(self):
-        """Execute sync operation"""
-        self.db_manager = DatabaseManager()  # Create instance inside the thread
-        try:
-            success = True
-            message = ""
-
-            if self.sync_direction == 'server_to_local':
-                success, message = self._sync_server_to_local()
-            else:
-                success, message = self._sync_local_to_server()
-
-            self.finished.emit(success, message)
-
-        except Exception as e:
-            self.finished.emit(False, f"Sync failed: {str(e)}")
-
-    def _sync_server_to_local(self) -> tuple:
-        """Sync data from server to local"""
-        self.status.emit("Connecting to databases...")
-
-        if not self.db_manager.connect_server():
-            return False, "Failed to connect to server database"
-
-        if not self.db_manager.connect_local():
-            return False, "Failed to connect to local database"
-
-        total_tables = len(self.selected_tables)
-
-        for i, table in enumerate(self.selected_tables):
-            self.status.emit(f"Syncing table: {table}")
-            self.progress_details.emit(f"Processing table {i+1} of {total_tables}: {table}")
-
-            # Clear destination table
-            if not self.db_manager.clear_table(table, target_server=False):
-                return False, f"Failed to clear local table: {table}"
-
-            # Get data from server
-            data = self.db_manager.get_table_data(table, from_server=True)
-
-            # Insert data to local
-            if not self.db_manager.insert_data(table, data, target_server=False):
-                return False, f"Failed to insert data to local table: {table}"
-
-            progress = int(((i + 1) / total_tables) * 100)
-            self.progress.emit(progress)
-
-        self.db_manager.close_connections()
-        return True, f"Successfully synced {total_tables} tables from server to local"
-
-    def _sync_local_to_server(self) -> tuple:
-        """Sync data from local to server"""
-        self.status.emit("Connecting to databases...")
-
-        if not self.db_manager.connect_local():
-            return False, "Failed to connect to local database"
-
-        if not self.db_manager.connect_server():
-            return False, "Failed to connect to server database"
-
-        total_tables = len(self.selected_tables)
-
-        for i, table in enumerate(self.selected_tables):
-            self.status.emit(f"Syncing table: {table}")
-            self.progress_details.emit(f"Processing table {i+1} of {total_tables}: {table}")
-
-            # Clear destination table
-            if not self.db_manager.clear_table(table, target_server=True):
-                return False, f"Failed to clear server table: {table}"
-
-            # Get data from local
-            data = self.db_manager.get_table_data(table, from_server=False)
-
-            # Insert data to server
-            if not self.db_manager.insert_data(table, data, target_server=True):
-                return False, f"Failed to insert data to server table: {table}"
-
-            progress = int(((i + 1) / total_tables) * 100)
-            self.progress.emit(progress)
-
-        self.db_manager.close_connections()
-        return True, f"Successfully synced {total_tables} tables from local to server"
 
 class DatabaseSyncGUI(QMainWindow):
     def __init__(self):
@@ -129,6 +34,27 @@ class DatabaseSyncGUI(QMainWindow):
         self.setup_logging()
         self.setup_keyboard_shortcuts()
         QTimer.singleShot(100, self.initial_setup)
+
+    def closeEvent(self, event):
+        """Handle application close event"""
+        try:
+            # Stop sync timer first
+            if hasattr(self, 'sync_timer') and self.sync_timer:
+                self.sync_timer.stop()
+                self.sync_timer = None
+
+            # Stop any running sync
+            if hasattr(self, 'sync_worker') and self.sync_worker:
+                self.sync_worker.stop()
+
+            # Close database connections
+            if hasattr(self, 'db_manager') and self.db_manager:
+                self.db_manager.close_connections()
+
+        except Exception as e:
+            print(f"Error during close: {e}")
+
+        event.accept()
 
     def initial_setup(self):
         """Runs initial setup tasks with a loading dialog."""
@@ -1082,20 +1008,49 @@ class DatabaseSyncGUI(QMainWindow):
             self._execute_sync(direction, selected_tables)
 
     def _execute_sync(self, direction: str, selected_tables: list):
-        """Execute the sync operation"""
+        """Execute the sync operation using safe multiprocessing"""
         # Disable buttons
         self.server_to_local_btn.setEnabled(False)
         self.local_to_server_btn.setEnabled(False)
         self.progress_bar.setVisible(True)
         self.progress_bar.setValue(0)
+        self.progress_details_label.setVisible(True)
 
-        # Start worker thread
-        self.sync_worker = SyncWorker(direction, selected_tables)
-        self.sync_worker.progress.connect(self.progress_bar.setValue)
-        self.sync_worker.status.connect(self.update_status)
-        self.sync_worker.progress_details.connect(self.update_progress_details)
-        self.sync_worker.finished.connect(self.sync_finished)
-        self.sync_worker.start()
+        try:
+            # Use SafeSyncWorker instead of QThread
+            self.sync_worker = SafeSyncWorker(
+                callback_progress=self.progress_bar.setValue,
+                callback_status=self.update_status,
+                callback_finished=self.sync_finished
+            )
+
+            # Start sync in separate process
+            self.sync_worker.start_sync(selected_tables, direction)
+
+            # Start timer to check for results from the multiprocessing worker
+            self.sync_timer = QTimer()
+            self.sync_timer.timeout.connect(self._check_sync_results)
+            self.sync_timer.start(100)  # Check every 100ms
+
+        except Exception as e:
+            self.sync_finished(False, f"Failed to start sync: {str(e)}")
+
+    def _check_sync_results(self):
+        """Check for results from multiprocessing sync worker"""
+        try:
+            if self.sync_worker:
+                # Check results returns False when sync is complete
+                continue_checking = self.sync_worker.check_results()
+                if not continue_checking:
+                    # Sync is complete, stop the timer
+                    if self.sync_timer:
+                        self.sync_timer.stop()
+                        self.sync_timer = None
+        except Exception as e:
+            self.log(f"Error checking sync results: {e}")
+            if self.sync_timer:
+                self.sync_timer.stop()
+                self.sync_timer = None
 
     def update_status(self, message: str):
         """Update status label"""
