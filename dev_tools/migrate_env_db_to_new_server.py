@@ -7,7 +7,10 @@ Safety:
 
 How it works:
 1) Configure two database aliases: 'source' (current env/server DB) and 'target' (new server DB)
-2) Run migrate --database target to create schema
+2) (Optional) Rebuild target schema for PostgreSQL when --rebuild-schema is set:
+    - DROP SCHEMA public CASCADE; CREATE SCHEMA public; (removes migrations history too)
+    - Then run migrate --database target to create schema fresh
+    Otherwise: run migrate --database target to create/update schema
 3) Clear target DB:
    - PostgreSQL: TRUNCATE ALL TABLES ... RESTART IDENTITY CASCADE (exclude django_migrations)
    - Others: fallback to django flush
@@ -17,8 +20,10 @@ How it works:
 
 Run (PowerShell):
   # Default source is taken from current env (.env). Target can be passed via args or uses embedded defaults below.
-  # Example using embedded defaults:
-  # python .\\dev_tools\\migrate_env_db_to_new_server.py --yes
+    # Example using embedded defaults (keeps schema):
+    # python .\\dev_tools\\migrate_env_db_to_new_server.py --yes
+    # Nếu target từng được dùng với schema cũ (thiếu cột), nên rebuild schema:
+    # python .\\dev_tools\\migrate_env_db_to_new_server.py --yes --rebuild-schema
 
   # Or override target via CLI args:
   # python .\\dev_tools\\migrate_env_db_to_new_server.py --yes `
@@ -97,6 +102,25 @@ def test_connection(alias: str) -> None:
         raise SystemExit(f"ERROR: Failed to connect to '{alias}' database: {e}")
 
 
+def rebuild_postgres_schema_target() -> None:
+    """Drop and recreate 'public' schema on target PostgreSQL DB, then run migrate.
+
+    This resets the entire schema (including django_migrations), ensuring a clean state
+    for running migrations and matching the current models.
+    """
+    conn = connections['target']
+    engine = conn.settings_dict.get('ENGINE', '')
+    if 'postgresql' not in engine:
+        print("[1/6] Target is not PostgreSQL; skipping schema rebuild.")
+        return
+    print("[1/6] Dropping and recreating 'public' schema on target (PostgreSQL)...")
+    with conn.cursor() as cursor:
+        cursor.execute("DROP SCHEMA IF EXISTS public CASCADE;")
+        cursor.execute("CREATE SCHEMA public;")
+    print("Schema recreated. Running migrations fresh on target...")
+    call_command('migrate', database='target', interactive=False, verbosity=1)
+
+
 def truncate_all_tables_postgres(alias: str, step_prefix: str) -> None:
     conn = connections[alias]
     engine = conn.settings_dict.get('ENGINE', '')
@@ -152,6 +176,7 @@ def main() -> None:
     parser.add_argument('--yes', action='store_true', help="Run without interactive confirmation (DANGEROUS)")
     parser.add_argument('--keep-dump', action='store_true', help="Keep the generated JSON dump file")
     parser.add_argument('--dump-path', type=str, default='', help="Custom path for dump file (defaults to temp file)")
+    parser.add_argument('--rebuild-schema', action='store_true', help="Drop and recreate target PostgreSQL schema before migrating")
     # Optional target overrides
     parser.add_argument('--target-name', type=str)
     parser.add_argument('--target-user', type=str)
@@ -175,8 +200,11 @@ def main() -> None:
     test_connection('source')
     test_connection('target')
 
-    # 1) Migrate target schema
-    migrate_target_schema()
+    # 1) Prepare/Migrate target schema
+    if args.rebuild_schema:
+        rebuild_postgres_schema_target()
+    else:
+        migrate_target_schema()
 
     # 2) Clear target data
     truncate_all_tables_postgres(alias='target', step_prefix='[3/6]')
