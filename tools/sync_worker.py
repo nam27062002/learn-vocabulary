@@ -33,9 +33,11 @@ def sync_tables_process(tables: List[str], direction: str, result_queue, sync_mo
             if db_config.get('target_server'):
                 db_manager.target_server_config = db_config['target_server']
 
-        total_tables = len(tables)
+        # Sort tables by dependency order for foreign key safety
+        sorted_tables = sort_tables_by_dependency(tables, sync_mode, direction)
+        total_tables = len(sorted_tables)
 
-        for i, table in enumerate(tables):
+        for i, table in enumerate(sorted_tables):
             try:
                 result_queue.put({
                     'type': 'progress',
@@ -101,6 +103,102 @@ def sync_tables_process(tables: List[str], direction: str, result_queue, sync_mo
             db_manager.close_connections()
         except:
             pass
+
+def sort_tables_by_dependency(tables: List[str], sync_mode: str, direction: str) -> List[str]:
+    """Sort tables by dependency order to avoid foreign key constraint violations"""
+    # Define dependency order (parent tables first for deletion, child tables first for insertion)
+    # This is the order for DELETION (sync direction matters for order)
+
+    deletion_order = [
+        # Child tables first (no dependencies)
+        'vocabulary_studysessionanswer',
+        'vocabulary_studysession_decks_studied',
+        'vocabulary_studysession',
+        'vocabulary_incorrectwordreview',
+        'vocabulary_favoriteflashcard',
+        'vocabulary_blacklistflashcard',
+        'vocabulary_definition',
+        'vocabulary_flashcard',
+        'vocabulary_deck',
+        'vocabulary_dailystatistics',
+        'vocabulary_weeklystatistics',
+
+        # Auth and account related (child tables first)
+        'socialaccount_socialtoken',
+        'socialaccount_socialapp_sites',
+        'socialaccount_socialaccount',
+        'socialaccount_socialapp',
+        'account_emailconfirmation',
+        'account_emailaddress',
+        'accounts_customuser_user_permissions',
+        'accounts_customuser_groups',
+        'accounts_customuser',
+
+        # Django framework tables
+        'django_admin_log',
+        'django_session',
+        'cache_table',
+        'auth_group_permissions',
+        'auth_user_groups',
+        'auth_user_user_permissions',
+        'auth_group',
+        'auth_permission',
+
+        # Core system tables (usually have many dependencies)
+        'django_content_type',
+        'django_migrations',
+        'django_site',
+    ]
+
+    # For insertion, we need reverse order (parent tables first)
+    insertion_order = list(reversed(deletion_order))
+
+    # Determine which order to use based on operation
+    # Clear operations need deletion order, insert operations need insertion order
+    use_insertion_order = (
+        (direction == 'server_to_local' and sync_mode != 'sqlite_to_postgresql') or
+        (direction == 'local_to_server' and sync_mode == 'sqlite_to_postgresql')
+    )
+
+    target_order = insertion_order if use_insertion_order else deletion_order
+
+    # Sort tables according to the target order
+    sorted_tables = []
+
+    # Add tables in the defined order if they exist in the input
+    for table in target_order:
+        if table in tables:
+            sorted_tables.append(table)
+
+    # Add any remaining tables that weren't in our predefined order
+    remaining_tables = [table for table in tables if table not in sorted_tables]
+    sorted_tables.extend(sorted(remaining_tables))  # Sort remaining alphabetically
+
+    return sorted_tables
+
+
+def _sync_table_server_to_local(db_manager: DatabaseManager, table: str) -> bool:
+    """Sync single table from server to local"""
+    try:
+        # Clear local table
+        if not db_manager.clear_table(table, target_server=False):
+            return False
+
+        # Get data from server
+        data = db_manager.get_table_data(table, from_server=True)
+        if not data:
+            return True  # Empty table is OK
+
+        # Clean and insert data
+        cleaned_data = db_manager.validate_and_clean_data(table, data)
+        if not cleaned_data:
+            return True  # No valid data is OK
+
+        return db_manager.insert_data(table, cleaned_data, target_server=False)
+
+    except Exception as e:
+        logging.error(f"Error syncing table {table}: {e}")
+        return False
 
 def _sync_table_server_to_local(db_manager: DatabaseManager, table: str) -> bool:
     """Sync single table from server to local"""

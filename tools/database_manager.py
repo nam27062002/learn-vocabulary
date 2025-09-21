@@ -247,14 +247,84 @@ class DatabaseManager:
         else:
             # For any other type, convert to string
             try:
-                # Try JSON serialization first for complex objects
-                return json.dumps(value, default=str)
-            except (TypeError, ValueError):
+                return str(value)
+            except Exception:
+                return None
+
+    def _convert_value_for_postgresql(self, table_name: str, column_name: str, value: Any) -> Any:
+        """Convert SQLite values to PostgreSQL compatible types"""
+        if value is None:
+            return None
+
+        # Get column info to determine target type
+        column_info = self._get_postgresql_column_info(table_name, column_name)
+        target_type = column_info.get('data_type', '').lower() if column_info else ''
+
+        # Boolean conversion (SQLite stores as 0/1 integers)
+        if target_type == 'boolean' and isinstance(value, int):
+            return bool(value)
+        elif target_type == 'boolean' and isinstance(value, str):
+            return value.lower() in ('true', '1', 'yes', 'on')
+
+        # JSON conversion
+        elif target_type in ('json', 'jsonb') and isinstance(value, str):
+            try:
+                return json.loads(value)
+            except (json.JSONDecodeError, TypeError):
+                return value
+
+        # Array conversion
+        elif 'array' in target_type or '[]' in target_type:
+            if isinstance(value, str):
                 try:
-                    return str(value)
-                except Exception:
-                    logger.warning(f"Failed to convert value {value} of type {type(value)}, using None")
-                    return None
+                    return json.loads(value)
+                except (json.JSONDecodeError, TypeError):
+                    return [value]  # Wrap single value in array
+            return value
+
+        # Timestamp conversion
+        elif 'timestamp' in target_type and isinstance(value, str):
+            try:
+                from datetime import datetime
+                return datetime.fromisoformat(value.replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                return value
+
+        # UUID conversion
+        elif target_type == 'uuid' and isinstance(value, str):
+            try:
+                import uuid
+                return str(uuid.UUID(value))
+            except (ValueError, TypeError):
+                return value
+
+        # Default: return as-is
+        return value
+
+    def _get_postgresql_column_info(self, table_name: str, column_name: str) -> dict:
+        """Get PostgreSQL column information for type conversion"""
+        try:
+            if not self.server_conn:
+                self.connect_server()
+
+            cursor = self.server_conn.cursor()
+            cursor.execute("""
+                SELECT data_type, is_nullable, column_default
+                FROM information_schema.columns
+                WHERE table_name = %s AND column_name = %s
+            """, (table_name, column_name))
+
+            result = cursor.fetchone()
+            if result:
+                return {
+                    'data_type': result[0],
+                    'is_nullable': result[1],
+                    'column_default': result[2]
+                }
+            return {}
+        except Exception as e:
+            logger.warning(f"Could not get column info for {table_name}.{column_name}: {e}")
+            return {}
 
     def insert_data(self, table_name: str, data: List[Dict[str, Any]], target_server: bool = True) -> bool:
         """Insert data into a table with improved type handling and batch processing"""
@@ -287,7 +357,12 @@ class DatabaseManager:
             batch = data[i:i + batch_size]
             try:
                 for row in batch:
-                    values = [row.get(col) for col in columns]
+                    values = []
+                    for col in columns:
+                        value = row.get(col)
+                        # Convert SQLite values to PostgreSQL compatible types
+                        converted_value = self._convert_value_for_postgresql(table_name, col, value)
+                        values.append(converted_value)
                     cursor.execute(query, values)
                 self.server_conn.commit()
                 logger.debug(f"Inserted batch {i//batch_size + 1} ({len(batch)} rows) into {table_name}")
