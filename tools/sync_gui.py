@@ -434,14 +434,14 @@ class DatabaseSyncGUI(QMainWindow):
                 font-weight: 400;
             }
 
-            /* Compact Card-style GroupBox */
+            /* More Compact Card-style GroupBox */
             QGroupBox {
                 font-weight: 600;
-                font-size: 13px;
+                font-size: 12px;
                 border: none;
-                border-radius: 12px;
-                margin-top: 8px;
-                padding: 16px 12px 12px 12px;
+                border-radius: 8px;
+                margin-top: 6px;
+                padding: 12px 8px 8px 8px;
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 rgba(255,255,255,0.08), stop:1 rgba(255,255,255,0.04));
                 backdrop-filter: blur(10px);
@@ -450,30 +450,30 @@ class DatabaseSyncGUI(QMainWindow):
             QGroupBox::title {
                 subcontrol-origin: margin;
                 subcontrol-position: top left;
-                left: 16px;
-                top: 6px;
-                padding: 6px 12px;
+                left: 12px;
+                top: 4px;
+                padding: 4px 8px;
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 #667eea, stop:1 #764ba2);
                 color: #ffffff;
-                border-radius: 16px;
-                font-size: 12px;
+                border-radius: 12px;
+                font-size: 10px;
                 font-weight: 600;
-                letter-spacing: 0.3px;
+                letter-spacing: 0.2px;
             }
 
-            /* Compact Button Design */
+            /* Ultra Compact Button Design */
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 #667eea, stop:1 #764ba2);
                 color: white;
                 border: none;
-                padding: 10px 20px;
-                border-radius: 8px;
+                padding: 8px 12px;
+                border-radius: 6px;
                 font-weight: 600;
-                font-size: 12px;
-                letter-spacing: 0.3px;
-                text-transform: uppercase;
+                font-size: 11px;
+                letter-spacing: 0.2px;
+                max-height: 32px;
             }
             QPushButton:hover {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
@@ -672,13 +672,13 @@ class DatabaseSyncGUI(QMainWindow):
         splitter.addWidget(left_panel)
         splitter.addWidget(right_panel)
 
-        # Compact responsive sizing
+        # Compact responsive sizing with better balance
         total_width = self.width()
-        left_width = min(350, int(total_width * 0.4))  # 40% but max 350px for compact design
-        right_width = total_width - left_width - 32  # Account for margins
+        left_width = min(380, int(total_width * 0.42))  # Slightly wider for better fit
+        right_width = total_width - left_width - 24  # Account for margins
 
         splitter.setSizes([left_width, right_width])
-        splitter.setHandleWidth(3)
+        splitter.setHandleWidth(2)  # Thinner handle
         splitter.setCollapsible(0, False)  # Left panel not collapsible
         splitter.setCollapsible(1, False)  # Right panel not collapsible
         splitter.setStretchFactor(0, 0)   # Left panel fixed ratio
@@ -693,10 +693,10 @@ class DatabaseSyncGUI(QMainWindow):
         """Handle window resize for responsive design"""
         super().resizeEvent(event)
         if hasattr(self, 'main_splitter'):
-            # Adjust splitter sizes on window resize (compact)
+            # Adjust splitter sizes on window resize with better proportions
             total_width = self.width()
-            left_width = min(350, int(total_width * 0.4))
-            right_width = total_width - left_width - 32  # Account for margins and splitter
+            left_width = min(380, int(total_width * 0.42))
+            right_width = total_width - left_width - 24  # Account for margins and splitter
 
             self.main_splitter.setSizes([left_width, right_width])
 
@@ -710,15 +710,28 @@ class DatabaseSyncGUI(QMainWindow):
         # Connection status with modern styling
         conn_group = QGroupBox("🔗 Database Connections")
         conn_layout = QVBoxLayout(conn_group)
+        conn_layout.setSpacing(4)
 
         self.server_status_label = QLabel("⚪ Server: Not tested")
-        self.server_status_label.setStyleSheet("padding: 5px; border-radius: 4px; font-weight: bold;")
+        self.server_status_label.setStyleSheet("""
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 11px;
+            border: 1px solid rgba(255,255,255,0.1);
+        """)
 
         self.local_status_label = QLabel("⚪ Local: Not tested")
-        self.local_status_label.setStyleSheet("padding: 5px; border-radius: 4px; font-weight: bold;")
-        
+        self.local_status_label.setStyleSheet("""
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 11px;
+            border: 1px solid rgba(255,255,255,0.1);
+        """)
+
         self.test_conn_btn = QPushButton("🔌 Test Connections")
-        self.test_conn_btn.setMinimumWidth(140)
+        self.test_conn_btn.setMaximumHeight(32)
         self.test_conn_btn.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
@@ -754,111 +767,108 @@ class DatabaseSyncGUI(QMainWindow):
         # Table selection with modern styling
         table_group = QGroupBox("📋 Select Tables to Sync")
         table_layout = QVBoxLayout(table_group)
+        table_layout.setSpacing(8)
 
-        # Search and control buttons
-        search_layout = QHBoxLayout()
-
-        # Search input
+        # Search input in its own row
         self.table_search_input = QLineEdit()
         self.table_search_input.setPlaceholderText("🔍 Search tables...")
         self.table_search_input.setStyleSheet("""
             QLineEdit {
-                padding: 12px 16px;
+                padding: 8px 12px;
                 border: 2px solid rgba(255,255,255,0.1);
-                border-radius: 10px;
+                border-radius: 6px;
                 background: rgba(255,255,255,0.05);
                 color: #e8e9ea;
-                font-size: 13px;
+                font-size: 12px;
                 font-weight: 500;
+                max-height: 24px;
             }
             QLineEdit:focus {
                 border-color: #667eea;
                 background: rgba(102, 126, 234, 0.1);
-                outline: none;
             }
             QLineEdit:hover {
                 border-color: rgba(255,255,255,0.2);
-                background: rgba(255,255,255,0.08);
             }
         """)
         self.table_search_input.textChanged.connect(self.filter_tables)
-        search_layout.addWidget(self.table_search_input)
+        table_layout.addWidget(self.table_search_input)
 
-        # Control buttons with responsive layout
+        # Control buttons in compact horizontal layout
         button_layout = QHBoxLayout()
-        button_layout.setSpacing(10)
+        button_layout.setSpacing(6)
+        button_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.select_all_btn = QPushButton("Select / Deselect All")
-        self.select_all_btn.setMinimumWidth(120)
+        self.select_all_btn = QPushButton("Select All")
+        self.select_all_btn.setMaximumHeight(28)
+        self.select_all_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 10px;
+                padding: 6px 12px;
+                min-width: 60px;
+            }
+        """)
         self.select_all_btn.clicked.connect(self.select_all_tables)
         self.select_all_btn.clicked.connect(lambda: self.animate_button_click(self.select_all_btn))
 
-        self.discover_tables_btn = QPushButton("🔍 Discover Tables")
-        self.discover_tables_btn.setMinimumWidth(120)
+        self.discover_tables_btn = QPushButton("🔍 Discover")
+        self.discover_tables_btn.setMaximumHeight(28)
+        self.discover_tables_btn.setStyleSheet("""
+            QPushButton {
+                font-size: 10px;
+                padding: 6px 12px;
+                min-width: 60px;
+            }
+        """)
         self.discover_tables_btn.clicked.connect(self.discover_tables)
         self.discover_tables_btn.clicked.connect(lambda: self.animate_button_click(self.discover_tables_btn))
 
         button_layout.addWidget(self.select_all_btn)
         button_layout.addWidget(self.discover_tables_btn)
-        button_layout.addStretch()  # Add stretch for better spacing
-        search_layout.addLayout(button_layout)
-        table_layout.addLayout(search_layout)
+        button_layout.addStretch()
+        table_layout.addLayout(button_layout)
 
-        # Tables container with ScrollArea
+        # Tables container with compact ScrollArea
         self.table_checkboxes = {}
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        scroll_area.setMinimumHeight(150)
-        
+        scroll_area.setMaximumHeight(120)
+        scroll_area.setMinimumHeight(80)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 6px;
+                background: rgba(255,255,255,0.02);
+            }
+        """)
+
         tables_widget = QWidget()
-        self.tables_container = QVBoxLayout(tables_widget) # Keep the name
+        self.tables_container = QVBoxLayout(tables_widget)
         self.tables_container.setAlignment(Qt.AlignmentFlag.AlignTop)
-        
+        self.tables_container.setSpacing(2)
+        self.tables_container.setContentsMargins(4, 4, 4, 4)
+
         scroll_area.setWidget(tables_widget)
         table_layout.addWidget(scroll_area)
 
-        # Add placeholder text
-        self.no_tables_label = QLabel("Click '🔍 Discover Tables' to load tables.")
+        # Add compact placeholder text
+        self.no_tables_label = QLabel("Click '🔍 Discover' to load tables")
         self.no_tables_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.no_tables_label.setStyleSheet("color: #95a5a6; font-style: italic; padding: 20px;")
+        self.no_tables_label.setStyleSheet("""
+            color: #95a5a6;
+            font-style: italic;
+            font-size: 11px;
+            padding: 10px;
+        """)
         self.tables_container.addWidget(self.no_tables_label)
-
-        # Add helpful instruction
-        instruction_label = QLabel("💡 Tip: Use '🔌 Test Connections' first, then '🔍 Discover Tables' to start syncing")
-        instruction_label.setStyleSheet("""
-            QLabel {
-                color: #7f8c8d;
-                font-size: 10px;
-                font-style: italic;
-                padding: 5px;
-                background-color: rgba(127, 140, 141, 0.1);
-                border-radius: 3px;
-            }
-        """)
-        instruction_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        table_layout.addWidget(instruction_label)
-
-        # Keyboard shortcuts hint
-        shortcuts_hint = QLabel("⌨️ Shortcuts: Ctrl+T (Test), Ctrl+D (Discover), Ctrl+R (Refresh), Ctrl+F (Search), F11 (Fullscreen)")
-        shortcuts_hint.setStyleSheet("""
-            QLabel {
-                color: #7f8c8d;
-                font-size: 10px;
-                font-style: italic;
-                padding: 5px;
-                background-color: rgba(127, 140, 141, 0.1);
-                border-radius: 3px;
-            }
-        """)
-        shortcuts_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        table_layout.addWidget(shortcuts_hint)
 
         # Database Configuration group
         config_group = QGroupBox("⚙️ Database Configuration")
         config_layout = QVBoxLayout(config_group)
+        config_layout.setSpacing(4)
 
         self.config_db_btn = QPushButton("🔧 Configure Databases")
-        self.config_db_btn.setMinimumWidth(140)
+        self.config_db_btn.setMaximumHeight(32)
         self.config_db_btn.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
@@ -892,6 +902,7 @@ class DatabaseSyncGUI(QMainWindow):
         # Sync Destination group
         dest_group = QGroupBox("🎯 Sync Destination")
         dest_layout = QVBoxLayout(dest_group)
+        dest_layout.setSpacing(4)
 
         # Destination type selection
         self.destination_type = QComboBox()
@@ -995,11 +1006,29 @@ class DatabaseSyncGUI(QMainWindow):
         sync_layout.addWidget(self.local_to_server_btn)
         sync_layout.addLayout(progress_layout)
 
+        # Add all groups with proper spacing
         left_layout.addWidget(conn_group)
         left_layout.addWidget(config_group)
         left_layout.addWidget(dest_group)
         left_layout.addWidget(table_group)
         left_layout.addWidget(sync_group)
+
+        # Add compact instruction at bottom
+        instruction_label = QLabel("💡 Test → Configure → Discover → Select → Sync")
+        instruction_label.setStyleSheet("""
+            QLabel {
+                color: #7f8c8d;
+                font-size: 9px;
+                font-style: italic;
+                padding: 4px;
+                background-color: rgba(127, 140, 141, 0.1);
+                border-radius: 3px;
+                margin-top: 5px;
+            }
+        """)
+        instruction_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        left_layout.addWidget(instruction_label)
+
         left_layout.addStretch()
 
         return left_widget
@@ -1121,6 +1150,10 @@ class DatabaseSyncGUI(QMainWindow):
             self.local_to_server_btn.setText("📤 Target Server → Source Server")
 
         self.log(f"Sync destination changed to: {destination_text}")
+
+        # Update database connections and table info when destination changes
+        self.update_connection_labels_for_destination()
+        self.refresh_table_info_for_destination()
 
     def get_current_sync_mode(self):
         """Get current sync mode based on destination selection"""
@@ -1255,55 +1288,75 @@ class DatabaseSyncGUI(QMainWindow):
         self.log("Testing database connections...")
         results = self.db_manager.test_connections()
 
+        # Get current destination type to set appropriate labels
+        dest_text = self.destination_type.currentText()
+
+        # Determine labels based on destination type
+        if "PostgreSQL → PostgreSQL" in dest_text:
+            server_label_prefix = "Source Server"
+            local_label_prefix = "Target Server"
+        elif "SQLite → PostgreSQL" in dest_text:
+            server_label_prefix = "Server (PostgreSQL)"
+            local_label_prefix = "Local (SQLite)"
+        else:  # PostgreSQL → SQLite (default)
+            server_label_prefix = "Server (PostgreSQL)"
+            local_label_prefix = "Local (SQLite)"
+
+        # Update server connection status
         if results['server']:
-            self.server_status_label.setText("🟢 Server: Connected")
+            self.server_status_label.setText(f"🟢 {server_label_prefix}: Connected")
             self.server_status_label.setStyleSheet("""
                 color: #2ecc71;
                 background-color: rgba(46, 204, 113, 0.1);
-                padding: 5px;
+                padding: 4px 8px;
                 border-radius: 4px;
                 border: 2px solid #2ecc71;
                 font-weight: bold;
+                font-size: 11px;
                 transition: all 0.3s ease;
             """)
             # Add pulse animation
             pulse = self.add_pulse_effect(self.server_status_label)
             QTimer.singleShot(100, pulse)
         else:
-            self.server_status_label.setText("🔴 Server: Failed")
+            self.server_status_label.setText(f"🔴 {server_label_prefix}: Failed")
             self.server_status_label.setStyleSheet("""
                 color: #e74c3c;
                 background-color: rgba(231, 76, 60, 0.1);
-                padding: 5px;
+                padding: 4px 8px;
                 border-radius: 4px;
                 border: 2px solid #e74c3c;
                 font-weight: bold;
+                font-size: 11px;
                 transition: all 0.3s ease;
             """)
 
+        # Update local/target connection status
         if results['local']:
-            self.local_status_label.setText("🟢 Local: Connected")
+            self.local_status_label.setText(f"🟢 {local_label_prefix}: Connected")
             self.local_status_label.setStyleSheet("""
                 color: #2ecc71;
                 background-color: rgba(46, 204, 113, 0.1);
-                padding: 5px;
+                padding: 4px 8px;
                 border-radius: 4px;
                 border: 2px solid #2ecc71;
                 font-weight: bold;
+                font-size: 11px;
                 transition: all 0.3s ease;
             """)
             # Add pulse animation
             pulse = self.add_pulse_effect(self.local_status_label)
             QTimer.singleShot(100, pulse)
         else:
-            self.local_status_label.setText("🔴 Local: Failed")
+            self.local_status_label.setText(f"🔴 {local_label_prefix}: Failed")
             self.local_status_label.setStyleSheet("""
                 color: #e74c3c;
                 background-color: rgba(231, 76, 60, 0.1);
-                padding: 5px;
+                padding: 4px 8px;
                 border-radius: 4px;
                 border: 2px solid #e74c3c;
                 font-weight: bold;
+                font-size: 11px;
                 transition: all 0.3s ease;
             """)
         return results
@@ -1377,6 +1430,19 @@ class DatabaseSyncGUI(QMainWindow):
             for table in self.available_tables:
                 checkbox = QCheckBox(table)
                 checkbox.setChecked(True)
+                checkbox.setStyleSheet("""
+                    QCheckBox {
+                        font-size: 11px;
+                        color: #e8e9ea;
+                        spacing: 6px;
+                        padding: 2px;
+                        font-weight: 500;
+                    }
+                    QCheckBox::indicator {
+                        width: 14px;
+                        height: 14px;
+                    }
+                """)
                 self.table_checkboxes[table] = checkbox
                 self.tables_container.addWidget(checkbox)
         else:
@@ -1886,6 +1952,57 @@ class DatabaseSyncGUI(QMainWindow):
             self.db_manager.target_server_config = config['target_server']
 
         self.log(f"Database configuration applied successfully")
+
+        # Update UI when configuration changes
+        self.update_connection_labels_for_destination()
+        self.refresh_table_info_for_destination()
+
+    def update_connection_labels_for_destination(self):
+        """Update connection status labels based on current destination"""
+        dest_text = self.destination_type.currentText()
+
+        # Determine labels based on destination type (matching test_connections logic)
+        if "PostgreSQL → PostgreSQL" in dest_text:
+            server_label_prefix = "Source Server"
+            local_label_prefix = "Target Server"
+        elif "SQLite → PostgreSQL" in dest_text:
+            server_label_prefix = "Server (PostgreSQL)"
+            local_label_prefix = "Local (SQLite)"
+        else:  # PostgreSQL → SQLite (default)
+            server_label_prefix = "Server (PostgreSQL)"
+            local_label_prefix = "Local (SQLite)"
+
+        # Update labels
+        self.server_status_label.setText(f"⚪ {server_label_prefix}: Not tested")
+        self.local_status_label.setText(f"⚪ {local_label_prefix}: Not tested")
+
+        # Reset status styles
+        default_style = """
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 11px;
+            border: 1px solid rgba(255,255,255,0.1);
+        """
+        self.server_status_label.setStyleSheet(default_style)
+        self.local_status_label.setStyleSheet(default_style)
+
+    def refresh_table_info_for_destination(self):
+        """Refresh table information when destination changes"""
+        # Clear current table info
+        self.info_table.setRowCount(0)
+
+        # Clear available tables if destination changed significantly
+        dest_text = self.destination_type.currentText()
+        if "PostgreSQL → PostgreSQL" in dest_text:
+            # For PostgreSQL to PostgreSQL, we need different table discovery
+            self.available_tables = []
+            self.update_table_checkboxes()
+            self.log("Destination changed to PostgreSQL → PostgreSQL. Please test connections and discover tables again.")
+        else:
+            # For SQLite involved syncs, refresh if we have existing tables
+            if self.available_tables:
+                self.refresh_table_info()
 
     def open_database_config(self):
         """Open database configuration dialog"""
