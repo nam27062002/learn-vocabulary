@@ -1,0 +1,25 @@
+{
+  "server": {
+    "host": "dpg-d2v8qv15pdvs73b5p5h0-a.oregon-postgres.render.com",
+    "port": 5432,
+    "database": "learn_english_db_rjeh",
+    "user": "learn_english_db_rjeh_user",
+    "password": "rRmA7Z65LBtxIOW38q7Cpp1GxP9DZME8"
+  },
+  "local": {
+    "type": "SQLite",
+    "path": "D:\\My Projects\\Web\\LearnEngish\\db.sqlite3",
+    "host": "localhost",
+    "port": 5432,
+    "database": "learn_english_db",
+    "user": "postgres",
+    "password": ""
+  },
+  "target_server": {
+    "host": "dpg-d32033juibrs739dn540-a.oregon-postgres.render.com",
+    "port": 5432,
+    "database": "learn_english_db_wuep",
+    "user": "learn_english_db_wuep_user",
+    "password": "RSZefSFspMPlsqz5MnxJeeUkKueWjSLH"
+  }
+}

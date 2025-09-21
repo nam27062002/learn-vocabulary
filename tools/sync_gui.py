@@ -23,6 +23,9 @@ from database_manager import DatabaseManager
 from sync_worker import SafeSyncWorker
 import logging
 from datetime import datetime
+import json
+from pathlib import Path
+from database_config import SERVER_DB_CONFIG, LOCAL_DB_CONFIG
 
 class DatabaseConfigDialog(QDialog):
     """Dialog for configuring database connection settings"""
@@ -64,13 +67,22 @@ class DatabaseConfigDialog(QDialog):
             QDialogButtonBox.StandardButton.Cancel |
             QDialogButtonBox.StandardButton.Apply
         )
-        button_box.accepted.connect(self.accept)
+        button_box.accepted.connect(self.accept_and_save)
         button_box.rejected.connect(self.reject)
         button_box.button(QDialogButtonBox.StandardButton.Apply).clicked.connect(self.apply_config)
 
         test_btn = QPushButton("Test Connections")
         test_btn.clicked.connect(self.test_connections)
         button_box.addButton(test_btn, QDialogButtonBox.ButtonRole.ActionRole)
+
+        # Add Save and Load buttons
+        save_btn = QPushButton("Save Config")
+        save_btn.clicked.connect(self.save_current_config)
+        button_box.addButton(save_btn, QDialogButtonBox.ButtonRole.ActionRole)
+
+        load_btn = QPushButton("Load Config")
+        load_btn.clicked.connect(self.load_current_config)
+        button_box.addButton(load_btn, QDialogButtonBox.ButtonRole.ActionRole)
 
         layout.addWidget(button_box)
 
@@ -197,6 +209,17 @@ class DatabaseConfigDialog(QDialog):
         info_label.setStyleSheet("color: #4facfe; font-style: italic;")
         layout.addRow(info_label)
 
+        # Add configuration status
+        config_status = QLabel("")
+        config_file = Path(__file__).parent / 'sync_config.json'
+        if config_file.exists():
+            config_status.setText("📁 Saved configuration found and loaded")
+            config_status.setStyleSheet("color: #2ecc71; font-size: 10px; font-style: italic;")
+        else:
+            config_status.setText("📝 Using default configuration from database_config.py")
+            config_status.setStyleSheet("color: #f39c12; font-size: 10px; font-style: italic;")
+        layout.addRow(config_status)
+
     def on_local_type_changed(self, db_type):
         """Handle local database type change"""
         is_sqlite = db_type == "SQLite"
@@ -227,27 +250,88 @@ class DatabaseConfigDialog(QDialog):
                     if text in ["Host:", "Port:", "Database:", "Username:", "Password:"]:
                         label.setVisible(not is_sqlite)
 
+    def get_config_file_path(self):
+        """Get path to configuration file"""
+        config_dir = Path(__file__).parent
+        return config_dir / 'sync_config.json'
+
+    def load_saved_config(self):
+        """Load saved configuration from file"""
+        config_file = self.get_config_file_path()
+        if config_file.exists():
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"Error loading config: {e}")
+        return None
+
+    def save_config(self, config):
+        """Save configuration to file"""
+        config_file = self.get_config_file_path()
+        try:
+            with open(config_file, 'w', encoding='utf-8') as f:
+                json.dump(config, f, indent=2)
+            return True
+        except Exception as e:
+            print(f"Error saving config: {e}")
+            return False
+
     def load_current_config(self):
         """Load current database configuration"""
-        # Load from environment or default values
-        import os
+        # Try to load saved config first
+        saved_config = self.load_saved_config()
 
-        # Server config
-        self.server_host.setText(os.getenv('DB_HOST', 'localhost'))
-        self.server_port.setValue(int(os.getenv('DB_PORT', '5432')))
-        self.server_db.setText(os.getenv('DB_NAME', 'learn_english_db'))
-        self.server_user.setText(os.getenv('DB_USER', 'postgres'))
-        self.server_password.setText(os.getenv('DB_PASSWORD', ''))
+        if saved_config:
+            # Load from saved configuration
+            server_config = saved_config.get('server', {})
+            local_config = saved_config.get('local', {})
+            target_config = saved_config.get('target_server', {})
 
-        # Local config
-        self.local_path.setText('db.sqlite3')
+            # Server config
+            self.server_host.setText(server_config.get('host', SERVER_DB_CONFIG['HOST']))
+            self.server_port.setValue(server_config.get('port', int(SERVER_DB_CONFIG['PORT'])))
+            self.server_db.setText(server_config.get('database', SERVER_DB_CONFIG['NAME']))
+            self.server_user.setText(server_config.get('user', SERVER_DB_CONFIG['USER']))
+            self.server_password.setText(server_config.get('password', SERVER_DB_CONFIG['PASSWORD']))
 
-        # Target server config (default to render.com PostgreSQL)
-        self.target_host.setText('dpg-d32033juibrs739dn540-a.oregon-postgres.render.com')
-        self.target_port.setValue(5432)
-        self.target_db.setText('learn_english_db_wuep')
-        self.target_user.setText('learn_english_db_wuep_user')
-        self.target_password.setText('RSZefSFspMPlsqz5MnxJeeUkKueWjSLH')
+            # Local config
+            self.local_type.setCurrentText(local_config.get('type', 'SQLite'))
+            self.local_path.setText(local_config.get('path', LOCAL_DB_CONFIG['NAME']))
+            self.local_host.setText(local_config.get('host', 'localhost'))
+            self.local_port.setValue(local_config.get('port', 5432))
+            self.local_db.setText(local_config.get('database', 'learn_english_db'))
+            self.local_user.setText(local_config.get('user', 'postgres'))
+            self.local_password.setText(local_config.get('password', ''))
+
+            # Target server config
+            self.target_host.setText(target_config.get('host', SERVER_DB_CONFIG['HOST']))
+            self.target_port.setValue(target_config.get('port', int(SERVER_DB_CONFIG['PORT'])))
+            self.target_db.setText(target_config.get('database', SERVER_DB_CONFIG['NAME']))
+            self.target_user.setText(target_config.get('user', SERVER_DB_CONFIG['USER']))
+            self.target_password.setText(target_config.get('password', SERVER_DB_CONFIG['PASSWORD']))
+
+        else:
+            # Load from database_config.py defaults
+            # Server config (from database_config.py)
+            self.server_host.setText(SERVER_DB_CONFIG['HOST'])
+            self.server_port.setValue(int(SERVER_DB_CONFIG['PORT']))
+            self.server_db.setText(SERVER_DB_CONFIG['NAME'])
+            self.server_user.setText(SERVER_DB_CONFIG['USER'])
+            self.server_password.setText(SERVER_DB_CONFIG['PASSWORD'])
+
+            # Local config (from database_config.py)
+            self.local_path.setText(LOCAL_DB_CONFIG['NAME'])
+
+            # Target server config (default to same as server)
+            self.target_host.setText(SERVER_DB_CONFIG['HOST'])
+            self.target_port.setValue(int(SERVER_DB_CONFIG['PORT']))
+            self.target_db.setText(SERVER_DB_CONFIG['NAME'])
+            self.target_user.setText(SERVER_DB_CONFIG['USER'])
+            self.target_password.setText(SERVER_DB_CONFIG['PASSWORD'])
+
+        # Trigger local type change to show/hide fields
+        self.on_local_type_changed(self.local_type.currentText())
 
     def get_config(self):
         """Get current configuration"""
@@ -280,9 +364,18 @@ class DatabaseConfigDialog(QDialog):
     def apply_config(self):
         """Apply configuration without closing dialog"""
         config = self.get_config()
+
+        # Save configuration to file
+        if self.save_config(config):
+            save_msg = " and saved to file"
+        else:
+            save_msg = " (failed to save to file)"
+
         if hasattr(self.parent(), 'apply_database_config'):
             self.parent().apply_database_config(config)
-        QMessageBox.information(self, "Configuration", "Database configuration applied successfully!")
+
+        QMessageBox.information(self, "Configuration",
+                              f"Database configuration applied successfully{save_msg}!")
 
     def test_connections(self):
         """Test database connections"""
@@ -340,6 +433,30 @@ class DatabaseConfigDialog(QDialog):
                 results.append(f"❌ Target PostgreSQL Server: {str(e)}")
 
         QMessageBox.information(self, "Connection Test Results", "\n".join(results))
+
+    def accept_and_save(self):
+        """Accept dialog and save configuration"""
+        config = self.get_config()
+
+        # Save configuration to file
+        self.save_config(config)
+
+        # Apply to parent
+        if hasattr(self.parent(), 'apply_database_config'):
+            self.parent().apply_database_config(config)
+
+        self.accept()
+
+    def save_current_config(self):
+        """Save current configuration to file"""
+        config = self.get_config()
+        if self.save_config(config):
+            QMessageBox.information(self, "Save Configuration",
+                                  "Configuration saved successfully!\n\n"
+                                  f"Saved to: {self.get_config_file_path()}")
+        else:
+            QMessageBox.warning(self, "Save Configuration",
+                               "Failed to save configuration!")
 
 class DatabaseSyncGUI(QMainWindow):
     def __init__(self):
