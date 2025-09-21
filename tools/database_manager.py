@@ -267,11 +267,15 @@ class DatabaseManager:
             return value.lower() in ('true', '1', 'yes', 'on')
 
         # JSON conversion
-        elif target_type in ('json', 'jsonb') and isinstance(value, str):
-            try:
-                return json.loads(value)
-            except (json.JSONDecodeError, TypeError):
-                return value
+        elif target_type in ('json', 'jsonb'):
+            if isinstance(value, str):
+                try:
+                    return json.loads(value)
+                except (json.JSONDecodeError, TypeError):
+                    return value
+            elif isinstance(value, dict):
+                return json.dumps(value)  # Convert dict to JSON string
+            return value
 
         # Array conversion
         elif 'array' in target_type or '[]' in target_type:
@@ -297,6 +301,12 @@ class DatabaseManager:
                 return str(uuid.UUID(value))
             except (ValueError, TypeError):
                 return value
+
+        # Special handling for dict/list types (common in Django models)
+        elif isinstance(value, dict):
+            return json.dumps(value)  # Convert any dict to JSON string
+        elif isinstance(value, list):
+            return json.dumps(value)  # Convert any list to JSON string
 
         # Default: return as-is
         return value

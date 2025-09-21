@@ -110,20 +110,24 @@ def sort_tables_by_dependency(tables: List[str], sync_mode: str, direction: str)
     # This is the order for DELETION (sync direction matters for order)
 
     deletion_order = [
-        # Child tables first (no dependencies)
+        # Level 1: Most dependent tables (no other tables depend on them)
         'vocabulary_studysessionanswer',
         'vocabulary_studysession_decks_studied',
-        'vocabulary_studysession',
         'vocabulary_incorrectwordreview',
         'vocabulary_favoriteflashcard',
         'vocabulary_blacklistflashcard',
         'vocabulary_definition',
-        'vocabulary_flashcard',
-        'vocabulary_deck',
         'vocabulary_dailystatistics',
         'vocabulary_weeklystatistics',
 
-        # Auth and account related (child tables first)
+        # Level 2: Tables that depend on flashcard/deck but have dependencies themselves
+        'vocabulary_flashcard',
+        'vocabulary_studysession',
+
+        # Level 3: Tables that many others depend on
+        'vocabulary_deck',
+
+        # Level 4: Auth and account related (child first)
         'socialaccount_socialtoken',
         'socialaccount_socialapp_sites',
         'socialaccount_socialaccount',
@@ -132,9 +136,11 @@ def sort_tables_by_dependency(tables: List[str], sync_mode: str, direction: str)
         'account_emailaddress',
         'accounts_customuser_user_permissions',
         'accounts_customuser_groups',
+
+        # Level 5: User table (many dependencies)
         'accounts_customuser',
 
-        # Django framework tables
+        # Level 6: Django framework tables
         'django_admin_log',
         'django_session',
         'cache_table',
@@ -142,9 +148,11 @@ def sort_tables_by_dependency(tables: List[str], sync_mode: str, direction: str)
         'auth_user_groups',
         'auth_user_user_permissions',
         'auth_group',
+
+        # Level 7: Permission system
         'auth_permission',
 
-        # Core system tables (usually have many dependencies)
+        # Level 8: Core system tables (highest dependency)
         'django_content_type',
         'django_migrations',
         'django_site',
