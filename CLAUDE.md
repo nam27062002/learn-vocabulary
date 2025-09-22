@@ -49,6 +49,14 @@ python manage.py delete_user
 python manage.py cleanup_avatars
 ```
 
+### Database Sync Tools
+The project includes specialized tools for database synchronization in the `tools/` directory:
+```bash
+cd tools
+pip install -r requirements.txt
+python sync_gui.py  # PyQt6 GUI for PostgreSQL ↔ SQLite sync
+```
+
 ### Static Files
 ```bash
 python manage.py collectstatic
@@ -56,8 +64,7 @@ python manage.py collectstatic
 
 ### Environment and Development Setup
 ```bash
-# Environment variables are required - copy .env.example to .env if it exists
-# Key environment variables include:
+# Create .env file in project root with required variables:
 # - SECRET_KEY: Django secret key
 # - DEBUG: True/False for development/production
 # - DATABASE_URL: PostgreSQL connection string (optional, defaults to SQLite)
@@ -71,6 +78,9 @@ python manage.py dbshell
 
 # Check for common issues
 python manage.py check
+
+# Load sample data (if available)
+python manage.py loaddata db.json
 ```
 
 ## Architecture Overview
@@ -166,11 +176,34 @@ The app uses a **difficulty-based system** instead of traditional SM-2 spaced re
 - Database connection pooling enabled for production performance
 - Comprehensive caching system implemented for API responses and database queries
 - Custom management commands available for data analysis and debugging
-- Current branch: `deploy_to_render` (deployment branch)
-- Deployed at: https://learn-english-app-4o7h.onrender.com/
+- Deployment: Render.com with PostgreSQL database
+- Database sync tools available for local development and backup
+
+### Project Structure
+```
+LearnEngish/
+├── vocabulary/          # Core vocabulary app
+├── accounts/           # Authentication and user management
+├── learn_english_project/  # Django project settings
+├── static/             # Static assets (CSS, JS, audio)
+├── templates/          # HTML templates
+├── media/              # User-uploaded files
+├── tools/              # Database sync utilities
+├── docs/               # Project documentation
+├── debug/              # Debug documentation and utilities
+└── tests/              # Integration tests
+```
 
 ### Performance Optimizations
 - Database indexing on frequently queried fields
 - Caching layer for flashcards, study sessions, and API responses
 - Connection pooling for database efficiency
 - Static file compression and optimization
+
+### Documentation Structure
+- `/docs/`: Technical documentation and implementation guides
+- `/debug/`: Debugging guides and issue resolution documentation
+- `/.kiro/`: Feature specifications and design documents
+- Individual `.md` files for specific features and fixes
+
+python .\dev_tools\migrate_env_db_to_new_server.py --yes --rebuild-schema
