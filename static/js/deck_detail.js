@@ -446,114 +446,167 @@ document.addEventListener("DOMContentLoaded", function () {
     initialScrollLeft = carouselSlides.scrollLeft;
   });
 
-  // Edit functionality functions
+  // Edit functionality functions - Updated for Modal
+  let currentEditingCard = null;
+
   function enterEditMode(cardContainer) {
-    const viewMode = cardContainer.querySelector(".card-view-mode");
-    const editMode = cardContainer.querySelector(".card-edit-mode");
+    currentEditingCard = cardContainer;
+    showEditCardModal(cardContainer);
+  }
 
-    if (viewMode && editMode) {
-      viewMode.classList.add("hidden");
-      editMode.classList.remove("hidden");
+  function showEditCardModal(cardContainer) {
+    const modal = document.getElementById('editCardModal');
+    const cardId = cardContainer.dataset.cardId;
 
-      // Store original data for cancel functionality
-      storeOriginalData(cardContainer);
+    // Get card data
+    const viewMode = cardContainer.querySelector('.card-view-mode');
+    const word = viewMode.querySelector('.dictionary-word-link').textContent;
+    const phoneticElement = viewMode.querySelector('.text-lg.text-gray-400.font-serif.italic span');
+    const phonetic = phoneticElement ? phoneticElement.textContent : '';
+    const partOfSpeechElement = viewMode.querySelector('.text-lg.text-gray-400.italic');
+    const partOfSpeech = partOfSpeechElement ? partOfSpeechElement.textContent.replace(/[()]/g, '').trim() : '';
+    const audioIcon = viewMode.querySelector('.audio-icon-tailwind');
+    const audioUrl = audioIcon ? audioIcon.dataset.audioUrl : '';
 
-      // Enable edit mode state
-      enableEditModeState();
+    // Fill modal fields
+    document.getElementById('modal-edit-word').value = word;
+    document.getElementById('modal-edit-phonetic').value = phonetic;
+
+    // Set part of speech in select dropdown
+    const partOfSpeechSelect = document.getElementById('modal-edit-part-of-speech');
+    partOfSpeechSelect.value = partOfSpeech.toLowerCase();
+
+    document.getElementById('modal-edit-audio-url').value = audioUrl;
+
+    // Load definitions
+    loadDefinitionsToModal(viewMode);
+
+    // Show modal
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function hideEditCardModal() {
+    const modal = document.getElementById('editCardModal');
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+    currentEditingCard = null;
+  }
+
+  function loadDefinitionsToModal(viewMode) {
+    const container = document.getElementById('modal-definitions-container');
+    container.innerHTML = '';
+
+    // Get all definition pairs - better selector to find actual definition text
+    const definitionElements = viewMode.querySelectorAll('.text-base.text-gray-300.leading-relaxed.mb-2');
+    const definitions = [];
+
+    for (let i = 0; i < definitionElements.length; i += 2) {
+      const englishEl = definitionElements[i];
+      const vietnameseEl = definitionElements[i + 1];
+
+      if (englishEl && vietnameseEl) {
+        // Remove the "EN:" and "VI:" labels completely
+        let englishText = englishEl.textContent.replace(/^EN:\s*/i, '').trim();
+        let vietnameseText = vietnameseEl.textContent.replace(/^VI:\s*/i, '').trim();
+
+        // Also handle cases where the span might contain the prefix
+        const englishSpan = englishEl.querySelector('span.font-semibold');
+        if (englishSpan) {
+          englishText = englishEl.textContent.replace(englishSpan.textContent, '').trim();
+        }
+
+        const vietnameseSpan = vietnameseEl.querySelector('span.font-semibold');
+        if (vietnameseSpan) {
+          vietnameseText = vietnameseEl.textContent.replace(vietnameseSpan.textContent, '').trim();
+        }
+
+        if (englishText && vietnameseText) {
+          definitions.push({ english: englishText, vietnamese: vietnameseText });
+        }
+      }
     }
+
+    // Add existing definitions or create one empty pair
+    if (definitions.length === 0) {
+      addDefinitionPair(container, '', '');
+    } else {
+      definitions.forEach(def => {
+        addDefinitionPair(container, def.english, def.vietnamese);
+      });
+    }
+  }
+
+  function addDefinitionPair(container, englishText = '', vietnameseText = '') {
+    const pairDiv = document.createElement('div');
+    pairDiv.className = 'modal-definition-pair';
+
+    pairDiv.innerHTML = `
+      <div class="definition-pair-header">
+        <span class="definition-pair-number">#${container.children.length + 1}</span>
+        <button type="button" class="remove-definition" onclick="removeDefinitionPair(this)">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="definition-inputs">
+        <div class="definition-input-group">
+          <div class="input-label">
+            <i class="fas fa-flag text-blue-400"></i>
+            <span>English</span>
+          </div>
+          <textarea
+            class="modal-edit-english-def definition-textarea"
+            rows="2"
+            placeholder="The encountering of risks; a bold undertaking..."
+          >${englishText}</textarea>
+        </div>
+
+        <div class="definition-input-group">
+          <div class="input-label">
+            <i class="fas fa-flag text-red-400"></i>
+            <span>Vietnamese</span>
+          </div>
+          <textarea
+            class="modal-edit-vietnamese-def definition-textarea"
+            rows="2"
+            placeholder="cuộc phiêu lưu"
+          >${vietnameseText}</textarea>
+        </div>
+      </div>
+    `;
+
+    container.appendChild(pairDiv);
+
+    // Update numbers for all pairs
+    updateDefinitionNumbers(container);
   }
 
   function exitEditMode(cardContainer) {
-    const viewMode = cardContainer.querySelector(".card-view-mode");
-    const editMode = cardContainer.querySelector(".card-edit-mode");
-
-    if (viewMode && editMode) {
-      viewMode.classList.remove("hidden");
-      editMode.classList.add("hidden");
-
-      // Disable edit mode state
-      disableEditModeState();
-    }
+    // This function is now handled by hideEditCardModal
+    hideEditCardModal();
   }
 
-  function storeOriginalData(cardContainer) {
-    const editMode = cardContainer.querySelector(".card-edit-mode");
-    const originalData = {
-      word: editMode.querySelector(".edit-word").value,
-      phonetic: editMode.querySelector(".edit-phonetic").value,
-      partOfSpeech: editMode.querySelector(".edit-part-of-speech").value,
-      audioUrl: editMode.querySelector(".edit-audio-url").value,
-      definitions: [],
-    };
+  // Old inline editing functions removed - now using modal
 
-    // Store definition data
-    const englishDefs = editMode.querySelectorAll(".edit-english-def");
-    const vietnameseDefs = editMode.querySelectorAll(".edit-vietnamese-def");
+  function saveEditCardModal() {
+    if (!currentEditingCard) return;
 
-    for (let i = 0; i < englishDefs.length; i++) {
-      originalData.definitions.push({
-        english: englishDefs[i].value,
-        vietnamese: vietnameseDefs[i] ? vietnameseDefs[i].value : "",
-      });
-    }
+    const cardId = currentEditingCard.dataset.cardId;
 
-    cardContainer.dataset.originalData = JSON.stringify(originalData);
-  }
-
-  function restoreOriginalData(cardContainer) {
-    const originalData = JSON.parse(cardContainer.dataset.originalData || "{}");
-    const editMode = cardContainer.querySelector(".card-edit-mode");
-
-    if (originalData && editMode) {
-      editMode.querySelector(".edit-word").value = originalData.word || "";
-      editMode.querySelector(".edit-phonetic").value =
-        originalData.phonetic || "";
-      editMode.querySelector(".edit-part-of-speech").value =
-        originalData.partOfSpeech || "";
-      editMode.querySelector(".edit-audio-url").value =
-        originalData.audioUrl || "";
-
-      // Restore definitions
-      const englishDefs = editMode.querySelectorAll(".edit-english-def");
-      const vietnameseDefs = editMode.querySelectorAll(".edit-vietnamese-def");
-
-      originalData.definitions.forEach((def, index) => {
-        if (englishDefs[index]) englishDefs[index].value = def.english;
-        if (vietnameseDefs[index]) vietnameseDefs[index].value = def.vietnamese;
-      });
-    }
-  }
-
-  function cancelEdit(cardContainer) {
-    const confirmCancel =
-      window.manual_texts?.confirm_cancel_edit ||
-      "Are you sure you want to cancel? Unsaved changes will be lost.";
-
-    if (confirm(confirmCancel)) {
-      restoreOriginalData(cardContainer);
-      exitEditMode(cardContainer);
-    }
-  }
-
-  function saveCardChanges(cardContainer) {
-    const cardId = cardContainer.dataset.cardId;
-    const editMode = cardContainer.querySelector(".card-edit-mode");
-
-    // Collect form data
+    // Collect form data from modal
     const formData = {
       card_id: cardId,
-      word: editMode.querySelector(".edit-word").value.trim(),
-      phonetic: editMode.querySelector(".edit-phonetic").value.trim(),
-      part_of_speech: editMode
-        .querySelector(".edit-part-of-speech")
-        .value.trim(),
-      audio_url: editMode.querySelector(".edit-audio-url").value.trim(),
+      word: document.getElementById('modal-edit-word').value.trim(),
+      phonetic: document.getElementById('modal-edit-phonetic').value.trim(),
+      part_of_speech: document.getElementById('modal-edit-part-of-speech').value.trim(),
+      audio_url: document.getElementById('modal-edit-audio-url').value.trim(),
       definitions: [],
     };
 
-    // Collect definitions
-    const englishDefs = editMode.querySelectorAll(".edit-english-def");
-    const vietnameseDefs = editMode.querySelectorAll(".edit-vietnamese-def");
+    // Collect definitions from modal
+    const englishDefs = document.querySelectorAll(".modal-edit-english-def");
+    const vietnameseDefs = document.querySelectorAll(".modal-edit-vietnamese-def");
 
     for (let i = 0; i < englishDefs.length; i++) {
       const englishDef = englishDefs[i].value.trim();
@@ -588,9 +641,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Show loading state
-    const saveBtn = editMode.querySelector(".save-card-btn");
-    const originalText = saveBtn.textContent;
-    saveBtn.textContent = window.manual_texts?.saving || "Saving...";
+    const saveBtn = document.querySelector(".btn-save");
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
     saveBtn.disabled = true;
 
     // Prepare request details (API endpoints don't use language prefixes)
@@ -624,8 +677,8 @@ document.addEventListener("DOMContentLoaded", function () {
       })
       .then((data) => {
         if (data.success) {
-          updateCardDisplay(cardContainer, data.card);
-          exitEditMode(cardContainer);
+          updateCardDisplay(currentEditingCard, data.card);
+          hideEditCardModal();
           showMessage(
             window.manual_texts?.card_updated_successfully ||
               "Card updated successfully!",
@@ -667,7 +720,7 @@ document.addEventListener("DOMContentLoaded", function () {
         showMessage(errorMessage, "error");
       })
       .finally(() => {
-        saveBtn.textContent = originalText;
+        saveBtn.innerHTML = originalText;
         saveBtn.disabled = false;
       });
   }
@@ -2372,9 +2425,53 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize tooltip fixes
   fixTooltipIssues();
 
+  // Add definition pair functionality
+  document.getElementById('add-definition-btn').addEventListener('click', function() {
+    const container = document.getElementById('modal-definitions-container');
+    addDefinitionPair(container);
+  });
+
+  // Update definition pair numbers
+  function updateDefinitionNumbers(container) {
+    const pairs = container.querySelectorAll('.modal-definition-pair');
+    pairs.forEach((pair, index) => {
+      const numberSpan = pair.querySelector('.definition-pair-number');
+      if (numberSpan) {
+        numberSpan.textContent = `#${index + 1}`;
+      }
+    });
+  }
+
+  // Global remove definition function
+  window.removeDefinitionPair = function(button) {
+    const pair = button.closest('.modal-definition-pair');
+    const container = document.getElementById('modal-definitions-container');
+
+    // Don't allow removing the last definition pair
+    if (container.children.length > 1) {
+      pair.remove();
+      updateDefinitionNumbers(container);
+    } else {
+      showMessage('At least one definition is required', 'error');
+    }
+  };
+
+  // ESC key to close edit modal
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+      const editModal = document.getElementById('editCardModal');
+      if (editModal.style.display === 'block') {
+        hideEditCardModal();
+        return;
+      }
+    }
+  });
+
   // Make functions globally available for modal buttons
   window.showDeleteCardModal = showDeleteCardModal;
   window.hideDeleteCardModal = hideDeleteCardModal;
   window.confirmDeleteCard = confirmDeleteCard;
+  window.hideEditCardModal = hideEditCardModal;
+  window.saveEditCardModal = saveEditCardModal;
 
 });
