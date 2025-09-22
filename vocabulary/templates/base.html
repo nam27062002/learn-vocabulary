@@ -134,6 +134,14 @@
                   <span id="nav-blacklist-count" class="ml-1 bg-red-600 text-white text-xs rounded-full px-2 py-1" style="display: none;">0</span>
                 </a>
                 <a
+                  href="{% url 'notes_list' %}"
+                  class="{% if request.resolver_match.url_name == 'notes_list' or request.resolver_match.url_name == 'note_create' or request.resolver_match.url_name == 'note_detail' or request.resolver_match.url_name == 'note_edit' %}bg-gray-900 text-white{% else %}text-gray-500 dark:text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1"
+                  id="nav-notes"
+                >
+                  <span class="nav-icon">📝</span>
+                  <span>{{ manual_texts.notes|default:"Notes" }}</span>
+                </a>
+                <a
                   href="{% url 'statistics' %}"
                   class="{% if request.resolver_match.url_name == 'statistics' %}bg-gray-900 text-white{% else %}text-gray-500 dark:text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1"
                   id="nav-statistics"
@@ -349,6 +357,13 @@
             <span class="nav-icon">⛔</span>
             <span>{{ manual_texts.blacklist|default:"Blacklist" }}</span>
             <span id="mobile-blacklist-count" class="ml-1 bg-red-600 text-white text-xs rounded-full px-2 py-1" style="display: none;">0</span>
+          </a>
+          <a
+            href="{% url 'notes_list' %}"
+            class="{% if request.resolver_match.url_name == 'notes_list' or request.resolver_match.url_name == 'note_create' or request.resolver_match.url_name == 'note_detail' or request.resolver_match.url_name == 'note_edit' %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium flex items-center space-x-2"
+          >
+            <span class="nav-icon">📝</span>
+            <span>{{ manual_texts.notes|default:"Notes" }}</span>
           </a>
           <a
             href="{% url 'statistics' %}"
