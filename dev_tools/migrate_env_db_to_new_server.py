@@ -46,6 +46,11 @@ import tempfile
 from pathlib import Path
 from typing import List
 
+# Ensure project root is on sys.path so 'learn_english_project' is importable
+BASE_DIR = Path(__file__).resolve().parents[1]
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "learn_english_project.settings")
 
 import django  # noqa: E402

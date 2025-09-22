@@ -205,3 +205,5 @@ LearnEngish/
 - `/debug/`: Debugging guides and issue resolution documentation
 - `/.kiro/`: Feature specifications and design documents
 - Individual `.md` files for specific features and fixes
+
+python .\dev_tools\migrate_env_db_to_new_server.py --yes --rebuild-schema
