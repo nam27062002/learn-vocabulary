@@ -9,6 +9,13 @@ A comprehensive PyQt6-based GUI application that combines all database migration
   - Environment Database → SQLite  
   - Environment Database → New Server Database
 
+- **Configuration Management:**
+  - Save/Load database connection presets
+  - Default presets based on original scripts
+  - Auto-load last used configurations
+  - Import/Export configuration files
+  - Configuration validation and error handling
+
 - **User-Friendly Interface:**
   - Tabbed interface for different migration types
   - Database connection configuration and testing
@@ -54,9 +61,54 @@ pip install PyQt6
    - **Environment → New Server:** Copy data between server databases
 
 3. **Configure database connections:**
-   - Fill in the database connection details
+   - Use preset configurations or enter custom settings
+   - Save frequently used configurations as presets
+   - Load saved presets from the dropdown menu
    - Click "Test Connection" to verify settings
-   - Use the embedded defaults or environment variables
+
+### Configuration Management
+
+The tool includes a powerful configuration management system:
+
+#### Database Presets
+- **Default Presets:** Automatically created based on your original migration scripts
+  - "Learn English DB (Original Server)" - Production server settings
+  - "Learn English DB (New Server)" - New server settings  
+  - "Local SQLite" - Local development database
+  - "Local PostgreSQL" - Local PostgreSQL server
+
+- **Custom Presets:** Save your own database configurations
+  - Click "Save As..." to create a new preset
+  - Enter a name and description
+  - Presets are automatically saved to your user configuration directory
+
+- **Preset Management:**
+  - Load presets from the dropdown menu
+  - Delete custom presets (default presets cannot be deleted)
+  - Presets include connection details and last-used timestamps
+
+#### Configuration Files
+- **Auto-Save:** Configurations are automatically saved when you create or modify presets
+- **Import/Export:** Share configurations between computers or team members
+  - Use "Import Config" button to load saved configuration files
+  - Use "Export Config" button to save all configurations to a JSON file
+  - Choose merge or replace mode when importing
+
+#### Auto-Load
+- **Smart Defaults:** The application automatically loads appropriate default configurations
+  - Original server preset for downloading data
+  - New server preset for uploading data  
+  - Configurations are remembered between sessions
+
+#### Storage Location
+Configuration files are stored in:
+- **Windows:** `%APPDATA%\LearnVocabulary\DatabaseMigrator\`
+- **Linux/Mac:** `~/.config/learn-vocabulary/database-migrator/`
+
+Files include:
+- `database_presets.json` - Saved database configurations
+- `migration_presets.json` - Complete migration setups
+- `app_settings.json` - Application preferences
 
 4. **Set migration options:**
    - Choose whether to keep dump files

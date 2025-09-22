@@ -22,12 +22,13 @@ import threading
 from pathlib import Path
 from typing import Dict, Any, Optional, Callable
 from dataclasses import dataclass
+from datetime import datetime
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, 
     QHBoxLayout, QFormLayout, QLineEdit, QPushButton, QLabel, 
     QTextEdit, QProgressBar, QCheckBox, QGroupBox, QMessageBox,
-    QComboBox, QSpinBox, QFileDialog, QSplitter
+    QComboBox, QSpinBox, QFileDialog, QSplitter, QInputDialog
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QTimer, QSettings
 from PyQt6.QtGui import QFont, QIcon, QPixmap
@@ -38,6 +39,11 @@ if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "learn_english_project.settings")
+
+# Import configuration manager
+from tools.migrate_database.config_manager import (
+    ConfigurationManager, DatabaseConfigPreset, MigrationConfigPreset
+)
 
 
 @dataclass
@@ -50,6 +56,33 @@ class DatabaseConfig:
     host: str = ""
     port: str = "5432"
     sslmode: str = "require"
+    
+    @classmethod
+    def from_preset(cls, preset: DatabaseConfigPreset) -> 'DatabaseConfig':
+        """Create DatabaseConfig from DatabaseConfigPreset"""
+        return cls(
+            engine=preset.engine,
+            name=preset.database_name,
+            user=preset.username,
+            password=preset.password,
+            host=preset.host,
+            port=preset.port,
+            sslmode=preset.sslmode
+        )
+    
+    def to_preset(self, name: str, description: str = "") -> DatabaseConfigPreset:
+        """Convert to DatabaseConfigPreset"""
+        return DatabaseConfigPreset(
+            name=name,
+            description=description,
+            engine=self.engine,
+            host=self.host,
+            port=self.port,
+            database_name=self.name,
+            username=self.user,
+            password=self.password,
+            sslmode=self.sslmode
+        )
 
 
 class MigrationWorker(QThread):
@@ -438,10 +471,37 @@ class DatabaseConfigWidget(QWidget):
         super().__init__()
         self.title = title
         self.show_sqlite_option = show_sqlite_option
+        self.config_manager = ConfigurationManager()
         self._init_ui()
+        self._load_presets()
         
     def _init_ui(self):
         layout = QVBoxLayout()
+        
+        # Preset management section
+        preset_layout = QHBoxLayout()
+        
+        preset_layout.addWidget(QLabel("Preset:"))
+        
+        self.preset_combo = QComboBox()
+        self.preset_combo.setMinimumWidth(200)
+        self.preset_combo.currentTextChanged.connect(self._on_preset_changed)
+        preset_layout.addWidget(self.preset_combo)
+        
+        self.load_btn = QPushButton("Load")
+        self.load_btn.clicked.connect(self._load_preset)
+        preset_layout.addWidget(self.load_btn)
+        
+        self.save_btn = QPushButton("Save As...")
+        self.save_btn.clicked.connect(self._save_preset)
+        preset_layout.addWidget(self.save_btn)
+        
+        self.delete_btn = QPushButton("Delete")
+        self.delete_btn.clicked.connect(self._delete_preset)
+        preset_layout.addWidget(self.delete_btn)
+        
+        preset_layout.addStretch()
+        layout.addLayout(preset_layout)
         
         # Group box for database configuration
         group_box = QGroupBox(self.title)
@@ -494,6 +554,93 @@ class DatabaseConfigWidget(QWidget):
         
         if self.show_sqlite_option:
             self._on_db_type_changed("PostgreSQL")
+    
+    def _load_presets(self):
+        """Load available presets into combo box"""
+        self.preset_combo.clear()
+        self.preset_combo.addItem("-- Select Preset --", None)
+        
+        presets = self.config_manager.load_database_presets()
+        for preset in presets:
+            self.preset_combo.addItem(preset.name, preset)
+    
+    def _on_preset_changed(self, preset_name: str):
+        """Handle preset selection change"""
+        if preset_name == "-- Select Preset --":
+            self.delete_btn.setEnabled(False)
+        else:
+            preset = self.preset_combo.currentData()
+            if preset and not preset.is_default:
+                self.delete_btn.setEnabled(True)
+            else:
+                self.delete_btn.setEnabled(False)
+    
+    def _load_preset(self):
+        """Load the selected preset"""
+        preset = self.preset_combo.currentData()
+        if preset:
+            self.set_config(DatabaseConfig.from_preset(preset))
+            self.status_label.setText(f"✓ Loaded preset: {preset.name}")
+            self.status_label.setStyleSheet("color: green;")
+            
+            # Update last used time
+            preset.last_used = datetime.now().isoformat()
+            self.config_manager.add_database_preset(preset)
+    
+    def _save_preset(self):
+        """Save current configuration as a new preset"""
+        name, ok = QInputDialog.getText(
+            self, "Save Preset", "Enter preset name:"
+        )
+        
+        if ok and name.strip():
+            description, ok2 = QInputDialog.getText(
+                self, "Preset Description", "Enter description (optional):"
+            )
+            
+            if ok2:
+                config = self.get_config()
+                preset = config.to_preset(name.strip(), description.strip())
+                
+                # Check if preset already exists
+                existing = self.config_manager.get_database_preset(name.strip())
+                if existing:
+                    reply = QMessageBox.question(
+                        self, "Preset Exists", 
+                        f"Preset '{name}' already exists. Overwrite?",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                    )
+                    if reply == QMessageBox.StandardButton.No:
+                        return
+                
+                self.config_manager.add_database_preset(preset)
+                self._load_presets()
+                
+                # Select the newly saved preset
+                index = self.preset_combo.findText(name.strip())
+                if index >= 0:
+                    self.preset_combo.setCurrentIndex(index)
+                
+                QMessageBox.information(self, "Success", f"Preset '{name}' saved successfully!")
+    
+    def _delete_preset(self):
+        """Delete the selected preset"""
+        preset = self.preset_combo.currentData()
+        if preset:
+            if preset.is_default:
+                QMessageBox.warning(self, "Cannot Delete", "Cannot delete default presets.")
+                return
+            
+            reply = QMessageBox.question(
+                self, "Delete Preset",
+                f"Are you sure you want to delete preset '{preset.name}'?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                self.config_manager.remove_database_preset(preset.name)
+                self._load_presets()
+                QMessageBox.information(self, "Success", f"Preset '{preset.name}' deleted successfully!")
     
     def _on_db_type_changed(self, db_type: str):
         """Handle database type change"""
@@ -557,6 +704,11 @@ class DatabaseConfigWidget(QWidget):
         index = self.sslmode_edit.findText(config.sslmode)
         if index >= 0:
             self.sslmode_edit.setCurrentIndex(index)
+    
+    def get_selected_preset_name(self) -> Optional[str]:
+        """Get the name of the currently selected preset"""
+        preset = self.preset_combo.currentData()
+        return preset.name if preset else None
 
 
 class MigrationTabWidget(QWidget):
@@ -573,7 +725,7 @@ class MigrationTabWidget(QWidget):
         layout = QVBoxLayout()
         
         # Create splitter for configuration and progress
-        splitter = QSplitter(Qt.Orientation.Vertical)
+        self.splitter = QSplitter(Qt.Orientation.Vertical)
         
         # Configuration area
         config_widget = QWidget()
@@ -589,11 +741,11 @@ class MigrationTabWidget(QWidget):
         self._create_progress_ui(progress_layout)
         progress_widget.setLayout(progress_layout)
         
-        splitter.addWidget(config_widget)
-        splitter.addWidget(progress_widget)
-        splitter.setSizes([400, 300])
+        self.splitter.addWidget(config_widget)
+        self.splitter.addWidget(progress_widget)
+        self.splitter.setSizes([400, 300])
         
-        layout.addWidget(splitter)
+        layout.addWidget(self.splitter)
         self.setLayout(layout)
     
     def _create_config_ui(self, layout):
@@ -850,8 +1002,10 @@ class DatabaseMigrationGUI(QMainWindow):
     def __init__(self):
         super().__init__()
         self.settings = QSettings("LearnVocabulary", "DatabaseMigrator")
+        self.config_manager = ConfigurationManager()
         self._init_ui()
         self._load_settings()
+        self._auto_load_configurations()
         
     def _init_ui(self):
         self.setWindowTitle("Database Migration Tool - Learn Vocabulary")
@@ -864,11 +1018,25 @@ class DatabaseMigrationGUI(QMainWindow):
         
         layout = QVBoxLayout()
         
-        # Title
+        # Title and toolbar
+        header_layout = QHBoxLayout()
+        
         title_label = QLabel("Database Migration Tool")
         title_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title_label)
+        header_layout.addWidget(title_label)
+        
+        header_layout.addStretch()
+        
+        # Configuration management buttons
+        self.import_config_btn = QPushButton("Import Config")
+        self.import_config_btn.clicked.connect(self._import_configuration)
+        header_layout.addWidget(self.import_config_btn)
+        
+        self.export_config_btn = QPushButton("Export Config")
+        self.export_config_btn.clicked.connect(self._export_configuration)
+        header_layout.addWidget(self.export_config_btn)
+        
+        layout.addLayout(header_layout)
         
         # Tab widget
         self.tab_widget = QTabWidget()
@@ -887,7 +1055,7 @@ class DatabaseMigrationGUI(QMainWindow):
         central_widget.setLayout(layout)
         
         # Status bar
-        self.statusBar().showMessage("Ready")
+        self.statusBar().showMessage("Ready - Configuration auto-loaded")
     
     def _load_settings(self):
         """Load application settings"""
@@ -896,14 +1064,149 @@ class DatabaseMigrationGUI(QMainWindow):
         if geometry:
             self.restoreGeometry(geometry)
         
-        # Load database configurations (implement if needed)
-        # self._load_db_configs()
+        # Load other settings from config manager
+        settings = self.config_manager.load_app_settings()
+        
+        # Restore splitter sizes if available
+        splitter_sizes = settings.get("splitter_sizes", [400, 300])
+        for tab in [self.sqlite_to_env_tab, self.env_to_sqlite_tab, self.env_to_new_server_tab]:
+            if hasattr(tab, 'splitter'):
+                tab.splitter.setSizes(splitter_sizes)
+    
+    def _auto_load_configurations(self):
+        """Auto-load last used configurations"""
+        if not self.config_manager.get_app_setting("auto_load_last_config", True):
+            return
+        
+        try:
+            # Load default presets for each tab
+            presets = self.config_manager.load_database_presets()
+            
+            # Find default presets
+            original_server = next((p for p in presets if "Original Server" in p.name), None)
+            new_server = next((p for p in presets if "New Server" in p.name), None)
+            local_sqlite = next((p for p in presets if "Local SQLite" in p.name), None)
+            
+            # Auto-load configurations
+            if original_server:
+                # Load original server for env_to_sqlite source
+                if hasattr(self.env_to_sqlite_tab, 'source_config'):
+                    self.env_to_sqlite_tab.source_config.set_config(DatabaseConfig.from_preset(original_server))
+                    # Set the preset in combo box
+                    index = self.env_to_sqlite_tab.source_config.preset_combo.findText(original_server.name)
+                    if index >= 0:
+                        self.env_to_sqlite_tab.source_config.preset_combo.setCurrentIndex(index)
+                
+                # Load for env_to_new_server source
+                if hasattr(self.env_to_new_server_tab, 'source_config'):
+                    self.env_to_new_server_tab.source_config.set_config(DatabaseConfig.from_preset(original_server))
+                    index = self.env_to_new_server_tab.source_config.preset_combo.findText(original_server.name)
+                    if index >= 0:
+                        self.env_to_new_server_tab.source_config.preset_combo.setCurrentIndex(index)
+            
+            if new_server:
+                # Load new server for sqlite_to_env target
+                if hasattr(self.sqlite_to_env_tab, 'target_config'):
+                    self.sqlite_to_env_tab.target_config.set_config(DatabaseConfig.from_preset(new_server))
+                    index = self.sqlite_to_env_tab.target_config.preset_combo.findText(new_server.name)
+                    if index >= 0:
+                        self.sqlite_to_env_tab.target_config.preset_combo.setCurrentIndex(index)
+                
+                # Load for env_to_new_server target
+                if hasattr(self.env_to_new_server_tab, 'target_config'):
+                    self.env_to_new_server_tab.target_config.set_config(DatabaseConfig.from_preset(new_server))
+                    index = self.env_to_new_server_tab.target_config.preset_combo.findText(new_server.name)
+                    if index >= 0:
+                        self.env_to_new_server_tab.target_config.preset_combo.setCurrentIndex(index)
+            
+            self.statusBar().showMessage("Configurations auto-loaded from presets")
+            
+        except Exception as e:
+            print(f"Warning: Could not auto-load configurations: {e}")
+            self.statusBar().showMessage("Ready - Could not auto-load configurations")
+    
+    def _import_configuration(self):
+        """Import configuration from file"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Import Configuration", "",
+            "JSON Files (*.json);;All Files (*)"
+        )
+        
+        if file_path:
+            try:
+                reply = QMessageBox.question(
+                    self, "Import Mode",
+                    "Choose import mode:\n\n"
+                    "Yes = Replace all configurations\n"
+                    "No = Merge with existing configurations\n"
+                    "Cancel = Cancel import",
+                    QMessageBox.StandardButton.Yes | 
+                    QMessageBox.StandardButton.No | 
+                    QMessageBox.StandardButton.Cancel
+                )
+                
+                if reply == QMessageBox.StandardButton.Cancel:
+                    return
+                
+                merge = reply == QMessageBox.StandardButton.No
+                self.config_manager.import_configuration(Path(file_path), merge=merge)
+                
+                # Refresh all preset combo boxes
+                self._refresh_all_presets()
+                
+                QMessageBox.information(
+                    self, "Success", 
+                    f"Configuration {'merged' if merge else 'imported'} successfully!"
+                )
+                
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to import configuration: {str(e)}")
+    
+    def _export_configuration(self):
+        """Export configuration to file"""
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Export Configuration", 
+            f"db_migration_config_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            "JSON Files (*.json);;All Files (*)"
+        )
+        
+        if file_path:
+            try:
+                self.config_manager.export_configuration(Path(file_path))
+                QMessageBox.information(
+                    self, "Success", 
+                    f"Configuration exported to {file_path}"
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to export configuration: {str(e)}")
+    
+    def _refresh_all_presets(self):
+        """Refresh preset combo boxes in all tabs"""
+        for tab in [self.sqlite_to_env_tab, self.env_to_sqlite_tab, self.env_to_new_server_tab]:
+            if hasattr(tab, 'source_config'):
+                tab.source_config._load_presets()
+            if hasattr(tab, 'target_config'):
+                tab.target_config._load_presets()
     
     def _save_settings(self):
         """Save application settings"""
         self.settings.setValue("geometry", self.saveGeometry())
-        # Save database configurations (implement if needed)
-        # self._save_db_configs()
+        
+        # Save other settings via config manager
+        settings = self.config_manager.load_app_settings()
+        
+        # Save current tab
+        settings["last_migration_type"] = ["sqlite_to_env", "env_to_sqlite", "env_to_new_server"][
+            self.tab_widget.currentIndex()
+        ]
+        
+        # Save splitter sizes (from first tab that has one)
+        for tab in [self.sqlite_to_env_tab, self.env_to_sqlite_tab, self.env_to_new_server_tab]:
+            if hasattr(tab, 'splitter'):
+                settings["splitter_sizes"] = tab.splitter.sizes()
+                break
+        
+        self.config_manager.save_app_settings(settings)
     
     def closeEvent(self, event):
         """Handle application close"""
