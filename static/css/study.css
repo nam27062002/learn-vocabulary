@@ -1280,6 +1280,7 @@
 .audio-settings {
   display: flex;
   align-items: center;
+  gap: 20px;
 }
 
 .audio-toggle {
@@ -1321,6 +1322,18 @@
 }
 
 #audioToggle:checked + .toggle-slider::before {
+  transform: translateX(26px);
+}
+
+#skipFeedbackToggle {
+  display: none;
+}
+
+#skipFeedbackToggle:checked + .toggle-slider {
+  background: var(--primary-color);
+}
+
+#skipFeedbackToggle:checked + .toggle-slider::before {
   transform: translateX(26px);
 }
 

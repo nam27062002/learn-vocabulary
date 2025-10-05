@@ -1807,6 +1807,23 @@
     }
 
 
+    // Check if skip feedback is enabled and answer is correct
+    const skipFeedbackToggle = document.getElementById("skipFeedbackToggle");
+    const shouldSkipFeedback = skipFeedbackToggle && skipFeedbackToggle.checked && correct;
+
+    console.log(`[DEBUG] Skip feedback toggle checked: ${skipFeedbackToggle?.checked}`);
+    console.log(`[DEBUG] Answer correct: ${correct}`);
+    console.log(`[DEBUG] Should skip feedback: ${shouldSkipFeedback}`);
+
+    if (shouldSkipFeedback) {
+      // Auto-skip with Easy grade (3) for correct answers
+      console.log(`[DEBUG] Auto-skipping feedback with Easy grade`);
+      setTimeout(() => {
+        submitGrade(3); // Easy grade
+      }, 500); // Small delay to show feedback briefly
+      return;
+    }
+
     // Show grade buttons
     console.log(`[DEBUG] Attempting to show grade buttons...`);
     const gradeButtons = document.getElementById("gradeButtons");

@@ -2608,3 +2608,179 @@ def debug_study_template(request):
         }
     }
     return render(request, 'vocabulary/study.html', context)
+
+
+# ==========================================================================
+# Note Views - Personal diary/notes functionality
+# ==========================================================================
+
+@login_required
+def notes_list(request):
+    """Display list of user's notes."""
+    from .models import Note
+    
+    notes = Note.objects.filter(user=request.user)
+    
+    context = {
+        'notes': notes,
+        'total_notes': notes.count(),
+        'manual_texts': {
+            'notes': 'Notes',
+            'my_notes': 'My Notes',
+            'add_note': 'Add Note',
+            'edit_note': 'Edit Note',
+            'delete_note': 'Delete Note',
+            'note_title': 'Title',
+            'note_content': 'Content',
+            'created_at': 'Created',
+            'updated_at': 'Updated',
+            'no_notes': 'No notes yet. Start writing your first note!',
+            'confirm_delete': 'Are you sure you want to delete this note?',
+        }
+    }
+    
+    return render(request, 'vocabulary/notes_list.html', context)
+
+
+@login_required  
+def note_create(request):
+    """Create a new note."""
+    from .models import Note
+    
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        content = request.POST.get('content', '').strip()
+        
+        if not title:
+            return JsonResponse({'success': False, 'error': 'Title is required'}, status=400)
+        
+        if not content:
+            return JsonResponse({'success': False, 'error': 'Content is required'}, status=400)
+        
+        try:
+            note = Note.objects.create(
+                user=request.user,
+                title=title,
+                content=content
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'note_id': note.id,
+                'message': 'Note created successfully'
+            })
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    context = {
+        'manual_texts': {
+            'add_note': 'Add Note',
+            'note_title': 'Title',
+            'note_content': 'Content',
+            'save_note': 'Save Note',
+            'cancel': 'Cancel',
+            'title_placeholder': 'Enter note title...',
+            'content_placeholder': 'Write your note content here...',
+        }
+    }
+    
+    return render(request, 'vocabulary/note_create.html', context)
+
+
+@login_required
+def note_edit(request, note_id):
+    """Edit an existing note."""
+    from .models import Note
+    
+    try:
+        note = Note.objects.get(id=note_id, user=request.user)
+    except Note.DoesNotExist:
+        if request.method == 'POST':
+            return JsonResponse({'success': False, 'error': 'Note not found'}, status=404)
+        return redirect('notes_list')
+    
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        content = request.POST.get('content', '').strip()
+        
+        if not title:
+            return JsonResponse({'success': False, 'error': 'Title is required'}, status=400)
+        
+        if not content:
+            return JsonResponse({'success': False, 'error': 'Content is required'}, status=400)
+        
+        try:
+            note.title = title
+            note.content = content
+            note.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Note updated successfully'
+            })
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    context = {
+        'note': note,
+        'manual_texts': {
+            'edit_note': 'Edit Note',
+            'note_title': 'Title',
+            'note_content': 'Content',
+            'save_changes': 'Save Changes',
+            'cancel': 'Cancel',
+            'title_placeholder': 'Enter note title...',
+            'content_placeholder': 'Write your note content here...',
+        }
+    }
+    
+    return render(request, 'vocabulary/note_edit.html', context)
+
+
+@login_required
+@require_POST
+def note_delete(request, note_id):
+    """Delete a note."""
+    from .models import Note
+    
+    try:
+        note = Note.objects.get(id=note_id, user=request.user)
+        note.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Note deleted successfully'
+        })
+        
+    except Note.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Note not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+def note_detail(request, note_id):
+    """View a single note in detail."""
+    from .models import Note
+    
+    try:
+        note = Note.objects.get(id=note_id, user=request.user)
+    except Note.DoesNotExist:
+        return redirect('notes_list')
+    
+    context = {
+        'note': note,
+        'manual_texts': {
+            'note_detail': 'Note Detail',
+            'edit_note': 'Edit Note',
+            'delete_note': 'Delete Note',
+            'back_to_notes': 'Back to Notes',
+            'created_at': 'Created',
+            'updated_at': 'Updated',
+            'confirm_delete': 'Are you sure you want to delete this note?',
+        }
+    }
+    
+    return render(request, 'vocabulary/note_detail.html', context)

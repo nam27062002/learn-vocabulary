@@ -51,7 +51,7 @@ staticfiles/
 .env.local
 
 # Tool configs (may contain credentials)
-tools/migrate_database/db_migrator_config.json
+tools/migrate_database/migration_config.json
 
 # Render specific
 .render/

@@ -767,6 +767,14 @@
               {{ manual_texts.sound_feedback }}
             </span>
           </label>
+          <label class="audio-toggle">
+            <input type="checkbox" id="skipFeedbackToggle" checked />
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">
+              <i class="fas fa-forward"></i>
+              {{ manual_texts.skip_feedback|default:"Skip Feedback" }}
+            </span>
+          </label>
         </div>
       </div>
     </div>

@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ manual_texts.edit_note }} - LearnEnglish{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex items-center space-x-4 mb-4">
+      <a 
+        href="{% url 'notes_list' %}" 
+        class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+      >
+        ← Back to Notes
+      </a>
+      <span class="text-gray-300 dark:text-gray-600">|</span>
+      <a 
+        href="{% url 'note_detail' note.id %}" 
+        class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+      >
+        View Note
+      </a>
+    </div>
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+      ✏️ {{ manual_texts.edit_note }}
+    </h1>
+    <p class="text-gray-600 dark:text-gray-300">
+      Edit "{{ note.title }}"
+    </p>
+  </div>
+
+  <!-- Note Form -->
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+    <form id="noteForm" class="p-6 space-y-6">
+      {% csrf_token %}
+      
+      <!-- Title Field -->
+      <div>
+        <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          {{ manual_texts.note_title }}
+        </label>
+        <input 
+          type="text" 
+          id="title" 
+          name="title" 
+          required
+          value="{{ note.title }}"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
+          placeholder="{{ manual_texts.title_placeholder }}"
+        >
+      </div>
+
+      <!-- Content Field -->
+      <div>
+        <label for="content" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          {{ manual_texts.note_content }}
+        </label>
+        <textarea 
+          id="content" 
+          name="content" 
+          required
+          rows="15"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors resize-vertical"
+          placeholder="{{ manual_texts.content_placeholder }}"
+        >{{ note.content }}</textarea>
+      </div>
+
+      <!-- Meta Information -->
+      <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+        <div class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+          <div>Created: {{ note.created_at|date:"M d, Y H:i" }}</div>
+          {% if note.updated_at != note.created_at %}
+            <div>Last updated: {{ note.updated_at|date:"M d, Y H:i" }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex justify-end space-x-4">
+        <a 
+          href="{% url 'note_detail' note.id %}" 
+          class="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        >
+          {{ manual_texts.cancel }}
+        </a>
+        <button 
+          type="submit" 
+          class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+        >
+          {{ manual_texts.save_changes }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.getElementById('noteForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const formData = new FormData(this);
+  const submitBtn = this.querySelector('button[type="submit"]');
+  
+  // Disable submit button
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Saving...';
+  
+  fetch('{% url "note_edit" note.id %}', {
+    method: 'POST',
+    body: formData,
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Redirect to note detail
+      window.location.href = '{% url "note_detail" note.id %}';
+    } else {
+      alert('Error: ' + (data.error || 'Failed to update note'));
+      // Re-enable submit button
+      submitBtn.disabled = false;
+      submitBtn.textContent = '{{ manual_texts.save_changes }}';
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Failed to update note');
+    // Re-enable submit button
+    submitBtn.disabled = false;
+    submitBtn.textContent = '{{ manual_texts.save_changes }}';
+  });
+});
+</script>
+{% endblock %}
