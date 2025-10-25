@@ -502,29 +502,3 @@ class BlacklistFlashcard(models.Model):
             blacklist.delete()
             return None, False
         return blacklist, True
-
-
-class Note(models.Model):
-    """Personal notes/diary entries for users."""
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notes')
-    title = models.CharField(max_length=255, help_text="Title of the note")
-    content = models.TextField(help_text="Content of the note")
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['-updated_at', '-created_at']
-        indexes = [
-            models.Index(fields=['user', '-updated_at']),
-            models.Index(fields=['user', '-created_at']),
-        ]
-
-    def __str__(self):
-        return f"{self.title} - {self.user.email}"
-
-    @property
-    def content_preview(self):
-        """Return a preview of the content (first 100 characters)."""
-        if len(self.content) <= 100:
-            return self.content
-        return self.content[:100] + "..."
