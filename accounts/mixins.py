@@ -9,9 +9,9 @@ class TailwindFormMixin:
     # Define default styles for different widget types
     # This allows for easy modification and extension (Open/Closed Principle)
     WIDGET_STYLES = {
-        'TextInput': 'appearance-none block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition duration-200 ease-in-out',
-        'EmailInput': 'appearance-none block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition duration-200 ease-in-out',
-        'PasswordInput': 'appearance-none block w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition duration-200 ease-in-out',
+        'TextInput': 'form-input-glass appearance-none block w-full px-3 py-3 rounded-md shadow-sm placeholder-gray-400 focus:outline-none sm:text-sm transition duration-200 ease-in-out',
+        'EmailInput': 'form-input-glass appearance-none block w-full px-3 py-3 rounded-md shadow-sm placeholder-gray-400 focus:outline-none sm:text-sm transition duration-200 ease-in-out',
+        'PasswordInput': 'form-input-glass appearance-none block w-full px-3 py-3 rounded-md shadow-sm placeholder-gray-400 focus:outline-none sm:text-sm transition duration-200 ease-in-out',
         'CheckboxInput': 'h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded transition duration-150 ease-in-out',
     }
 
