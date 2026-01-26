@@ -178,6 +178,8 @@ ACCOUNT_LOGOUT_ON_GET = True
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_FORMS = {
     'login': 'accounts.forms.CustomLoginForm',
+    'signup': 'accounts.forms.CustomSignupForm',
+    'reset_password': 'accounts.forms.CustomResetPasswordForm',
 }
 
 # Login/Logout URLs
