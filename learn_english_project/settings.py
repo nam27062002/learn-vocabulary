@@ -176,6 +176,9 @@ ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_LOGOUT_ON_GET = True
 ACCOUNT_SESSION_REMEMBER = True
+ACCOUNT_FORMS = {
+    'login': 'accounts.forms.CustomLoginForm',
+}
 
 # Login/Logout URLs
 LOGIN_URL = '/accounts/login/'
