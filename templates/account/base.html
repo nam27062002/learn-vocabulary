@@ -1,60 +1,81 @@
 <!DOCTYPE html>
 <html lang="{{ LANGUAGE_CODE }}">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{% block title %}{{ manual_texts.learn_english }}{% endblock %}</title>
-    
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- Custom Authentication Styles -->
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/auth.css' %}">
 </head>
-<body class="bg-gray-50 min-h-screen">
-    {% block content %}
+
+<body>
+    <!-- Main Auth Page Container -->
+    <div class="auth-page min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+
+        <!-- Shared Decorative Background Elements -->
+        <div class="auth-bg-shape shape-1"></div>
+        <div class="auth-bg-shape shape-2"></div>
+        <div class="auth-bg-shape shape-3"></div>
+
+        <!-- Content Wrapper -->
+        <div class="max-w-md w-full space-y-8 relative z-10 w-full">
+            {% block content_wrapper %}
+            <div class="auth-card glass-effect p-8 rounded-2xl">
+                {% block content %}
+                {% endblock %}
+            </div>
+            {% endblock %}
+        </div>
+    </div>
+
+    {% block extra_body %}
     {% endblock %}
-    
+
     <!-- Language Switcher Script -->
     <script>
         // Track all dropdown menus for mutual exclusion
         const accountDropdownMenus = [];
-        
+
         function toggleLanguage() {
             const menu = document.getElementById('language-menu');
             const dropdown = document.getElementById('language-dropdown');
-            
+
             if (menu && dropdown) {
                 // Add to tracking if not already tracked
                 if (!accountDropdownMenus.includes(menu)) {
                     accountDropdownMenus.push(menu);
                 }
-                
+
                 // Close all other dropdowns first
                 accountDropdownMenus.forEach(otherMenu => {
                     if (otherMenu !== menu) {
                         otherMenu.classList.add('hidden');
                     }
                 });
-                
+
                 menu.classList.toggle('hidden');
             }
         }
-        
+
         // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
+        document.addEventListener('click', function (event) {
             const dropdown = document.getElementById('language-dropdown');
             const menu = document.getElementById('language-menu');
-            
+
             if (dropdown && menu && !dropdown.contains(event.target)) {
                 menu.classList.add('hidden');
             }
         });
-        
+
         // Close dropdowns on Escape key
-        document.addEventListener('keydown', function(e) {
+        document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') {
                 accountDropdownMenus.forEach(menu => {
                     if (menu) menu.classList.add('hidden');
@@ -63,4 +84,5 @@
         });
     </script>
 </body>
-</html> 
+
+</html>
