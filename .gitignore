@@ -55,3 +55,4 @@ tools/migrate_database/migration_config.json
 
 # Render specific
 .render/
+.omc/
