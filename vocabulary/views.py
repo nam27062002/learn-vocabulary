@@ -11,6 +11,7 @@ from django.views.decorators.http import require_POST, require_GET
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.db.models import Count, Q
+from django.db import transaction
 from django.core.paginator import Paginator
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -526,88 +527,52 @@ def api_next_question(request):
 @login_required
 @require_POST
 def api_submit_answer(request):
-    import sys
-    print("=" * 80, file=sys.stderr)
-    print("=== API_SUBMIT_ANSWER CALLED ===", file=sys.stderr)
-    print(f"Request method: {request.method}", file=sys.stderr)
-    print(f"Request body: {request.body}", file=sys.stderr)
-    print("=" * 80, file=sys.stderr)
-
     try:
         data = json.loads(request.body)
         card_id = data.get('card_id')
-        correct = data.get('correct')  # bool - actual answer correctness
-        response_time = data.get('response_time', 0)  # Time in seconds
+        correct = data.get('correct')
+        response_time = data.get('response_time', 0)
         question_type = data.get('question_type', 'multiple_choice')
-        grade = data.get('grade')  # int - spaced repetition grade (0-3)
-
-        print(f"Parsed data: card_id={card_id}, correct={correct}, question_type={question_type}, grade={grade}", file=sys.stderr)
+        grade = data.get('grade')
 
         try:
             card = Flashcard.objects.get(id=card_id, user=request.user)
         except Flashcard.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Card not found'}, status=404)
 
-        # Update card difficulty FIRST so we can capture the post-update score
-        current_session_id = request.session.get('current_study_session_id')
-        pre_update_difficulty = card.difficulty_score  # fallback if update fails
-        new_difficulty_score = pre_update_difficulty
-        try:
-            _update_card_difficulty(card, correct, grade)
-            new_difficulty_score = card.difficulty_score  # in-memory value already updated
-        except Exception as e:
-            print(f"Error in difficulty update: {e}")
-
-        # Record the answer with correct post-update difficulty
-        if current_session_id:
-            try:
-                session = StudySession.objects.get(id=current_session_id, user=request.user)
-
-                # Check for recent duplicate submissions (within last 5 seconds)
-                from django.utils import timezone
-                recent_cutoff = timezone.now() - timedelta(seconds=5)
-                recent_answer = StudySessionAnswer.objects.filter(
-                    session=session,
-                    flashcard=card,
-                    answered_at__gte=recent_cutoff
-                ).first()
-
-                if recent_answer:
-                    print(f"DUPLICATE SUBMISSION DETECTED: Card {card.id} already answered recently", file=sys.stderr)
-                    return JsonResponse({'success': True, 'duplicate_prevented': True})
-
-                record_answer(session, card, correct, response_time, question_type,
-                              difficulty_after=new_difficulty_score)
-            except StudySession.DoesNotExist:
-                pass
-            except Exception as e:
-                print(f"Error recording answer in session: {e}")
-
-        # Handle incorrect word tracking
-        # Map question_type to our model's format
         question_type_map = {
             'multiple_choice': 'mc',
             'input': 'type',
-            'type': 'type',  # Handle both 'input' and 'type'
-            'dictation': 'dictation'
+            'type': 'type',
+            'dictation': 'dictation',
         }
         mapped_question_type = question_type_map.get(question_type, question_type)
-        print(f"QUESTION TYPE MAPPING: {question_type} -> {mapped_question_type}", file=sys.stderr)
 
-        print("=" * 80, file=sys.stderr)
-        print("=== INCORRECT WORD TRACKING DEBUG ===", file=sys.stderr)
-        print(f"Answer tracking: card={card.word}, correct={correct}, question_type={question_type}, mapped={mapped_question_type}", file=sys.stderr)
-        print(f"User authenticated: {request.user.is_authenticated}", file=sys.stderr)
-        print(f"User ID: {request.user.id if request.user.is_authenticated else 'None'}", file=sys.stderr)
-        print(f"User email: {getattr(request.user, 'email', 'No email')}", file=sys.stderr)
-        print(f"User email: {getattr(request.user, 'email', 'No email')}", file=sys.stderr)
-        print(f"Card ID: {card.id}, Card User ID: {card.user.id}", file=sys.stderr)
-        print("=" * 80, file=sys.stderr)
+        with transaction.atomic():
+            # 1. Update card difficulty first — captures new score for record_answer
+            _update_card_difficulty(card, correct, grade)
+            new_difficulty_score = card.difficulty_score
 
-        if not correct:
-            # Add to incorrect words list
-            print(f"INCORRECT ANSWER DETECTED - Adding to tracking", file=sys.stderr)
-            try:
+            # 2. Record answer in session (if active)
+            current_session_id = request.session.get('current_study_session_id')
+            if current_session_id:
+                try:
+                    session = StudySession.objects.get(id=current_session_id, user=request.user)
+                    recent_cutoff = timezone.now() - timedelta(seconds=5)
+                    recent_answer = StudySessionAnswer.objects.filter(
+                        session=session,
+                        flashcard=card,
+                        answered_at__gte=recent_cutoff
+                    ).first()
+                    if recent_answer:
+                        return JsonResponse({'success': True, 'duplicate_prevented': True})
+                    record_answer(session, card, correct, response_time, question_type,
+                                  difficulty_after=new_difficulty_score)
+                except StudySession.DoesNotExist:
+                    pass
+
+            # 3. Track incorrect word reviews
+            if not correct:
                 incorrect_review, created = IncorrectWordReview.objects.get_or_create(
                     user=request.user,
                     flashcard=card,
@@ -616,48 +581,25 @@ def api_submit_answer(request):
                 )
                 if not created:
                     incorrect_review.add_error()
-                print(f"SUCCESS: Added incorrect word: {card.word} ({mapped_question_type}) - created: {created}, error_count: {incorrect_review.error_count}", file=sys.stderr)
+            else:
+                try:
+                    incorrect_review = IncorrectWordReview.objects.get(
+                        user=request.user,
+                        flashcard=card,
+                        question_type=mapped_question_type,
+                        is_resolved=False
+                    )
+                    incorrect_review.mark_resolved()
+                except IncorrectWordReview.DoesNotExist:
+                    pass
 
-                # Verify the record was saved
-                verify_record = IncorrectWordReview.objects.filter(
-                    user=request.user,
-                    flashcard=card,
-                    question_type=mapped_question_type,
-                    is_resolved=False
-                ).first()
-                print(f"VERIFICATION: Record exists in DB: {verify_record is not None}", file=sys.stderr)
-                if verify_record:
-                    print(f"VERIFICATION: Record details - ID: {verify_record.id}, error_count: {verify_record.error_count}, is_resolved: {verify_record.is_resolved}", file=sys.stderr)
-
-            except Exception as e:
-                print(f"ERROR tracking incorrect word: {e}", file=sys.stderr)
-                import traceback
-                print(f"TRACEBACK: {traceback.format_exc()}", file=sys.stderr)
-        else:
-            print(f"CORRECT ANSWER - checking if word was previously incorrect", file=sys.stderr)
-            # Mark as resolved if it was in the incorrect list
-            try:
-                incorrect_review = IncorrectWordReview.objects.get(
-                    user=request.user,
-                    flashcard=card,
-                    question_type=mapped_question_type,
-                    is_resolved=False
-                )
-                incorrect_review.mark_resolved()
-                print(f"Resolved incorrect word: {card.word} ({mapped_question_type})", file=sys.stderr)
-            except IncorrectWordReview.DoesNotExist:
-                pass  # Word wasn't in incorrect list, which is fine
-            except Exception as e:
-                print(f"Error resolving incorrect word: {e}", file=sys.stderr)
-
-        # Learning queue integration: queue incorrect answers for short-term review
+        # Learning queue is in-memory (Django session) — outside transaction
         try:
             if not correct:
                 _queue_card_for_review(request, card.id, mapped_question_type)
             else:
                 _queue_remove_card(request, card.id)
         except Exception:
-            # Non-fatal for API
             pass
 
         return JsonResponse({'success': True})
@@ -665,8 +607,6 @@ def api_submit_answer(request):
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
     except Exception as e:
-        # Log the error for debugging
-        print(f"Error in api_submit_answer: {e}")
         return JsonResponse({'success': False, 'error': 'Internal server error'}, status=500)
 
 

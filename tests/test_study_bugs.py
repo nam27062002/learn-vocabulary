@@ -1,5 +1,6 @@
 """Tests for study system bug fixes."""
 import json
+from unittest.mock import patch
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -202,4 +203,54 @@ class StudySessionSignalTest(TestCase):
         self.assertIsNotNone(
             cache.get(key),
             "Stats cache should NOT be cleared when a new incomplete session is created"
+        )
+
+
+class AnswerSubmissionAtomicTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email='atomic@example.com',
+            password='testpass123'
+        )
+        self.deck = Deck.objects.create(user=self.user, name='Atomic Deck')
+        self.card = Flashcard.objects.create(
+            user=self.user,
+            word='resilient',
+            deck=self.deck,
+            difficulty_score=None,
+        )
+        self.client = Client()
+        self.client.login(email='atomic@example.com', password='testpass123')
+
+        session = create_study_session(self.user, study_mode='deck', deck_ids=[self.deck.id])
+        django_session = self.client.session
+        django_session['current_study_session_id'] = session.id
+        django_session.save()
+        self.study_session = session
+
+    def test_answer_not_recorded_when_difficulty_update_fails(self):
+        """If _update_card_difficulty raises inside atomic block, StudySessionAnswer must NOT be committed."""
+        initial_answer_count = StudySessionAnswer.objects.filter(
+            session=self.study_session
+        ).count()
+
+        with patch('vocabulary.views._update_card_difficulty', side_effect=Exception("DB error")):
+            self.client.post(
+                '/api/study/submit-answer/',
+                data=json.dumps({
+                    'card_id': self.card.id,
+                    'correct': True,
+                    'response_time': 2.5,
+                    'question_type': 'multiple_choice',
+                }),
+                content_type='application/json',
+            )
+
+        final_answer_count = StudySessionAnswer.objects.filter(
+            session=self.study_session
+        ).count()
+        self.assertEqual(
+            initial_answer_count,
+            final_answer_count,
+            "StudySessionAnswer should be rolled back when difficulty update fails"
         )
