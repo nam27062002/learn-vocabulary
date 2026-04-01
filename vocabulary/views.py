@@ -548,8 +548,17 @@ def api_submit_answer(request):
         except Flashcard.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Card not found'}, status=404)
 
-        # Get current study session
+        # Update card difficulty FIRST so we can capture the post-update score
         current_session_id = request.session.get('current_study_session_id')
+        pre_update_difficulty = card.difficulty_score  # fallback if update fails
+        new_difficulty_score = pre_update_difficulty
+        try:
+            _update_card_difficulty(card, correct, grade)
+            new_difficulty_score = card.difficulty_score  # in-memory value already updated
+        except Exception as e:
+            print(f"Error in difficulty update: {e}")
+
+        # Record the answer with correct post-update difficulty
         if current_session_id:
             try:
                 session = StudySession.objects.get(id=current_session_id, user=request.user)
@@ -565,15 +574,13 @@ def api_submit_answer(request):
 
                 if recent_answer:
                     print(f"DUPLICATE SUBMISSION DETECTED: Card {card.id} already answered recently", file=sys.stderr)
-                    # Return success but don't record duplicate
                     return JsonResponse({'success': True, 'duplicate_prevented': True})
 
-                # Record the answer in the session
-                record_answer(session, card, correct, response_time, question_type)
+                record_answer(session, card, correct, response_time, question_type,
+                              difficulty_after=new_difficulty_score)
             except StudySession.DoesNotExist:
-                pass  # Session doesn't exist, continue without recording
+                pass
             except Exception as e:
-                # Log the error but continue with SM-2 update
                 print(f"Error recording answer in session: {e}")
 
         # Handle incorrect word tracking
@@ -642,14 +649,6 @@ def api_submit_answer(request):
                 pass  # Word wasn't in incorrect list, which is fine
             except Exception as e:
                 print(f"Error resolving incorrect word: {e}", file=sys.stderr)
-
-        # Update difficulty-based system (replaces SM-2)
-        try:
-            # Use grade for difficulty if available, otherwise use correct parameter
-            _update_card_difficulty(card, correct, grade)
-        except Exception as e:
-            print(f"Error in difficulty update: {e}")
-            # Continue anyway - the incorrect word tracking is more important
 
         # Learning queue integration: queue incorrect answers for short-term review
         try:
