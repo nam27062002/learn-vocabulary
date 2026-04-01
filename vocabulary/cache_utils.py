@@ -184,9 +184,20 @@ class StatisticsCache:
     
     @staticmethod
     def invalidate_user_stats(user_id: int):
-        """Invalidate all statistics caches for a user."""
-        # For database cache, we'll rely on TTL expiration
-        pass
+        """Delete all statistics cache entries for a user across all periods for today."""
+        from django.utils import timezone
+        today_str = timezone.now().date().isoformat()
+        periods = ['7', '30', '90']
+        keys = [
+            generate_cache_key(
+                CacheKeys.USER_STATISTICS,
+                user_id=user_id,
+                period=period,
+                date=today_str,
+            )
+            for period in periods
+        ]
+        cache.delete_many(keys)
 
 class DeckCache:
     """Cache management for deck-related data."""

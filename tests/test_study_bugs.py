@@ -3,8 +3,10 @@ import json
 from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.core.cache import cache
 from vocabulary.models import Flashcard, StudySession, StudySessionAnswer, Deck
 from vocabulary.statistics_utils import record_answer, create_study_session
+from vocabulary.cache_utils import StatisticsCache, CacheKeys, generate_cache_key
 
 User = get_user_model()
 
@@ -58,3 +60,45 @@ class DifficultyAfterBugTest(TestCase):
         )
 
         self.assertEqual(answer.difficulty_after, 0.67)
+
+
+class StatisticsCacheInvalidationTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email='cache@example.com',
+            password='testpass123'
+        )
+        self.user_id = self.user.id
+
+    def test_invalidate_user_stats_clears_cached_entries(self):
+        """invalidate_user_stats must delete all statistics cache entries for a user."""
+        today_str = timezone.now().date().isoformat()
+
+        for period in ['7', '30', '90']:
+            key = generate_cache_key(
+                CacheKeys.USER_STATISTICS,
+                user_id=self.user_id,
+                period=period,
+                date=today_str,
+            )
+            cache.set(key, {'some': 'data'}, 3600)
+
+        for period in ['7', '30', '90']:
+            key = generate_cache_key(
+                CacheKeys.USER_STATISTICS,
+                user_id=self.user_id,
+                period=period,
+                date=today_str,
+            )
+            self.assertIsNotNone(cache.get(key), f"Pre-condition: cache for period={period} should exist")
+
+        StatisticsCache.invalidate_user_stats(self.user_id)
+
+        for period in ['7', '30', '90']:
+            key = generate_cache_key(
+                CacheKeys.USER_STATISTICS,
+                user_id=self.user_id,
+                period=period,
+                date=today_str,
+            )
+            self.assertIsNone(cache.get(key), f"Cache for period={period} should be cleared after invalidation")
