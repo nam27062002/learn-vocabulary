@@ -147,3 +147,59 @@ class StaleSessionPreservationTest(TestCase):
             session.session_end,
             "Stale session should have session_end set after study_page visit"
         )
+
+
+class StudySessionSignalTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email='signal@example.com',
+            password='testpass123'
+        )
+        self.user_id = self.user.id
+
+    def test_ending_session_invalidates_stats_cache(self):
+        """Saving a StudySession with session_end set must clear the stats cache."""
+        today_str = timezone.now().date().isoformat()
+        key = generate_cache_key(
+            CacheKeys.USER_STATISTICS,
+            user_id=self.user_id,
+            period='30',
+            date=today_str,
+        )
+        cache.set(key, {'stale': 'data'}, 3600)
+        self.assertIsNotNone(cache.get(key), "Pre-condition: cache should exist before session ends")
+
+        session = StudySession.objects.create(
+            user=self.user,
+            study_mode='deck',
+            session_end=None,
+        )
+        session.session_end = timezone.now()
+        session.save()
+
+        self.assertIsNone(
+            cache.get(key),
+            "Stats cache should be cleared after study session ends"
+        )
+
+    def test_creating_session_without_end_does_not_clear_cache(self):
+        """Creating a new (incomplete) session must NOT clear stats cache."""
+        today_str = timezone.now().date().isoformat()
+        key = generate_cache_key(
+            CacheKeys.USER_STATISTICS,
+            user_id=self.user_id,
+            period='30',
+            date=today_str,
+        )
+        cache.set(key, {'valid': 'data'}, 3600)
+
+        StudySession.objects.create(
+            user=self.user,
+            study_mode='deck',
+            session_end=None,
+        )
+
+        self.assertIsNotNone(
+            cache.get(key),
+            "Stats cache should NOT be cleared when a new incomplete session is created"
+        )
