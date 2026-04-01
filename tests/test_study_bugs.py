@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.core.cache import cache
 from vocabulary.models import Flashcard, StudySession, StudySessionAnswer, Deck
-from vocabulary.statistics_utils import record_answer, create_study_session
+from vocabulary.statistics_utils import record_answer, create_study_session, end_study_session
 from vocabulary.cache_utils import StatisticsCache, CacheKeys, generate_cache_key
 
 User = get_user_model()
@@ -102,3 +102,48 @@ class StatisticsCacheInvalidationTest(TestCase):
                 date=today_str,
             )
             self.assertIsNone(cache.get(key), f"Cache for period={period} should be cleared after invalidation")
+
+
+class StaleSessionPreservationTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email='stale@example.com',
+            password='testpass123'
+        )
+        self.deck = Deck.objects.create(user=self.user, name='Stale Deck')
+        self.client = Client()
+        self.client.login(email='stale@example.com', password='testpass123')
+
+    def test_visiting_study_page_does_not_delete_incomplete_sessions(self):
+        """Incomplete sessions must be ended gracefully, not deleted."""
+        session = StudySession.objects.create(
+            user=self.user,
+            study_mode='deck',
+            session_end=None,
+        )
+        session_id = session.id
+
+        response = self.client.get('/study/')
+        self.assertEqual(response.status_code, 200)
+
+        self.assertTrue(
+            StudySession.objects.filter(id=session_id).exists(),
+            "Stale session was deleted — it should have been ended instead"
+        )
+
+    def test_stale_session_is_marked_as_ended(self):
+        """After visiting study page, incomplete sessions should have session_end set."""
+        session = StudySession.objects.create(
+            user=self.user,
+            study_mode='deck',
+            session_end=None,
+        )
+        session_id = session.id
+
+        self.client.get('/study/')
+
+        session.refresh_from_db()
+        self.assertIsNotNone(
+            session.session_end,
+            "Stale session should have session_end set after study_page visit"
+        )
