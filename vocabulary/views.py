@@ -549,11 +549,13 @@ def api_submit_answer(request):
         mapped_question_type = question_type_map.get(question_type, question_type)
 
         with transaction.atomic():
-            # 1. Update card difficulty first — captures new score for record_answer
+            # 1. Capture difficulty before mutation so record_answer stores the true "before" value
+            old_difficulty = card.difficulty_score
+            # 2. Update card difficulty — mutates card.difficulty_score in memory and saves to DB
             _update_card_difficulty(card, correct, grade)
             new_difficulty_score = card.difficulty_score
 
-            # 2. Record answer in session (if active)
+            # 3. Record answer in session (if active)
             current_session_id = request.session.get('current_study_session_id')
             if current_session_id:
                 try:
@@ -567,7 +569,8 @@ def api_submit_answer(request):
                     if recent_answer:
                         return JsonResponse({'success': True, 'duplicate_prevented': True})
                     record_answer(session, card, correct, response_time, question_type,
-                                  difficulty_after=new_difficulty_score)
+                                  difficulty_after=new_difficulty_score,
+                                  difficulty_before_override=old_difficulty)
                 except StudySession.DoesNotExist:
                     pass
 

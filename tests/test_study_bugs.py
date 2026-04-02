@@ -47,6 +47,34 @@ class DifficultyAfterBugTest(TestCase):
         # difficulty_after must reflect the explicitly-passed post-update value, not difficulty_before
         self.assertEqual(answer.difficulty_after, 0.0)
 
+    def test_difficulty_before_captures_pre_update_score(self):
+        """difficulty_before must store the difficulty BEFORE _update_card_difficulty runs."""
+        # Card starts at 'Good' difficulty
+        self.card.difficulty_score = 0.67
+        self.card.save()
+
+        # Simulate the api_submit_answer flow: update card first, then record
+        old_score = self.card.difficulty_score  # 0.67 — captured before update
+        self.card.difficulty_score = 0.0        # simulates _update_card_difficulty setting to "Again"
+        self.card.save()
+
+        answer = record_answer(
+            session=self.session,
+            flashcard=self.card,
+            is_correct=False,
+            response_time_seconds=3.5,
+            question_type='multiple_choice',
+            difficulty_after=0.0,
+            difficulty_before_override=old_score,  # explicitly pass pre-update value
+        )
+
+        self.assertEqual(answer.difficulty_before, 0.67,
+                         "difficulty_before should be 0.67 (before the update), not 0.0")
+        self.assertEqual(answer.difficulty_after, 0.0,
+                         "difficulty_after should be 0.0 (after the update)")
+        self.assertNotEqual(answer.difficulty_before, answer.difficulty_after,
+                            "difficulty_before and difficulty_after should differ when difficulty changed")
+
     def test_difficulty_after_defaults_to_current_score_when_not_provided(self):
         """Callers that don't pass difficulty_after should still work (backward compat)."""
         self.card.difficulty_score = 0.67

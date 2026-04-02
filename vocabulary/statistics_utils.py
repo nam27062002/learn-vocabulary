@@ -24,14 +24,18 @@ def create_study_session(user, study_mode='deck', deck_ids=None):
     return session
 
 
-def record_answer(session, flashcard, is_correct, response_time_seconds, question_type='multiple_choice', difficulty_after=None):
+def record_answer(session, flashcard, is_correct, response_time_seconds, question_type='multiple_choice', difficulty_after=None, difficulty_before_override=None):
     """Record an answer within a study session.
 
     Pass difficulty_after explicitly with the post-update difficulty_score so the
     stored value reflects the actual change made by _update_card_difficulty().
     If omitted, falls back to the card's current difficulty_score (backward compat).
+
+    Pass difficulty_before_override with the pre-update difficulty_score when
+    _update_card_difficulty() has already been called before this function, so the
+    stored difficulty_before reflects the actual value before the update.
     """
-    difficulty_before = flashcard.difficulty_score
+    difficulty_before = difficulty_before_override if difficulty_before_override is not None else flashcard.difficulty_score
 
     resolved_difficulty_after = difficulty_after if difficulty_after is not None else flashcard.difficulty_score
 
