@@ -1820,7 +1820,7 @@
       console.log(`[DEBUG] Auto-skipping feedback with Easy grade`);
       setTimeout(() => {
         submitGrade(3); // Easy grade
-      }, 500); // Small delay to show feedback briefly
+      }, 1200); // Show correct answer feedback for at least ~1s before moving on
       return;
     }
 
