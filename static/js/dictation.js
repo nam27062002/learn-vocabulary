@@ -639,8 +639,9 @@ async function openAddWord(word) {
   fcModal.classList.remove('hidden');
 
   // Parallel: fetch word details + check existence + load decks
-  const [details, exists, decks] = await Promise.all([
+  const [details, viResp, exists, decks] = await Promise.all([
     fetchWordDetails(fcCurrentWord),
+    fetchViTranslation(fcCurrentWord),
     checkWordExists(fcCurrentWord),
     loadDecks(),
   ]);
@@ -648,7 +649,7 @@ async function openAddWord(word) {
   fcLoading.classList.add('hidden');
   fcFields.classList.remove('hidden');
 
-  // Populate details
+  // Populate word details
   if (details && !details.error) {
     const ph = details.phonetics?.find(p => p.text) || {};
     fcPhonetic.textContent = ph.text || '';
@@ -661,18 +662,23 @@ async function openAddWord(word) {
 
     const defObj = meaning.definitions?.[0] || {};
     fcEnDef.value = defObj.en || '';
-    fcViDef.value = details.vietnamese_translation || '';
   }
 
-  // Populate decks
+  // Vietnamese translation from separate endpoint
+  if (viResp && !viResp.error) {
+    fcViDef.value = viResp.translated_text || '';
+  }
+
+  // Populate decks — first entry = most recently created (auto-selected)
   fcDeckSelect.innerHTML = '';
   if (decks.length === 0) {
-    fcDeckSelect.innerHTML = '<option value="">No decks yet — create one first</option>';
+    fcDeckSelect.innerHTML = '<option value="">No decks — create one first</option>';
   } else {
-    decks.forEach(d => {
+    decks.forEach((d, i) => {
       const opt = document.createElement('option');
       opt.value = d.id;
       opt.textContent = d.name;
+      if (i === 0) opt.selected = true;   // newest deck pre-selected
       fcDeckSelect.appendChild(opt);
     });
     fcSaveBtn.disabled = false;
@@ -738,6 +744,13 @@ fcSaveBtn.addEventListener('click', async () => {
 async function fetchWordDetails(word) {
   try {
     const resp = await fetch(`${D.wordDetailsUrl}?word=${encodeURIComponent(word)}`);
+    return resp.ok ? resp.json() : null;
+  } catch { return null; }
+}
+
+async function fetchViTranslation(word) {
+  try {
+    const resp = await fetch(`/api/translate-to-vietnamese/?text=${encodeURIComponent(word)}`);
     return resp.ok ? resp.json() : null;
   } catch { return null; }
 }
