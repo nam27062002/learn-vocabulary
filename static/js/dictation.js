@@ -73,6 +73,24 @@ function playSegment(start, end) {
   }, 150);
 }
 
+/* ── localStorage helpers ── */
+const LS_DRAFT   = (segId) => `d_draft_${D.videoId}_${segId}`;
+const LS_RESULT  = (segId) => `d_result_${D.videoId}_${segId}`;
+
+function saveDraft(segId, text) {
+  if (text) localStorage.setItem(LS_DRAFT(segId), text);
+  else      localStorage.removeItem(LS_DRAFT(segId));
+}
+function loadDraft(segId)  { return localStorage.getItem(LS_DRAFT(segId)) || ''; }
+function clearDraft(segId) { localStorage.removeItem(LS_DRAFT(segId)); }
+
+function saveResult(segId, resultObj, userInput) {
+  localStorage.setItem(LS_RESULT(segId), JSON.stringify({result: resultObj, input: userInput}));
+}
+function loadResult(segId) {
+  try { return JSON.parse(localStorage.getItem(LS_RESULT(segId))); } catch { return null; }
+}
+
 /* ── DOM refs ── */
 const segmentListEl  = document.getElementById('segmentList');
 const segmentHeading = document.getElementById('segmentHeading');
@@ -91,12 +109,36 @@ const btnCheck       = document.getElementById('btnCheck');
 const btnReveal      = document.getElementById('btnReveal');
 const btnNext        = document.getElementById('btnNext');
 const btnRetry       = document.getElementById('btnRetry');
-const answerReveal   = document.getElementById('answerReveal');
-const answerText     = document.getElementById('answerText');
-const progressBar    = document.getElementById('progressBar');
-const progressLabel  = document.getElementById('progressLabel');
-const avgScoreEl     = document.getElementById('avgScore');
-const audioStatus    = document.getElementById('audioStatus');
+const answerReveal     = document.getElementById('answerReveal');
+const answerText       = document.getElementById('answerText');
+const progressBar      = document.getElementById('progressBar');
+const progressLabel    = document.getElementById('progressLabel');
+const avgScoreEl       = document.getElementById('avgScore');
+const audioStatus      = document.getElementById('audioStatus');
+const prevAttemptWrap  = document.getElementById('prevAttemptWrap');
+const btnTogglePrev    = document.getElementById('btnTogglePrev');
+const prevAttemptBody  = document.getElementById('prevAttemptBody');
+const prevAttemptLabel = document.getElementById('prevAttemptLabel');
+const prevChevron      = document.getElementById('prevChevron');
+const prevScoreRow     = document.getElementById('prevScoreRow');
+const prevTokenDisplay = document.getElementById('prevTokenDisplay');
+const draftBadge       = document.getElementById('draftBadge');
+
+// Toggle previous attempt panel
+btnTogglePrev.addEventListener('click', () => {
+  const open = !prevAttemptBody.classList.contains('hidden');
+  prevAttemptBody.classList.toggle('hidden', open);
+  prevChevron.style.transform = open ? '' : 'rotate(180deg)';
+});
+
+// Auto-save draft while typing (debounced 600ms)
+let draftTimer = null;
+dictationInput.addEventListener('input', () => {
+  if (activeSegIdx === null) return;
+  const segId = segments[activeSegIdx].id;
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(() => saveDraft(segId, dictationInput.value), 600);
+});
 
 /* ── Speed control ── */
 const speedSlider  = document.getElementById('speedSlider');
@@ -217,7 +259,36 @@ function activateSegment(idx) {
   answerReveal.style.display = 'none';
   btnNext.style.display = 'none';
   btnRetry.style.display = 'none';
-  dictationInput.value = '';
+
+  // ── Restore draft or last attempt ──
+  const draft   = loadDraft(seg.id);
+  const savedResult = loadResult(seg.id);
+
+  // Show previous attempt panel if there's a saved result
+  if (savedResult) {
+    prevAttemptWrap.classList.remove('hidden');
+    const pct = Math.round(savedResult.result.score * 100);
+    prevScoreRow.innerHTML = scoreBadgeHTML(savedResult.result);
+    renderTokensInto(savedResult.result.tokens, prevTokenDisplay);
+    prevAttemptLabel.textContent = `Last attempt · ${pct}%`;
+    // Keep body collapsed by default
+    prevAttemptBody.classList.add('hidden');
+    prevChevron.style.transform = '';
+  } else {
+    prevAttemptWrap.classList.add('hidden');
+  }
+
+  // Restore draft (takes priority for textarea) or fall back to last attempt's input
+  if (draft) {
+    dictationInput.value = draft;
+    draftBadge.classList.remove('hidden');
+  } else if (savedResult) {
+    dictationInput.value = savedResult.input || '';
+    draftBadge.classList.add('hidden');
+  } else {
+    dictationInput.value = '';
+    draftBadge.classList.add('hidden');
+  }
 
   // Update audio status
   if (audioStatus) audioStatus.textContent = `Segment ${seg.order} — ready`;
@@ -272,6 +343,9 @@ async function checkAnswer() {
     });
 
     renderResult(result);
+    saveResult(seg.id, result, input);
+    clearDraft(seg.id);
+    draftBadge.classList.add('hidden');
     refreshBadge(seg.id, {score: result.score, revealed: false});
 
     if (activeSegIdx < segments.length - 1) btnNext.style.display = 'inline-flex';
@@ -303,6 +377,8 @@ btnReveal.addEventListener('click', async () => {
     body: JSON.stringify({segment_id: seg.id, user_input: dictationInput.value, score: 0, revealed_answer: true}),
   });
 
+  clearDraft(seg.id);
+  draftBadge.classList.add('hidden');
   refreshBadge(seg.id, {score: 0, revealed: true});
 });
 
@@ -335,44 +411,53 @@ function scrollActiveSegment() {
   if (active) active.scrollIntoView({block: 'nearest', behavior: 'smooth'});
 }
 
-/* ── Render result ── */
-function renderResult(result) {
-  resultArea.style.display = 'block';
-  const pct = Math.round(result.score * 100);
-  const cls = pct >= 80 ? 'high' : pct >= 50 ? 'medium' : 'low';
-  const emoji = pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '🔄';
-  const properNote = (result.proper_count > 0)
-    ? ` <span class="text-xs text-purple-500 ml-1">(${result.proper_count} proper noun${result.proper_count > 1 ? 's' : ''} accepted)</span>`
-    : '';
-  scoreRow.innerHTML =
-    `<span class="score-badge ${cls}">${emoji} ${pct}%</span>
-     <span class="text-sm text-gray-500">${result.correct_count} / ${result.total_count} words${properNote}</span>`;
-
-  tokenDisplay.innerHTML = '';
-  result.tokens.forEach(tok => {
+/* ── Shared token renderer ── */
+function renderTokensInto(tokens, container) {
+  container.innerHTML = '';
+  tokens.forEach(tok => {
     const span = document.createElement('span');
     span.className = `token ${tok.status}`;
     if (tok.status === 'correct') {
       span.textContent = tok.word;
+      span.appendChild(addWordButton(tok.word));
     } else if (tok.status === 'proper') {
-      // Accepted proper noun — show what user typed, hint the canonical form below
       const typed = tok.user_word || tok.word;
       const same = typed.toLowerCase() === tok.word.toLowerCase();
       span.innerHTML = escHtml(typed) +
         (same ? '' : `<span class="proper-hint">${escHtml(tok.word)}</span>`);
       span.title = 'Proper noun — accepted';
+      span.appendChild(addWordButton(tok.word));
     } else if (tok.status === 'wrong') {
       span.innerHTML = `<span style="text-decoration:line-through">${escHtml(tok.user_word)}</span><span class="correct-hint">${escHtml(tok.word)}</span>`;
+      span.appendChild(addWordButton(tok.word));
     } else if (tok.status === 'missing') {
       span.textContent = `[${tok.word}]`;
       span.title = 'Missing';
+      span.appendChild(addWordButton(tok.word));
     } else {
       span.textContent = tok.word;
       span.title = 'Extra';
     }
-    tokenDisplay.appendChild(span);
-    tokenDisplay.appendChild(document.createTextNode(' '));
+    container.appendChild(span);
+    container.appendChild(document.createTextNode(' '));
   });
+}
+
+function scoreBadgeHTML(result) {
+  const pct = Math.round(result.score * 100);
+  const cls = pct >= 80 ? 'high' : pct >= 50 ? 'medium' : 'low';
+  const emoji = pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '🔄';
+  const properNote = (result.proper_count > 0)
+    ? ` <span class="text-xs text-purple-500 ml-1">(${result.proper_count} proper noun${result.proper_count > 1 ? 's' : ''} accepted)</span>` : '';
+  return `<span class="score-badge ${cls}">${emoji} ${pct}%</span>
+          <span class="text-sm text-gray-500">${result.correct_count} / ${result.total_count} words${properNote}</span>`;
+}
+
+/* ── Render result ── */
+function renderResult(result) {
+  resultArea.style.display = 'block';
+  scoreRow.innerHTML = scoreBadgeHTML(result);
+  renderTokensInto(result.tokens, tokenDisplay);
 }
 
 /* ── Progress ── */
@@ -509,6 +594,182 @@ function formatTime(s) {
 }
 function escHtml(str) {
   return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ══════════════════════════════════════════════
+   Add-to-Flashcard modal
+   ══════════════════════════════════════════════ */
+const fcModal      = document.getElementById('fcModal');
+const fcModalClose = document.getElementById('fcModalClose');
+const fcCancelBtn  = document.getElementById('fcCancelBtn');
+const fcSaveBtn    = document.getElementById('fcSaveBtn');
+const fcWord       = document.getElementById('fcWord');
+const fcPhonetic   = document.getElementById('fcPhonetic');
+const fcPos        = document.getElementById('fcPos');
+const fcLoading    = document.getElementById('fcLoading');
+const fcFields     = document.getElementById('fcFields');
+const fcEnDef      = document.getElementById('fcEnDef');
+const fcViDef      = document.getElementById('fcViDef');
+const fcDeckSelect = document.getElementById('fcDeckSelect');
+const fcExistsNote = document.getElementById('fcExistsNote');
+const fcSaveStatus = document.getElementById('fcSaveStatus');
+
+let fcCurrentWord  = '';
+let fcCurrentAudio = '';
+let fcCurrentPos   = '';
+let decksCache     = null;
+
+// Open modal for a word
+async function openAddWord(word) {
+  fcCurrentWord  = word.toLowerCase().trim();
+  fcCurrentAudio = '';
+  fcCurrentPos   = '';
+
+  // Reset UI
+  fcWord.textContent     = fcCurrentWord;
+  fcPhonetic.textContent = '';
+  fcPos.textContent      = '';
+  fcEnDef.value          = '';
+  fcViDef.value          = '';
+  fcSaveStatus.textContent = '';
+  fcExistsNote.classList.add('hidden');
+  fcLoading.classList.remove('hidden');
+  fcFields.classList.add('hidden');
+  fcSaveBtn.disabled = true;
+  fcModal.classList.remove('hidden');
+
+  // Parallel: fetch word details + check existence + load decks
+  const [details, exists, decks] = await Promise.all([
+    fetchWordDetails(fcCurrentWord),
+    checkWordExists(fcCurrentWord),
+    loadDecks(),
+  ]);
+
+  fcLoading.classList.add('hidden');
+  fcFields.classList.remove('hidden');
+
+  // Populate details
+  if (details && !details.error) {
+    const ph = details.phonetics?.find(p => p.text) || {};
+    fcPhonetic.textContent = ph.text || '';
+    fcCurrentAudio = details.phonetics?.find(p => p.audio)?.audio || '';
+
+    const meaning = details.meanings?.[0] || {};
+    fcCurrentPos = meaning.part_of_speech || '';
+    fcPos.textContent = fcCurrentPos;
+    fcPos.style.display = fcCurrentPos ? '' : 'none';
+
+    const defObj = meaning.definitions?.[0] || {};
+    fcEnDef.value = defObj.en || '';
+    fcViDef.value = details.vietnamese_translation || '';
+  }
+
+  // Populate decks
+  fcDeckSelect.innerHTML = '';
+  if (decks.length === 0) {
+    fcDeckSelect.innerHTML = '<option value="">No decks yet — create one first</option>';
+  } else {
+    decks.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.id;
+      opt.textContent = d.name;
+      fcDeckSelect.appendChild(opt);
+    });
+    fcSaveBtn.disabled = false;
+  }
+
+  // Word already exists notice
+  if (exists) {
+    fcExistsNote.classList.remove('hidden');
+  }
+}
+
+function closeFcModal() {
+  fcModal.classList.add('hidden');
+}
+fcModalClose.addEventListener('click', closeFcModal);
+fcCancelBtn.addEventListener('click', closeFcModal);
+fcModal.addEventListener('click', e => { if (e.target === fcModal) closeFcModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFcModal(); });
+
+// Save flashcard
+fcSaveBtn.addEventListener('click', async () => {
+  const deckId = fcDeckSelect.value;
+  if (!deckId || !fcCurrentWord) return;
+
+  fcSaveBtn.disabled = true;
+  fcSaveStatus.textContent = 'Saving…';
+
+  const form = new FormData();
+  form.append('deck_id', deckId);
+  form.append('flashcards-0-word', fcCurrentWord);
+  form.append('flashcards-0-phonetic', fcPhonetic.textContent || '');
+  form.append('flashcards-0-part_of_speech', fcCurrentPos || '');
+  form.append('flashcards-0-english_definition', fcEnDef.value.trim());
+  form.append('flashcards-0-vietnamese_definition', fcViDef.value.trim());
+  form.append('flashcards-0-audio_url', fcCurrentAudio || '');
+
+  try {
+    const resp = await fetch(D.saveFlashcardUrl, {
+      method: 'POST',
+      headers: {'X-CSRFToken': D.csrfToken},
+      body: form,
+    });
+    const data = await resp.json();
+    if (data.success) {
+      fcSaveStatus.innerHTML = '<span class="text-green-600 font-semibold">✓ Saved!</span>';
+      // Mark any matching token-add-btn as added
+      document.querySelectorAll(`.token-add-btn[data-word="${CSS.escape(fcCurrentWord)}"]`).forEach(btn => {
+        btn.textContent = '✓';
+        btn.classList.add('added');
+      });
+      setTimeout(closeFcModal, 900);
+    } else {
+      fcSaveStatus.innerHTML = `<span class="text-red-500">${escHtml(data.error || 'Error')}</span>`;
+      fcSaveBtn.disabled = false;
+    }
+  } catch (e) {
+    fcSaveStatus.innerHTML = '<span class="text-red-500">Network error</span>';
+    fcSaveBtn.disabled = false;
+  }
+});
+
+// API helpers
+async function fetchWordDetails(word) {
+  try {
+    const resp = await fetch(`${D.wordDetailsUrl}?word=${encodeURIComponent(word)}`);
+    return resp.ok ? resp.json() : null;
+  } catch { return null; }
+}
+
+async function checkWordExists(word) {
+  try {
+    const resp = await fetch(`${D.checkWordUrl}?word=${encodeURIComponent(word)}`);
+    return resp.ok ? (await resp.json()).exists : false;
+  } catch { return false; }
+}
+
+async function loadDecks() {
+  if (decksCache) return decksCache;
+  try {
+    const resp = await fetch(D.decksUrl);
+    decksCache = resp.ok ? (await resp.json()).decks : [];
+    return decksCache;
+  } catch { return []; }
+}
+
+// Inject "+" button into a token span
+function addWordButton(word) {
+  const btn = document.createElement('button');
+  btn.className = 'token-add-btn';
+  btn.title = `Add "${word}" to flashcards`;
+  btn.dataset.word = word;
+  btn.textContent = '+';
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (!btn.classList.contains('added')) openAddWord(word);
+  });
+  return btn;
 }
 
 /* ── Init ── */

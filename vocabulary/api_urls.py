@@ -42,6 +42,9 @@ urlpatterns = [
     path('api/incorrect-words/resolve/', views.api_resolve_incorrect_word, name='api_resolve_incorrect_word'),
     path('api/incorrect-words/count/', views.api_get_incorrect_words_count, name='api_get_incorrect_words_count'),
 
+    # Deck list (for flashcard add modals on other pages)
+    path('api/decks/', views.api_list_decks, name='api_list_decks'),
+
     # Favorites APIs
     path('api/favorites/toggle/', views.api_toggle_favorite, name='api_toggle_favorite'),
     path('api/favorites/count/', views.api_get_favorites_count, name='api_get_favorites_count'),

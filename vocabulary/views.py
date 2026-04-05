@@ -2199,6 +2199,18 @@ def api_toggle_favorite(request):
 
 @login_required
 @require_GET
+def api_list_decks(request):
+    """Return the current user's decks as a JSON list."""
+    decks = list(
+        Deck.objects.filter(user=request.user)
+        .order_by('name')
+        .values('id', 'name')
+    )
+    return JsonResponse({'decks': decks})
+
+
+@login_required
+@require_GET
 def api_get_favorites_count(request):
     """Get count of user's favorite flashcards."""
     try:
