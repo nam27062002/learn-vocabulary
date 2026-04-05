@@ -216,6 +216,11 @@ CACHES = {
     }
 }
 
+# LM Studio (local AI) configuration
+LM_STUDIO_URL = config('LM_STUDIO_URL', default='http://127.0.0.1:1234/v1/chat/completions')
+LM_STUDIO_MODEL = config('LM_STUDIO_MODEL', default='phi-3.1-mini-4k-instruct')
+LM_STUDIO_TIMEOUT = config('LM_STUDIO_TIMEOUT', default=120, cast=int)
+
 # Cache timeouts for different data types (in seconds)
 CACHE_TIMEOUTS = {
     'flashcard_list': 60 * 10,  # 10 minutes

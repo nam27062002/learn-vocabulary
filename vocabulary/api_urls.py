@@ -59,4 +59,7 @@ urlpatterns = [
 
     # Language (manual language switch without Django i18n)
     path('api/set-language/', views.api_set_language, name='api_set_language'),
+
+    # AI features
+    path('api/ai/word-examples/', views.api_ai_word_examples, name='api_ai_word_examples'),
 ]

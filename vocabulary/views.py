@@ -15,6 +15,7 @@ from django.db import transaction
 from django.core.paginator import Paginator
 from datetime import datetime, timedelta
 from django.utils import timezone
+import re
 import os
 import json
 import sys
@@ -2508,6 +2509,27 @@ def api_update_cefr_level(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
+
+
+@login_required
+@require_GET
+def api_ai_word_examples(request):
+    """Return 5 AI-generated example sentences for a given word."""
+    word = request.GET.get('word', '').strip()
+    if not word:
+        return JsonResponse({'success': False, 'error': 'Word parameter is required'}, status=400)
+
+    try:
+        from .ai_service import get_word_examples
+        sentences = get_word_examples(word)
+        return JsonResponse({'success': True, 'word': word, 'sentences': sentences})
+    except requests.exceptions.ConnectionError:
+        return JsonResponse(
+            {'success': False, 'error': 'Cannot connect to LM Studio. Make sure it is running.'},
+            status=503,
+        )
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 def debug_study_template(request):
