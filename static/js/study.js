@@ -665,8 +665,10 @@
   const startBtnDecks = document.getElementById("startBtn");
   const startBtnRandom = document.getElementById("startRandomBtn");
   const startBtnReview = document.getElementById("startReviewBtn");
+  const startBtnFavorites = document.getElementById("startFavoritesBtn");
   const reviewModeOption = document.getElementById("reviewModeOption");
   const reviewStudyOptions = document.getElementById("reviewStudyOptions");
+  const favoritesStudyOptions = document.getElementById("favoritesStudyOptions");
   const reviewCount = document.getElementById("reviewCount");
   const reviewCountText = document.getElementById("reviewCountText");
   const reviewDetails = document.getElementById("reviewDetails");
@@ -2255,18 +2257,22 @@
       deckStudyOptions.classList.remove("hidden");
       randomStudyOptions.classList.add("hidden");
       if (reviewStudyOptions) reviewStudyOptions.classList.add("hidden");
+      if (favoritesStudyOptions) favoritesStudyOptions.classList.add("hidden");
     } else if (selectedMode === "review") {
       deckStudyOptions.classList.add("hidden");
       randomStudyOptions.classList.add("hidden");
       if (reviewStudyOptions) reviewStudyOptions.classList.remove("hidden");
+      if (favoritesStudyOptions) favoritesStudyOptions.classList.add("hidden");
     } else if (selectedMode === "favorites") {
       deckStudyOptions.classList.add("hidden");
       randomStudyOptions.classList.add("hidden");
       if (reviewStudyOptions) reviewStudyOptions.classList.add("hidden");
+      if (favoritesStudyOptions) favoritesStudyOptions.classList.remove("hidden");
     } else {
       deckStudyOptions.classList.add("hidden");
       randomStudyOptions.classList.remove("hidden");
       if (reviewStudyOptions) reviewStudyOptions.classList.add("hidden");
+      if (favoritesStudyOptions) favoritesStudyOptions.classList.add("hidden");
     }
   }
 
@@ -2465,6 +2471,7 @@
       if (deckStudyOptions) deckStudyOptions.classList.add("hidden");
       if (randomStudyOptions) randomStudyOptions.classList.add("hidden");
       if (reviewStudyOptions) reviewStudyOptions.classList.add("hidden");
+      if (favoritesStudyOptions) favoritesStudyOptions.classList.add("hidden");
       if (studyArea) {
         studyArea.style.display = "block";
         studyArea.className = "study-area active";
@@ -2480,6 +2487,41 @@
       startStudyTimer();
 
       // Start studying
+      getNextQuestion();
+    });
+  }
+
+  if (startBtnFavorites) {
+    startBtnFavorites.addEventListener("click", () => {
+      if (startBtnFavorites.disabled) {
+        Notify.warning("No favorite words to study. Add some words to favorites first!");
+        return;
+      }
+
+      // Reset session data
+      correctCnt = 0;
+      incorrectCnt = 0;
+      seenCardIds = [];
+      updateStats();
+
+      // Hide all selection areas and show study area
+      const studyModeSection = document.querySelector(".study-mode-section");
+      if (studyModeSection) studyModeSection.style.display = "none";
+      if (deckStudyOptions) deckStudyOptions.classList.add("hidden");
+      if (randomStudyOptions) randomStudyOptions.classList.add("hidden");
+      if (reviewStudyOptions) reviewStudyOptions.classList.add("hidden");
+      if (favoritesStudyOptions) favoritesStudyOptions.classList.add("hidden");
+      if (studyArea) {
+        studyArea.style.display = "block";
+        studyArea.className = "study-area active";
+      }
+      if (studyHeader) studyHeader.style.display = "none";
+
+      if (modeSliderInstance) {
+        modeSliderInstance.disableEventListeners();
+      }
+
+      startStudyTimer();
       getNextQuestion();
     });
   }
@@ -3076,22 +3118,36 @@
           if (count > 0) {
             favoritesCount.style.display = "block";
             favoritesModeOption.classList.remove("disabled");
+            if (startBtnFavorites) {
+              startBtnFavorites.disabled = false;
+              startBtnFavorites.classList.remove("disabled");
+            }
+            const favoritesDetailCount = document.getElementById("favoritesDetailCount");
+            if (favoritesDetailCount) favoritesDetailCount.textContent = count;
+            const favoritesDetails = document.getElementById("favoritesDetails");
+            if (favoritesDetails) favoritesDetails.style.display = "block";
             console.log("Favorites mode enabled");
           } else {
             favoritesCount.style.display = "none";
             favoritesModeOption.classList.add("disabled");
+            if (startBtnFavorites) {
+              startBtnFavorites.disabled = true;
+              startBtnFavorites.classList.add("disabled");
+            }
             console.log("Favorites mode disabled (no favorites)");
           }
         } else {
           console.error("Failed to load favorites count:", data.error);
           favoritesCount.style.display = "none";
           favoritesModeOption.classList.add("disabled");
+          if (startBtnFavorites) { startBtnFavorites.disabled = true; }
         }
       })
       .catch((error) => {
         console.error("Error loading favorites count:", error);
         favoritesCount.style.display = "none";
         favoritesModeOption.classList.add("disabled");
+        if (startBtnFavorites) { startBtnFavorites.disabled = true; }
       });
   }
 

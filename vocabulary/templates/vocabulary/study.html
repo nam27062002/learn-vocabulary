@@ -600,24 +600,29 @@
 
   <!-- Random Study Options -->
   <div id="randomStudyOptions" class="study-options-section hidden">
-    <h3 class="options-title">{{ manual_texts.study_random_words }}</h3>
-
     <div class="random-options">
-      <div class="word-count-input">
-        <label for="randomWordCount">{{ manual_texts.number_of_words }}</label>
-        <input
-          type="number"
-          id="randomWordCount"
-          min="1"
-          max="100"
-          value="10"
-        />
+      <!-- Row: word count + available words inline -->
+      <div class="random-top-row">
+        <div class="word-count-input">
+          <label for="randomWordCount">{{ manual_texts.number_of_words }}</label>
+          <input
+            type="number"
+            id="randomWordCount"
+            min="1"
+            max="100"
+            value="10"
+          />
+        </div>
+        <div class="available-words-info">
+          <span class="info-label">{{ manual_texts.available_words }}:</span>
+          <span id="totalWordsAvailable" class="info-value">{{ total_words_available }}</span>
+        </div>
       </div>
 
       <!-- CEFR Level Filter -->
       <div class="cefr-filter-section">
-        <label class="filter-label">{{ manual_texts.cefr_level_filter|default:'CEFR Level Filter' }}</label>
-        <div class="cefr-filter-options">
+        <div class="cefr-filter-header">
+          <label class="filter-label">{{ manual_texts.cefr_level_filter|default:'CEFR Level Filter' }}</label>
           <div class="filter-mode-toggle">
             <label class="toggle-option">
               <input type="radio" name="cefrFilterMode" value="any" checked>
@@ -628,6 +633,8 @@
               <span class="toggle-text">{{ manual_texts.specific_levels|default:'Specific Levels' }}</span>
             </label>
           </div>
+        </div>
+        <div class="cefr-filter-options">
           
           <div class="cefr-levels-grid" id="cefrLevelsGrid" style="display: none;">
             <label class="cefr-level-option">
@@ -687,12 +694,6 @@
         </div>
       </div>
 
-      <div class="available-words-info">
-        <span class="info-label">{{ manual_texts.available_words }}:</span>
-        <span id="totalWordsAvailable" class="info-value"
-          >{{ total_words_available }}</span
-        >
-      </div>
     </div>
 
     <button id="startRandomBtn" class="start-button">
@@ -738,6 +739,29 @@
     <button id="startReviewBtn" class="start-button" disabled>
       <span class="button-icon">🔄</span>
       {{ manual_texts.start_review }}
+    </button>
+  </div>
+
+  <!-- Favorites Study Options -->
+  <div id="favoritesStudyOptions" class="study-options-section hidden">
+    <div class="review-options">
+      <div class="review-info">
+        <div class="review-description">
+          <p>{{ manual_texts.favorites_study_description|default:"Study your favorite vocabulary words" }}</p>
+          <div class="review-details" id="favoritesDetails" style="display: none">
+            <div class="review-breakdown">
+              <div class="breakdown-item">
+                <span class="breakdown-label">{{ manual_texts.favorite_words_count|default:"Favorite words" }}:</span>
+                <span class="breakdown-count" id="favoritesDetailCount">0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button id="startFavoritesBtn" class="start-button" disabled>
+      <span class="button-icon">❤️</span>
+      {{ manual_texts.start_study }}
     </button>
   </div>
 
