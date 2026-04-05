@@ -12,8 +12,14 @@ let activeSegIdx   = null;
 let progress       = {};
 let segmentTimer   = null;
 let currentSpeed   = 1.0;
-let videoVisible   = false;   // default: audio-only mode
+let videoVisible   = false;
 let isPlaying      = false;
+
+// Timeline state
+let tlStart        = 0;
+let tlEnd          = 0;
+let tlRafId        = null;
+let tlDragging     = false;
 
 /* ── YouTube IFrame API ── */
 window.onYouTubeIframeAPIReady = function () {
@@ -216,6 +222,9 @@ function activateSegment(idx) {
   // Update audio status
   if (audioStatus) audioStatus.textContent = `Segment ${seg.order} — ready`;
 
+  // Init timeline for this segment
+  initTimeline(seg.start_time, seg.end_time);
+
   // Auto-play
   if (ytReady) playSegment(seg.start_time, seg.end_time);
 
@@ -332,9 +341,12 @@ function renderResult(result) {
   const pct = Math.round(result.score * 100);
   const cls = pct >= 80 ? 'high' : pct >= 50 ? 'medium' : 'low';
   const emoji = pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '🔄';
+  const properNote = (result.proper_count > 0)
+    ? ` <span class="text-xs text-purple-500 ml-1">(${result.proper_count} proper noun${result.proper_count > 1 ? 's' : ''} accepted)</span>`
+    : '';
   scoreRow.innerHTML =
     `<span class="score-badge ${cls}">${emoji} ${pct}%</span>
-     <span class="text-sm text-gray-500">${result.correct_count} / ${result.total_count} words</span>`;
+     <span class="text-sm text-gray-500">${result.correct_count} / ${result.total_count} words${properNote}</span>`;
 
   tokenDisplay.innerHTML = '';
   result.tokens.forEach(tok => {
@@ -342,6 +354,13 @@ function renderResult(result) {
     span.className = `token ${tok.status}`;
     if (tok.status === 'correct') {
       span.textContent = tok.word;
+    } else if (tok.status === 'proper') {
+      // Accepted proper noun — show what user typed, hint the canonical form below
+      const typed = tok.user_word || tok.word;
+      const same = typed.toLowerCase() === tok.word.toLowerCase();
+      span.innerHTML = escHtml(typed) +
+        (same ? '' : `<span class="proper-hint">${escHtml(tok.word)}</span>`);
+      span.title = 'Proper noun — accepted';
     } else if (tok.status === 'wrong') {
       span.innerHTML = `<span style="text-decoration:line-through">${escHtml(tok.user_word)}</span><span class="correct-hint">${escHtml(tok.word)}</span>`;
     } else if (tok.status === 'missing') {
@@ -390,6 +409,98 @@ document.addEventListener('keydown', e => {
     e.preventDefault(); goNext();
   }
 });
+
+/* ── Timeline scrubber ── */
+const timelineWrap  = document.getElementById('timelineWrap');
+const timelineTrack = document.getElementById('timelineTrack');
+const timelineFill  = document.getElementById('timelineFill');
+const timelineThumb = document.getElementById('timelineThumb');
+const tlCurrentEl   = document.getElementById('tlCurrent');
+const tlTotalEl     = document.getElementById('tlTotal');
+
+function initTimeline(start, end) {
+  tlStart = start;
+  tlEnd   = end;
+  const dur = end - start;
+  tlTotalEl.textContent = dur.toFixed(1) + 's';
+  tlCurrentEl.textContent = '0.0s';
+  setTimelinePos(0);
+  timelineWrap.classList.remove('hidden');
+  cancelAnimationFrame(tlRafId);
+  tlRafId = requestAnimationFrame(tickTimeline);
+}
+
+function tickTimeline() {
+  if (ytReady && ytPlayer && !tlDragging) {
+    const cur = ytPlayer.getCurrentTime();
+    const pos = Math.min(Math.max(cur - tlStart, 0), tlEnd - tlStart);
+    setTimelinePos(pos / (tlEnd - tlStart));
+    tlCurrentEl.textContent = pos.toFixed(1) + 's';
+  }
+  tlRafId = requestAnimationFrame(tickTimeline);
+}
+
+function setTimelinePos(ratio /* 0–1 */) {
+  const pct = Math.min(Math.max(ratio * 100, 0), 100);
+  timelineFill.style.width  = pct + '%';
+  timelineThumb.style.left  = pct + '%';
+}
+
+function seekFromEvent(e) {
+  const rect  = timelineTrack.getBoundingClientRect();
+  const ratio = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+  const target = tlStart + ratio * (tlEnd - tlStart);
+  if (ytReady) {
+    // Clear auto-stop timer so it resets after seeking
+    clearInterval(segmentTimer);
+    ytPlayer.seekTo(target, true);
+    // Resume auto-stop from new position
+    segmentTimer = setInterval(() => {
+      if (!ytPlayer) return;
+      const cur = ytPlayer.getCurrentTime();
+      if (cur >= tlEnd) {
+        ytPlayer.pauseVideo();
+        clearInterval(segmentTimer);
+      }
+    }, 150);
+    setTimelinePos(ratio);
+    tlCurrentEl.textContent = (ratio * (tlEnd - tlStart)).toFixed(1) + 's';
+  }
+}
+
+// Mouse events — click & drag
+timelineTrack.addEventListener('mousedown', e => {
+  tlDragging = true;
+  timelineTrack.classList.add('dragging');
+  seekFromEvent(e);
+
+  const onMove = ev => { if (tlDragging) seekFromEvent(ev); };
+  const onUp   = () => {
+    tlDragging = false;
+    timelineTrack.classList.remove('dragging');
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup',   onUp);
+  };
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup',   onUp);
+});
+
+// Touch events — mobile scrubbing
+timelineTrack.addEventListener('touchstart', e => {
+  tlDragging = true;
+  timelineTrack.classList.add('dragging');
+  seekFromEvent(e.touches[0]);
+
+  const onMove = ev => { if (tlDragging) seekFromEvent(ev.touches[0]); };
+  const onEnd  = () => {
+    tlDragging = false;
+    timelineTrack.classList.remove('dragging');
+    timelineTrack.removeEventListener('touchmove', onMove);
+    timelineTrack.removeEventListener('touchend',  onEnd);
+  };
+  timelineTrack.addEventListener('touchmove', onMove, {passive: true});
+  timelineTrack.addEventListener('touchend',  onEnd);
+}, {passive: true});
 
 /* ── Helpers ── */
 function formatTime(s) {

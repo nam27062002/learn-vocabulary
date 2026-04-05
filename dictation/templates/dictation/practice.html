@@ -102,6 +102,17 @@
         <span id="segDuration" class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 rounded px-2 py-0.5 ml-auto"></span>
       </div>
 
+      <!-- ── Segment timeline scrubber ── -->
+      <div id="timelineWrap" class="timeline-wrap hidden">
+        <span id="tlCurrent" class="timeline-time tl-current">0.0s</span>
+        <div id="timelineTrack" class="timeline-track" role="slider" aria-label="Segment timeline">
+          <div class="timeline-bg"></div>
+          <div id="timelineFill" class="timeline-fill"></div>
+          <div id="timelineThumb" class="timeline-thumb"></div>
+        </div>
+        <span id="tlTotal" class="timeline-time tl-total">0.0s</span>
+      </div>
+
       <!-- ── Play controls ── -->
       <div class="play-controls" id="playControls" style="display:none">
         <button class="btn-primary" id="btnPlay">

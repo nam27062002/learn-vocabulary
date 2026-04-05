@@ -244,6 +244,75 @@
   to   { height: 28px; }
 }
 
+/* ── Timeline scrubber ── */
+.timeline-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 1rem 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--background-main);
+  user-select: none;
+}
+.timeline-time {
+  font-size: 0.72rem;
+  font-family: monospace;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 2.8rem;
+}
+.tl-current { text-align: right; color: #6366f1; font-weight: 600; }
+.tl-total   { text-align: left; }
+
+.timeline-track {
+  position: relative;
+  flex: 1;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+.timeline-bg {
+  position: absolute;
+  left: 0; right: 0;
+  height: 5px;
+  background: var(--border-color);
+  border-radius: 9999px;
+}
+.timeline-fill {
+  position: absolute;
+  left: 0;
+  height: 5px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  border-radius: 9999px;
+  width: 0%;
+  transition: width 0.1s linear;
+  pointer-events: none;
+}
+.timeline-thumb {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #6366f1;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(99,102,241,.25);
+  transform: translateX(-50%);
+  left: 0%;
+  transition: left 0.1s linear, box-shadow 0.15s;
+  pointer-events: none;
+  z-index: 1;
+}
+.timeline-track:hover .timeline-thumb,
+.timeline-track.dragging .timeline-thumb {
+  box-shadow: 0 0 0 6px rgba(99,102,241,.2);
+  transition: box-shadow 0.15s;
+}
+.timeline-track.dragging .timeline-fill,
+.timeline-track.dragging .timeline-thumb {
+  transition: none;
+}
+
 /* ── Segment heading bar ── */
 .segment-heading-bar {
   display: flex;
@@ -320,6 +389,17 @@
   color: #9ca3af;
   text-decoration: line-through;
   text-decoration-color: #ef4444;
+}
+.token.proper {
+  color: #7c3aed;
+  font-weight: 500;
+}
+.token.proper .proper-hint {
+  display: block;
+  font-size: 0.68rem;
+  color: #a78bfa;
+  text-align: center;
+  margin-top: -4px;
 }
 
 /* Score badge */
