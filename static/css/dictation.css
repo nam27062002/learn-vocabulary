@@ -445,6 +445,17 @@
   text-align: center;
   margin-top: -4px;
 }
+.token.semantic {
+  color: #0d9488;
+  font-weight: 500;
+}
+.token.semantic .semantic-hint {
+  display: block;
+  font-size: 0.68rem;
+  color: #5eead4;
+  text-align: center;
+  margin-top: -4px;
+}
 
 /* Score badge */
 .score-badge {
@@ -743,7 +754,8 @@
 .token:hover .token-add-btn,
 .token.wrong .token-add-btn,
 .token.missing .token-add-btn,
-.token.proper .token-add-btn {
+.token.proper .token-add-btn,
+.token.semantic .token-add-btn {
   opacity: 1;
 }
 .token-add-btn:hover { background: #6366f1; color: #fff; }

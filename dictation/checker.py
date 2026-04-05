@@ -1,12 +1,21 @@
 """
 LCS-based word-level answer checker for dictation practice.
-Includes proper-noun leniency via fuzzy matching.
+Includes proper-noun leniency via fuzzy matching and AI semantic equivalence
+via LM Studio (OpenAI-compatible local API).
 """
+import json
 import re
+import urllib.error
+import urllib.request
 from difflib import SequenceMatcher
 
 
 _STRIP_PUNCT = re.compile(r"[.,!?;:'\"\-\(\)\[\]]")
+
+# ── LM Studio config ───────────────────────────────────────────────────────
+LM_STUDIO_URL   = "http://localhost:1234/v1/chat/completions"
+LM_STUDIO_MODEL = "qwen2.5-vl-3b-instruct"
+LM_STUDIO_TIMEOUT = 8  # seconds
 
 
 # ── Normalisation ──────────────────────────────────────────────────────────
@@ -95,6 +104,98 @@ def _backtrack(dp, ref, user):
     return alignment
 
 
+# ── Semantic equivalence via LM Studio ────────────────────────────────────
+
+def _collect_wrong_spans(tokens: list[dict]) -> list[tuple[int, int, str, str]]:
+    """
+    Find contiguous blocks of non-correct tokens that have both a reference
+    phrase and a user phrase (i.e. something meaningful to compare).
+
+    Returns list of (start, end, ref_phrase, user_phrase). end is exclusive.
+    """
+    spans = []
+    i = 0
+    while i < len(tokens):
+        if tokens[i]['status'] not in ('correct', 'proper'):
+            j = i
+            while j < len(tokens) and tokens[j]['status'] not in ('correct', 'proper'):
+                j += 1
+            # ref words come from wrong/missing tokens; user words from wrong/extra
+            ref_words  = [t['word']      for t in tokens[i:j] if t['status'] in ('wrong', 'missing')]
+            user_words = [t['user_word'] for t in tokens[i:j] if t['user_word'] is not None]
+            if ref_words and user_words:
+                spans.append((i, j, ' '.join(ref_words), ' '.join(user_words)))
+            i = j
+        else:
+            i += 1
+    return spans
+
+
+def _batch_semantic_check(pairs: list[tuple[str, str]]) -> list[bool]:
+    """
+    Send a batch of (ref_phrase, user_phrase) pairs to LM Studio and return
+    a list of booleans — True if semantically equivalent.
+
+    Falls back to all-False if LM Studio is unavailable.
+    """
+    if not pairs:
+        return []
+
+    lines = "\n".join(
+        f'{i}. reference: "{ref}" | student: "{usr}"'
+        for i, (ref, usr) in enumerate(pairs, 1)
+    )
+
+    n = len(pairs)
+    prompt = (
+        "You are checking a student's spoken English transcription.\n"
+        f"There are exactly {n} numbered item(s) below. "
+        "For each item, treat the reference and student text as whole phrases and decide "
+        "if they are semantically equivalent (e.g. '80°c' = '80 degrees celsius', "
+        "'Mr' = 'Mister', 'gonna' = 'going to').\n\n"
+        f"{lines}\n\n"
+        f"Reply with ONLY a JSON array of exactly {n} boolean(s), "
+        f"one per numbered item. Example for {n} item(s): "
+        f"{str([True] * n).lower().replace('true', 'true').replace('false', 'false')}"
+    )
+
+    payload = {
+        "model": LM_STUDIO_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0,
+        "max_tokens": max(16, n * 8),
+    }
+
+    try:
+        req = urllib.request.Request(
+            LM_STUDIO_URL,
+            data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=LM_STUDIO_TIMEOUT) as resp:
+            data = json.loads(resp.read())
+        content = data["choices"][0]["message"]["content"].strip()
+        start = content.find('[')
+        end   = content.rfind(']') + 1
+        if start >= 0 and end > start:
+            raw = json.loads(content[start:end])
+            if isinstance(raw, list) and len(raw) > 0:
+                if len(raw) == n:
+                    return [bool(r) for r in raw]
+                # Model returned wrong count — chunk into groups of (len/n) and use any()
+                chunk = len(raw) // n
+                if chunk > 0:
+                    return [
+                        any(raw[i * chunk:(i + 1) * chunk])
+                        for i in range(n)
+                    ]
+    except Exception:
+        pass  # LM Studio not running or bad response — degrade gracefully
+
+    return [False] * len(pairs)
+
+
 # ── Main compare ───────────────────────────────────────────────────────────
 
 def compare(reference: str, user_input: str) -> dict:
@@ -104,18 +205,20 @@ def compare(reference: str, user_input: str) -> dict:
     Statuses per token:
       'correct'  — exact match
       'proper'   — proper noun accepted via fuzzy match (counts as correct)
+      'semantic' — semantically equivalent per AI check (counts as correct)
       'wrong'    — substitution (incorrect)
       'missing'  — word absent from user input
       'extra'    — word typed by user that has no match in reference
 
     Returns:
     {
-        "score":         float,   # correct_count / total_ref_words
-        "correct_count": int,
-        "total_count":   int,
-        "proper_count":  int,     # how many were accepted as proper nouns
-        "tokens":        list[dict],
-        "transcript":    str,     # reference (added by view)
+        "score":          float,
+        "correct_count":  int,
+        "total_count":    int,
+        "proper_count":   int,
+        "semantic_count": int,
+        "tokens":         list[dict],
+        "transcript":     str,   # added by view
     }
     """
     ref_words  = normalize(reference)
@@ -124,13 +227,13 @@ def compare(reference: str, user_input: str) -> dict:
 
     if not ref_words:
         return {"score": 1.0, "correct_count": 0, "total_count": 0,
-                "proper_count": 0, "tokens": []}
+                "proper_count": 0, "semantic_count": 0, "tokens": []}
 
     if not user_words:
         tokens = [{"word": w, "status": "missing", "user_word": None,
                    "is_proper": w in proper_set} for w in ref_words]
         return {"score": 0.0, "correct_count": 0, "total_count": len(ref_words),
-                "proper_count": 0, "tokens": tokens}
+                "proper_count": 0, "semantic_count": 0, "tokens": tokens}
 
     dp        = _lcs_table(ref_words, user_words)
     alignment = _backtrack(dp, ref_words, user_words)
@@ -182,12 +285,31 @@ def compare(reference: str, user_input: str) -> dict:
             correct_count += 1
             proper_count  += 1
 
+    # Semantic equivalence pass — batch-check remaining wrong spans via LM Studio
+    semantic_count = 0
+    spans = _collect_wrong_spans(merged)
+    if spans:
+        pairs   = [(ref_phrase, usr_phrase) for _, _, ref_phrase, usr_phrase in spans]
+        results = _batch_semantic_check(pairs)
+        for (start, end, _, _), is_equiv in zip(spans, results):
+            if is_equiv:
+                # Count reference words in this span before marking
+                ref_token_count = sum(
+                    1 for t in merged[start:end]
+                    if t['status'] in ('wrong', 'missing')
+                )
+                for tok in merged[start:end]:
+                    tok['status'] = 'semantic'
+                correct_count  += ref_token_count
+                semantic_count += ref_token_count
+
     score = round(correct_count / len(ref_words), 4) if ref_words else 1.0
 
     return {
-        "score":         score,
-        "correct_count": correct_count,
-        "total_count":   len(ref_words),
-        "proper_count":  proper_count,
-        "tokens":        merged,
+        "score":          score,
+        "correct_count":  correct_count,
+        "total_count":    len(ref_words),
+        "proper_count":   proper_count,
+        "semantic_count": semantic_count,
+        "tokens":         merged,
     }

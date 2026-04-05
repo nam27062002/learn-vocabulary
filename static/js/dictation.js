@@ -54,6 +54,18 @@ function setPlaying(val) {
   if (status && activeSegIdx !== null) {
     status.textContent = val ? 'Playing…' : 'Paused';
   }
+  // Update pause/resume button
+  if (btnPauseIcon && btnPauseLabel) {
+    if (val) {
+      // Playing → show Pause
+      btnPauseIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+      btnPauseLabel.textContent = 'Pause';
+    } else {
+      // Paused → show Resume
+      btnPauseIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+      btnPauseLabel.textContent = 'Resume';
+    }
+  }
 }
 
 function playSegment(start, end) {
@@ -104,6 +116,9 @@ const dictationInput = document.getElementById('dictationInput');
 const scoreRow       = document.getElementById('scoreRow');
 const tokenDisplay   = document.getElementById('tokenDisplay');
 const btnPlay        = document.getElementById('btnPlay');
+const btnPause       = document.getElementById('btnPause');
+const btnPauseIcon   = document.getElementById('btnPauseIcon');
+const btnPauseLabel  = document.getElementById('btnPauseLabel');
 const btnReplay      = document.getElementById('btnReplay');
 const btnCheck       = document.getElementById('btnCheck');
 const btnReveal      = document.getElementById('btnReveal');
@@ -302,12 +317,48 @@ function activateSegment(idx) {
   dictationInput.focus();
 }
 
-/* ── Play / Replay ── */
+/* ── Play / Pause / Replay ── */
 btnPlay.addEventListener('click', () => {
   if (activeSegIdx === null) return;
   const seg = segments[activeSegIdx];
+  // If paused mid-segment, resume from current position instead of restarting
+  if (!isPlaying && ytReady) {
+    const cur = ytPlayer.getCurrentTime();
+    if (cur > seg.start_time && cur < seg.end_time) {
+      togglePause();
+      return;
+    }
+  }
   playSegment(seg.start_time, seg.end_time);
 });
+
+btnPause.addEventListener('click', togglePause);
+
+function togglePause() {
+  if (!ytReady || activeSegIdx === null) return;
+  if (isPlaying) {
+    clearInterval(segmentTimer);
+    ytPlayer.pauseVideo();
+  } else {
+    const seg = segments[activeSegIdx];
+    const cur = ytPlayer.getCurrentTime();
+    // If still within segment bounds, resume from current position
+    if (cur >= seg.start_time && cur < seg.end_time) {
+      ytPlayer.setPlaybackRate(currentSpeed);
+      ytPlayer.playVideo();
+      segmentTimer = setInterval(() => {
+        if (!ytPlayer) return;
+        if (ytPlayer.getCurrentTime() >= seg.end_time) {
+          ytPlayer.pauseVideo();
+          clearInterval(segmentTimer);
+        }
+      }, 150);
+    } else {
+      // Position fell outside segment — restart from beginning
+      playSegment(seg.start_time, seg.end_time);
+    }
+  }
+}
 
 btnReplay.addEventListener('click', () => {
   if (activeSegIdx === null) return;
@@ -427,6 +478,12 @@ function renderTokensInto(tokens, container) {
         (same ? '' : `<span class="proper-hint">${escHtml(tok.word)}</span>`);
       span.title = 'Proper noun — accepted';
       span.appendChild(addWordButton(tok.word));
+    } else if (tok.status === 'semantic') {
+      const typed = tok.user_word || tok.word;
+      span.innerHTML = escHtml(typed) +
+        `<span class="semantic-hint">${escHtml(tok.word)}</span>`;
+      span.title = 'Semantically equivalent — accepted by AI';
+      span.appendChild(addWordButton(tok.word));
     } else if (tok.status === 'wrong') {
       span.innerHTML = `<span style="text-decoration:line-through">${escHtml(tok.user_word)}</span><span class="correct-hint">${escHtml(tok.word)}</span>`;
       span.appendChild(addWordButton(tok.word));
@@ -449,8 +506,10 @@ function scoreBadgeHTML(result) {
   const emoji = pct >= 80 ? '🎉' : pct >= 50 ? '👍' : '🔄';
   const properNote = (result.proper_count > 0)
     ? ` <span class="text-xs text-purple-500 ml-1">(${result.proper_count} proper noun${result.proper_count > 1 ? 's' : ''} accepted)</span>` : '';
+  const semanticNote = (result.semantic_count > 0)
+    ? ` <span class="text-xs text-teal-500 ml-1">(${result.semantic_count} AI-accepted)</span>` : '';
   return `<span class="score-badge ${cls}">${emoji} ${pct}%</span>
-          <span class="text-sm text-gray-500">${result.correct_count} / ${result.total_count} words${properNote}</span>`;
+          <span class="text-sm text-gray-500">${result.correct_count} / ${result.total_count} words${properNote}${semanticNote}</span>`;
 }
 
 /* ── Render result ── */
@@ -489,6 +548,8 @@ document.addEventListener('keydown', e => {
   if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); checkAnswer(); return; }
   // Ctrl+Space → play
   if (e.ctrlKey && !e.shiftKey && e.key === ' ') { e.preventDefault(); btnPlay.click(); return; }
+  // Ctrl+P → pause/resume
+  if (e.ctrlKey && e.key === 'p') { e.preventDefault(); togglePause(); return; }
   // Tab (when input focused) → next segment
   if (e.key === 'Tab' && document.activeElement === dictationInput) {
     e.preventDefault(); goNext();
