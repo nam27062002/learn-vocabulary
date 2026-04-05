@@ -1,7 +1,7 @@
 """
 Utility functions for managing statistics and analytics.
 """
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, time as dt_time
 from django.db.models import Sum, Count, Avg, Q
 from django.utils import timezone
 from .models import (
@@ -81,10 +81,12 @@ def record_answer(session, flashcard, is_correct, response_time_seconds, questio
 def end_study_session(session):
     """End a study session and update statistics."""
     session.end_session()
-    
-    # Update daily and weekly statistics
-    update_daily_statistics(session.user, session.session_start.date())
-    update_weekly_statistics(session.user, session.session_start.date())
+
+    # Use local date (not UTC date) so sessions between midnight and 7 AM
+    # are attributed to the correct local day (Asia/Ho_Chi_Minh is UTC+7).
+    local_start = timezone.localtime(session.session_start)
+    update_daily_statistics(session.user, local_start.date())
+    update_weekly_statistics(session.user, local_start.date())
     
     return session
 
@@ -107,10 +109,13 @@ def update_daily_statistics(user, target_date):
         }
     )
     
-    # Get all sessions for this day
+    # Get all sessions for this day using local-timezone range to avoid UTC date mismatch
+    local_tz = timezone.get_current_timezone()
+    day_start = timezone.make_aware(datetime.combine(target_date, dt_time.min), local_tz)
+    day_end = timezone.make_aware(datetime.combine(target_date, dt_time.max), local_tz)
     sessions = StudySession.objects.filter(
         user=user,
-        session_start__date=target_date,
+        session_start__range=(day_start, day_end),
         session_end__isnull=False  # Only completed sessions
     )
     
@@ -126,10 +131,10 @@ def update_daily_statistics(user, target_date):
             unique_words=Count('answers__flashcard', distinct=True)
         )
         
-        # Count new cards created on this day
+        # Count new cards created on this day (use local-timezone range)
         new_cards = Flashcard.objects.filter(
             user=user,
-            created_at__date=target_date
+            created_at__range=(day_start, day_end)
         ).count()
         
         # Update daily statistics
