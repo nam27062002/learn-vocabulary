@@ -1770,7 +1770,9 @@ def api_fetch_missing_audio(request):
             return JsonResponse({
                 'success': True,
                 'message': 'No cards need audio fetching',
-                'updated_count': 0
+                'updated_count': 0,
+                'total_processed': 0,
+                'words_processed': []
             })
 
         # Import audio service

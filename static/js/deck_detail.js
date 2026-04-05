@@ -1558,7 +1558,7 @@ document.addEventListener("DOMContentLoaded", function () {
       data.updated_count
     } / ${data.total_processed}</div>
             <div class="text-xs mt-1">
-                ${data.words_processed
+                ${(data.words_processed || [])
                   .filter((w) => w.found)
                   .map((w) => w.word)
                   .join(", ")}
