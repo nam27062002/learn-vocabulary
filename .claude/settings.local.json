@@ -1,10 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "*",
-      "Bash(python:*)",
-      "Bash(schtasks:*)",
-      "Bash(powershell.exe:*)"
+      "Bash(*)",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)",
+      "WebSearch"
     ]
   }
 }
