@@ -9,15 +9,15 @@
   editing
 </div>
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
   <div
-    class="flex justify-between items-center mb-8 pb-4 border-b border-gray-700"
+    class="flex justify-between items-center mb-4 pb-3 border-b border-gray-700"
   >
     <!-- Left Section: Deck Name Display/Edit -->
     <div class="flex items-center gap-4">
       <!-- View Mode -->
       <div id="deck-name-view" class="flex items-center gap-3">
-        <h1 class="text-4xl font-extrabold text-white">{{ deck.name }}</h1>
+        <h1 class="text-2xl font-bold text-white">{{ deck.name }}</h1>
         <button
           id="edit-deck-name-btn"
           class="text-gray-400 hover:text-primary-color transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
@@ -170,7 +170,7 @@
         >
         <!-- View Mode -->
         <div
-          class="card-view-mode word-item-tailwind p-6 bg-gray-900 rounded-lg shadow-lg w-full max-w-2xl mx-auto text-white flex flex-col items-start relative"
+          class="card-view-mode word-item-tailwind p-4 bg-gray-900 rounded-lg shadow-lg w-full max-w-2xl mx-auto text-white flex flex-col items-start relative"
           data-has-audio="{% if card.audio_url %}true{% else %}false{% endif %}"
         >
           <!-- Card Action Buttons Group -->
@@ -300,7 +300,7 @@
 
         <!-- Edit Mode (Hidden by default) -->
         <div
-          class="card-edit-mode hidden word-item-tailwind p-6 bg-gray-900 rounded-lg shadow-lg w-full max-w-md mx-auto text-white"
+          class="card-edit-mode hidden word-item-tailwind p-4 bg-gray-900 rounded-lg shadow-lg w-full max-w-md mx-auto text-white"
         >
           <div class="mb-4">
             <div class="flex items-center justify-between mb-4">

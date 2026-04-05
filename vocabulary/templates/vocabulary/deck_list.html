@@ -51,15 +51,15 @@
 
     .deck-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 25px;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 16px;
     }
 
     .deck-card {
         background-color: var(--card-background);
         border: 1px solid var(--card-border-color);
         border-radius: 12px;
-        padding: 20px;
+        padding: 14px 16px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -77,8 +77,8 @@
     }
 
     .deck-card h2 {
-        font-size: 1.4em;
-        margin-bottom: 10px;
+        font-size: 1.15em;
+        margin-bottom: 6px;
         word-break: break-word;
     }
 
@@ -86,10 +86,10 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-top: 20px;
-        padding-top: 15px;
+        margin-top: 12px;
+        padding-top: 10px;
         border-top: 1px solid var(--card-border-color);
-        font-size: 0.9em;
+        font-size: 0.85em;
         color: var(--card-text-muted);
     }
 
@@ -106,8 +106,8 @@
         background-color: var(--card-background);
         border: 1px solid var(--card-border-color);
         border-radius: 12px;
-        padding: 25px;
-        margin-bottom: 30px;
+        padding: 14px 16px;
+        margin-bottom: 16px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     }
 
@@ -115,19 +115,19 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        margin-bottom: 20px;
+        margin-bottom: 10px;
     }
 
     .search-header h3 {
         margin: 0;
         color: var(--text-main);
-        font-size: 1.3em;
+        font-size: 1.05em;
     }
 
     .search-input-container {
         display: flex;
         gap: 10px;
-        margin-bottom: 20px;
+        margin-bottom: 0;
         position: relative;
     }
 
@@ -194,7 +194,7 @@
     }
 
     .search-results {
-        margin-top: 20px;
+        margin-top: 12px;
     }
 
     .search-results.hidden {
