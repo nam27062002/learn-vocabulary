@@ -805,7 +805,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const searchWord = searchInput.value.trim();
 
         if (!searchWord) {
-            alert('Please enter a word to search for.');
+            Notify.warning('Please enter a word to search for.');
             return;
         }
 

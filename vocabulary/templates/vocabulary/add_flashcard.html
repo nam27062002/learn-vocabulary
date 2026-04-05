@@ -5,7 +5,6 @@
 {% block content %}
 <meta name="csrf-token" content="{{ csrf_token }}" />
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <div class="add-flashcard-page">
   <div class="page-header">
@@ -1004,21 +1003,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     deckSelector.addEventListener('change', async function() {
         if (this.value === 'new_deck') {
-            const { value: deckName } = await Swal.fire({
+            const deckName = await Notify.prompt({
                 title: '{{ manual_texts.create_new_deck_title }}',
-                input: 'text',
-                inputLabel: '{{ manual_texts.deck_name_label }}',
-                inputPlaceholder: '{{ manual_texts.deck_name_placeholder }}',
-                background: 'var(--background-light)',
-                color: 'var(--text-main)',
-                confirmButtonColor: 'var(--primary-color)',
-                inputValidator: (value) => {
-                    if (!value) {
-                        return '{{ manual_texts.deck_name_required }}'
-                    }
-                },
-                showCancelButton: true,
-                cancelButtonText: '{{ manual_texts.cancel }}'
+                label: '{{ manual_texts.deck_name_label }}',
+                placeholder: '{{ manual_texts.deck_name_placeholder }}',
+                cancelText: '{{ manual_texts.cancel }}'
             });
 
             if (deckName) {
@@ -1036,26 +1025,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         const newOption = new Option(data.deck.name, data.deck.id, true, true);
                         // Insert after the "Create new deck" option (which is now at index 1)
                         deckSelector.add(newOption, deckSelector.options[2]);
-                        Swal.fire({
-                            icon: 'success',
-                            title: '{{ manual_texts.created }}',
-                            text: `{{ manual_texts.deck_created_success|safe }}`.replace('{deck_name}', data.deck.name),
-                            background: 'var(--background-light)',
-                            color: 'var(--text-main)',
-                            confirmButtonColor: 'var(--primary-color)'
-                        });
+                        Notify.success(`{{ manual_texts.deck_created_success|safe }}`.replace('{deck_name}', data.deck.name));
                     } else {
                         throw new Error(data.error || '{{ manual_texts.unknown_error }}');
                     }
                 } catch (error) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: '{{ manual_texts.cannot_create_deck }}',
-                        text: error.message,
-                        background: 'var(--background-light)',
-                        color: 'var(--text-main)',
-                        confirmButtonColor: 'var(--primary-color)'
-                    });
+                    Notify.error(error.message);
                     deckSelector.value = ''; // Reset selection
                 }
             } else {
@@ -1417,7 +1392,7 @@ document.addEventListener('DOMContentLoaded', function() {
             cardElement.remove();
             updateCardNumbers();
         } else {
-            alert("{{ manual_texts.cannot_delete_only_card }}");
+            Notify.warning("{{ manual_texts.cannot_delete_only_card }}");
         }
     }
 
@@ -1522,28 +1497,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function generateCardsFromWords(words) {
         if (!words || words.length === 0) {
-            Swal.fire({
-                icon: 'warning',
-                title: '{{ manual_texts.no_words_found }}',
-                text: '{{ manual_texts.enter_words_pipe }}',
-                background: 'var(--background-light)',
-                color: 'var(--text-main)',
-                confirmButtonColor: 'var(--primary-color)'
-            });
+            Notify.warning('{{ manual_texts.enter_words_pipe }}');
             return;
         }
 
         // Check if a deck is selected
         const selectedDeckId = deckSelector.value;
         if (!selectedDeckId || selectedDeckId === 'new_deck') {
-            Swal.fire({
-                icon: 'warning',
-                title: '{{ manual_texts.no_deck_selected }}',
-                text: '{{ manual_texts.select_deck_before_adding }}',
-                background: 'var(--background-light)',
-                color: 'var(--text-main)',
-                confirmButtonColor: 'var(--primary-color)'
-            });
+            Notify.warning('{{ manual_texts.select_deck_before_adding }}');
             return;
         }
 
@@ -1617,14 +1578,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('Error in generateCardsFromWords:', error);
             showProcessingIndicator(false);
-            Swal.fire({
-                icon: 'error',
-                title: '{{ manual_texts.processing_error }}',
-                text: '{{ manual_texts.processing_error_message }}',
-                background: 'var(--background-light)',
-                color: 'var(--text-main)',
-                confirmButtonColor: 'var(--primary-color)'
-            });
+            Notify.error('{{ manual_texts.processing_error_message }}');
         }
     }
 
@@ -1702,14 +1656,10 @@ document.addEventListener('DOMContentLoaded', function() {
             icon = 'warning';
         }
 
-        Swal.fire({
-            icon: icon,
+        Notify.alert({
+            type: icon,
             title: '{{ manual_texts.quick_add_results }}',
             html: message.replace(/\n/g, '<br>'),
-            background: 'var(--background-light)',
-            color: 'var(--text-main)',
-            confirmButtonColor: 'var(--primary-color)',
-            width: '600px'
         });
     }
 
@@ -1863,14 +1813,7 @@ document.addEventListener('DOMContentLoaded', function() {
         generateCardsBtn.addEventListener('click', () => {
             const input = quickAddInput.value.trim();
             if (!input) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: '{{ manual_texts.empty_input }}',
-                    text: '{{ manual_texts.enter_words_pipe }}',
-                    background: 'var(--background-light)',
-                    color: 'var(--text-main)',
-                    confirmButtonColor: 'var(--primary-color)'
-                });
+                Notify.warning('{{ manual_texts.enter_words_pipe }}');
                 return;
             }
 
@@ -1885,19 +1828,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (hasContent && existingCards.length > 0) {
                 // Show confirmation dialog
-                Swal.fire({
-                    icon: 'warning',
+                Notify.confirm({
+                    type: 'warning',
                     title: '{{ manual_texts.replace_existing_cards }}',
                     html: `{{ manual_texts.replace_cards_confirmation_html }}`.replace('{count}', words.length),
-                    showCancelButton: true,
-                    confirmButtonText: '{{ manual_texts.yes_replace_all }}',
-                    cancelButtonText: '{{ manual_texts.cancel }}',
-                    confirmButtonColor: 'var(--primary-color)',
-                    cancelButtonColor: '#6c757d',
-                    background: 'var(--background-light)',
-                    color: 'var(--text-main)'
-                }).then((result) => {
-                    if (result.isConfirmed) {
+                    confirmText: '{{ manual_texts.yes_replace_all }}',
+                    cancelText: '{{ manual_texts.cancel }}',
+                }).then(confirmed => {
+                    if (confirmed) {
                         generateCardsFromWords(words);
                     }
                 });
@@ -1932,14 +1870,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const selectedDeckId = deckSelector.value;
 
             if (!selectedDeckId || selectedDeckId === 'new_deck') {
-                 Swal.fire({
-                    icon: 'warning',
-                    title: '{{ manual_texts.no_deck_selected }}',
-                    text: '{{ manual_texts.select_deck_before_saving }}',
-                    background: 'var(--background-light)',
-                    color: 'var(--text-main)',
-                    confirmButtonColor: 'var(--primary-color)'
-                });
+                    Notify.warning('{{ manual_texts.select_deck_before_saving }}');
                 return;
             }
 
@@ -1947,13 +1878,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const duplicateInputs = document.querySelectorAll('.term-input.duplicate-warning');
             if (duplicateInputs.length > 0) {
                 const duplicateWords = Array.from(duplicateInputs).map(input => input.value.trim()).filter(word => word);
-                Swal.fire({
-                    icon: 'warning',
+                Notify.alert({
+                    type: 'warning',
                     title: '{{ manual_texts.duplicate_words_detected }}',
                     html: `{{ manual_texts.duplicate_words_message_html }}`.replace('{words}', `<strong>${duplicateWords.join(', ')}</strong>`),
-                    background: 'var(--background-light)',
-                    color: 'var(--text-main)',
-                    confirmButtonColor: 'var(--primary-color)'
                 });
                 return;
             }
@@ -1984,14 +1912,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             if (!hasData) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: '{{ manual_texts.no_data_title }}',
-                    text: '{{ manual_texts.enter_at_least_one_word }}',
-                    background: 'var(--background-light)',
-                    color: 'var(--text-main)',
-                    confirmButtonColor: 'var(--primary-color)'
-                });
+                Notify.warning('{{ manual_texts.enter_at_least_one_word }}');
                 return;
             }
 
@@ -2009,14 +1930,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 showSaveLoadingOverlay(false);
 
                 if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: '{{ manual_texts.saved_successfully }}',
-                        text: `{{ manual_texts.words_added_to_collection }}`.replace('{words}', data.saved.join(', ')),
-                        background: 'var(--background-light)',
-                        color: 'var(--text-main)',
-                        confirmButtonColor: 'var(--primary-color)'
-                    });
+                    Notify.success(`{{ manual_texts.words_added_to_collection }}`.replace('{words}', data.saved.join(', ')));
                     
                     // Reset the form by removing all but the first card and clearing it
                     const allCards = document.querySelectorAll('.flashcard-section');
@@ -2040,28 +1954,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     window.scrollTo(0, 0); // Scroll to top
                 } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: '{{ manual_texts.error_title }}',
-                        text: `{{ manual_texts.error_occurred_message }}`.replace('{error}', data.error || '{{ manual_texts.unknown_error }}'),
-                        background: 'var(--background-light)',
-                        color: 'var(--text-main)',
-                        confirmButtonColor: 'var(--primary-color)'
-                    });
+                    Notify.error(`{{ manual_texts.error_occurred_message }}`.replace('{error}', data.error || '{{ manual_texts.unknown_error }}'));
                 }
             })
             .catch(err => {
                 // Hide loading overlay on error
                 showSaveLoadingOverlay(false);
 
-                Swal.fire({
-                    icon: 'error',
-                    title: '{{ manual_texts.connection_error_title }}',
-                    text: `{{ manual_texts.connection_error_message }}`.replace('{error}', err),
-                    background: 'var(--background-light)',
-                    color: 'var(--text-main)',
-                    confirmButtonColor: 'var(--primary-color)'
-                });
+                Notify.error(`{{ manual_texts.connection_error_message }}`.replace('{error}', err));
             });
         });
     }

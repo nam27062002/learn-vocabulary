@@ -402,7 +402,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }, 300);
                 } else {
-                    alert('{{ manual_texts.error_removing_favorite|default:"Error removing favorite" }}: ' + data.error);
+                    Notify.error('{{ manual_texts.error_removing_favorite|default:"Error removing favorite" }}: ' + data.error);
                     // Reset button
                     this.disabled = false;
                     this.innerHTML = '💔 {{ manual_texts.remove_favorite|default:"Remove" }}';
@@ -410,7 +410,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('{{ manual_texts.error_removing_favorite|default:"Error removing favorite" }}');
+                Notify.error('{{ manual_texts.error_removing_favorite|default:"Error removing favorite" }}');
                 // Reset button
                 this.disabled = false;
                 this.innerHTML = '💔 {{ manual_texts.remove_favorite|default:"Remove" }}';

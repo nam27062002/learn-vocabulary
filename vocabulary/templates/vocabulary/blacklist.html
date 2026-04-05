@@ -406,7 +406,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }, 300);
                 } else {
-                    alert('{{ manual_texts.error_removing_blacklist|default:"Error removing from blacklist" }}: ' + data.error);
+                    Notify.error('{{ manual_texts.error_removing_blacklist|default:"Error removing from blacklist" }}: ' + data.error);
                     // Reset button
                     this.disabled = false;
                     this.innerHTML = '✅ {{ manual_texts.remove_blacklist|default:"Remove from Blacklist" }}';
@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('{{ manual_texts.error_removing_blacklist|default:"Error removing from blacklist" }}');
+                Notify.error('{{ manual_texts.error_removing_blacklist|default:"Error removing from blacklist" }}');
                 // Reset button
                 this.disabled = false;
                 this.innerHTML = '✅ {{ manual_texts.remove_blacklist|default:"Remove from Blacklist" }}';

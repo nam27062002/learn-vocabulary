@@ -286,8 +286,6 @@ document.addEventListener("DOMContentLoaded", function () {
   // Make updateAudioStats globally available for enhanced audio manager
   window.updateAudioStats = updateAudioStats;
 
-  // Make showMessage globally available for enhanced audio manager
-  window.showMessage = showMessage;
 
   // Keyboard navigation
   document.addEventListener("keydown", function (event) {
@@ -624,18 +622,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Validate required fields
     if (!formData.word) {
-      showMessage(
-        window.manual_texts?.word_required || "Word is required",
-        "error"
-      );
+      Notify.error(window.manual_texts?.word_required || "Word is required");
       return;
     }
 
     if (formData.definitions.length === 0) {
-      showMessage(
+      Notify.error(
         window.manual_texts?.definition_required ||
-          "At least one definition is required",
-        "error"
+          "At least one definition is required"
       );
       return;
     }
@@ -679,17 +673,15 @@ document.addEventListener("DOMContentLoaded", function () {
         if (data.success) {
           updateCardDisplay(currentEditingCard, data.card);
           hideEditCardModal();
-          showMessage(
+          Notify.success(
             window.manual_texts?.card_updated_successfully ||
-              "Card updated successfully!",
-            "success"
+              "Card updated successfully!"
           );
         } else {
-          showMessage(
+          Notify.error(
             data.error ||
               window.manual_texts?.error_updating_card ||
-              "Error updating card",
-            "error"
+              "Error updating card"
           );
         }
       })
@@ -717,7 +709,7 @@ document.addEventListener("DOMContentLoaded", function () {
             "Server response error. Please try again.";
         }
 
-        showMessage(errorMessage, "error");
+        Notify.error(errorMessage);
       })
       .finally(() => {
         saveBtn.innerHTML = originalText;
@@ -825,27 +817,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Update audio status after updating display
     updateAudioStatusAfterSave(cardContainer, cardData);
-  }
-
-  function showMessage(message, type) {
-    // Create message element
-    const messageDiv = document.createElement("div");
-    messageDiv.className = `fixed top-4 right-4 px-6 py-3 rounded-md text-white font-medium z-50 transition-all duration-300 ${
-      type === "success" ? "bg-green-600" : "bg-red-600"
-    }`;
-    messageDiv.textContent = message;
-
-    document.body.appendChild(messageDiv);
-
-    // Auto remove after 3 seconds
-    setTimeout(() => {
-      messageDiv.style.opacity = "0";
-      setTimeout(() => {
-        if (messageDiv.parentNode) {
-          messageDiv.parentNode.removeChild(messageDiv);
-        }
-      }, 300);
-    }, 3000);
   }
 
   // Edit mode state management functions
@@ -1383,10 +1354,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const newName = deckNameInput.value.trim();
 
       if (!newName) {
-        showMessage(
-          window.manual_texts?.deck_name_required || "Deck name is required",
-          "error"
-        );
+        Notify.error(window.manual_texts?.deck_name_required || "Deck name is required");
         deckNameInput.focus();
         return;
       }
@@ -1428,26 +1396,23 @@ document.addEventListener("DOMContentLoaded", function () {
             deckNameInput.value = data.deck.name;
 
             exitDeckNameEditMode();
-            showMessage(
+            Notify.success(
               window.manual_texts?.deck_name_updated ||
-                "Deck name updated successfully!",
-              "success"
+                "Deck name updated successfully!"
             );
           } else {
-            showMessage(
+            Notify.error(
               data.error ||
                 window.manual_texts?.error_updating_deck ||
-                "Error updating deck name",
-              "error"
+                "Error updating deck name"
             );
           }
         })
         .catch((error) => {
           console.error("Error updating deck name:", error);
-          showMessage(
+          Notify.error(
             window.manual_texts?.error_updating_deck ||
-              "Error updating deck name",
-            "error"
+              "Error updating deck name"
           );
         })
         .finally(() => {
@@ -1510,36 +1475,32 @@ document.addEventListener("DOMContentLoaded", function () {
               window.location.reload();
             }, 2000);
 
-            showMessage(
+            Notify.success(
               `${
                 window.manual_texts?.audio_fetched_successfully ||
                 "Audio fetched successfully!"
               } ${data.updated_count} ${
                 window.manual_texts?.cards_updated || "cards updated"
-              }`,
-              "success"
+              }`
             );
           } else {
-            showMessage(
+            Notify.info(
               window.manual_texts?.no_audio_found ||
-                "No audio found for some words",
-              "info"
+                "No audio found for some words"
             );
           }
         } else {
-          showMessage(
+          Notify.error(
             data.error ||
               window.manual_texts?.audio_fetch_error ||
-              "Error fetching audio",
-            "error"
+              "Error fetching audio"
           );
         }
       })
       .catch((error) => {
         console.error("Error fetching audio:", error);
-        showMessage(
-          window.manual_texts?.audio_fetch_error || "Error fetching audio",
-          "error"
+        Notify.error(
+          window.manual_texts?.audio_fetch_error || "Error fetching audio"
         );
       })
       .finally(() => {
@@ -1754,14 +1715,14 @@ document.addEventListener("DOMContentLoaded", function () {
         console.error("Failed to toggle favorite:", data.error);
         // Restore original state
         button.querySelector('.favorite-icon').textContent = originalIcon;
-        alert('Error toggling favorite: ' + data.error);
+        Notify.error('Error toggling favorite: ' + data.error);
       }
     })
     .catch(error => {
       console.error("Error toggling favorite:", error);
       // Restore original state
       button.querySelector('.favorite-icon').textContent = originalIcon;
-      alert('Error toggling favorite');
+      Notify.error('Error toggling favorite');
     })
     .finally(() => {
       button.disabled = false;
@@ -1915,14 +1876,14 @@ document.addEventListener("DOMContentLoaded", function () {
         console.error("Failed to toggle blacklist:", data.error);
         // Restore original state
         button.querySelector('.blacklist-icon').textContent = originalIcon;
-        alert('Error toggling blacklist: ' + data.error);
+        Notify.error('Error toggling blacklist: ' + data.error);
       }
     })
     .catch(error => {
       console.error("Error toggling blacklist:", error);
       // Restore original state
       button.querySelector('.blacklist-icon').textContent = originalIcon;
-      alert('Error toggling blacklist');
+      Notify.error('Error toggling blacklist');
     })
     .finally(() => {
       button.disabled = false;
@@ -2452,7 +2413,7 @@ document.addEventListener("DOMContentLoaded", function () {
       pair.remove();
       updateDefinitionNumbers(container);
     } else {
-      showMessage('At least one definition is required', 'error');
+      Notify.error('At least one definition is required');
     }
   };
 

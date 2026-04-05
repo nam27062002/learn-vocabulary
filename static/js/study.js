@@ -2346,7 +2346,7 @@
           document.querySelectorAll('input[name="deck_ids"]:checked')
         ).map((cb) => cb.value);
         if (selectedDeckIds.length === 0) {
-          alert(
+          Notify.warning(
             STUDY_CFG.labels.select_deck_alert ||
               "Please select at least one deck to study."
           );
@@ -2369,7 +2369,7 @@
           !reviewModeOption ||
           reviewModeOption.classList.contains("disabled")
         ) {
-          alert(
+          Notify.warning(
             "No incorrect words to review. Answer some questions incorrectly first!"
           );
           return;
@@ -2447,7 +2447,7 @@
     startBtnReview.addEventListener("click", () => {
       // Check if there are incorrect words to review
       if (startBtnReview.disabled) {
-        alert(
+        Notify.warning(
           "No incorrect words to review. Answer some questions incorrectly first!"
         );
         return;
@@ -3403,14 +3403,14 @@
           console.error("[ERROR] Failed to toggle blacklist:", data.error);
           // Restore original state
           button.querySelector(".blacklist-icon").textContent = originalIcon;
-          alert("Error toggling blacklist: " + data.error);
+          Notify.error("Error toggling blacklist: " + data.error);
         }
       })
       .catch((error) => {
         console.error("[ERROR] Error toggling blacklist:", error);
         // Restore original state
         button.querySelector(".blacklist-icon").textContent = originalIcon;
-        alert("Error toggling blacklist");
+        Notify.error("Error toggling blacklist");
       })
       .finally(() => {
         button.disabled = false;
@@ -3953,7 +3953,7 @@
           console.log("ℹ️ No speech detected");
           this.showNoSpeechFeedback();
         } else if (event.error === 'not-allowed') {
-          alert('Microphone permission is required for pronunciation checking');
+          Notify.warning('Microphone permission is required for pronunciation checking');
         } else if (event.error === 'network') {
           this.showErrorFeedback('Network error - please check your internet connection');
         } else {
@@ -4050,7 +4050,7 @@
         
       } catch (error) {
         console.error("❌ Failed to start recording:", error);
-        alert(STUDY_CFG.labels.microphone_error || 'Microphone access denied');
+        Notify.error(STUDY_CFG.labels.microphone_error || 'Microphone access denied');
         this.isRecording = false;
       }
     },

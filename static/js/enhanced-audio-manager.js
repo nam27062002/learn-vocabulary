@@ -458,13 +458,7 @@ class EnhancedAudioManager {
     
     async confirmSelection() {
         if (!this.selectedAudioUrl) {
-            // Show validation error using the existing showMessage function
-            if (window.showMessage) {
-                window.showMessage(window.manual_texts?.please_select_audio || 'Please select an audio option', 'error');
-            } else {
-                // Fallback notification if showMessage is not available
-                this.showMessage(window.manual_texts?.please_select_audio || 'Please select an audio option', 'warning');
-            }
+            Notify.error(window.manual_texts?.please_select_audio || 'Please select an audio option');
             return;
         }
 
@@ -490,18 +484,9 @@ class EnhancedAudioManager {
                 console.log(`Success! Updating UI for card ${cardId} with audio: ${audioUrl}`);
 
                 // Show success notification FIRST (while modal is still open)
-                if (window.showMessage) {
-                    window.showMessage(
-                        window.manual_texts?.audio_selection_updated || 'Audio pronunciation updated successfully!',
-                        'success'
-                    );
-                } else {
-                    // Fallback notification if showMessage is not available
-                    this.showMessage(
-                        window.manual_texts?.audio_selection_updated || 'Audio pronunciation updated successfully!',
-                        'success'
-                    );
-                }
+                Notify.success(
+                    window.manual_texts?.audio_selection_updated || 'Audio pronunciation updated successfully!'
+                );
 
                 // Trigger UI refresh BEFORE closing modal
                 if (window.updateCardDisplayForAudio) {
@@ -525,19 +510,9 @@ class EnhancedAudioManager {
             } else {
                 console.error('API returned error:', response.error);
 
-                // Show error notification using the existing showMessage function
-                if (window.showMessage) {
-                    window.showMessage(
-                        response.error || window.manual_texts?.error_updating_audio || 'Error updating audio selection',
-                        'error'
-                    );
-                } else {
-                    // Fallback notification if showMessage is not available
-                    this.showMessage(
-                        response.error || window.manual_texts?.error_updating_audio || 'Error updating audio selection',
-                        'error'
-                    );
-                }
+                Notify.error(
+                    response.error || window.manual_texts?.error_updating_audio || 'Error updating audio selection'
+                );
 
                 // Re-enable button on error
                 if (confirmBtn) {
@@ -548,19 +523,9 @@ class EnhancedAudioManager {
         } catch (error) {
             console.error('Network error updating flashcard audio:', error);
 
-            // Show error notification using the existing showMessage function
-            if (window.showMessage) {
-                window.showMessage(
-                    window.manual_texts?.error_updating_audio || 'Network error occurred while updating audio selection',
-                    'error'
-                );
-            } else {
-                // Fallback notification if showMessage is not available
-                this.showMessage(
-                    window.manual_texts?.error_updating_audio || 'Network error occurred while updating audio selection',
-                    'error'
-                );
-            }
+            Notify.error(
+                window.manual_texts?.error_updating_audio || 'Network error occurred while updating audio selection'
+            );
 
             // Re-enable button on error
             if (confirmBtn) {
@@ -750,15 +715,6 @@ class EnhancedAudioManager {
         console.log('Modal UI reset completed');
     }
     
-    showMessage(message, type = 'info') {
-        // Use existing message system if available
-        if (window.showMessage) {
-            window.showMessage(message, type);
-        } else {
-            // Fallback to console
-            console.log(`[${type.toUpperCase()}] ${message}`);
-        }
-    }
 }
 
 // Initialize Enhanced Audio Manager when DOM is ready
