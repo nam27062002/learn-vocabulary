@@ -28,8 +28,10 @@ urlpatterns = [
 
     # API endpoints
     path('', include('vocabulary.api_urls')),
+    path('', include('dictation.api_urls')),
     # Page URLs without language prefixes
     path('', include('vocabulary.urls')),
+    path('', include('dictation.urls')),
 ]
 
 # Serve media and static files during development

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dictation Practice{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/dictation.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-8">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+        🎧 Dictation Practice
+      </h1>
+      <p class="text-gray-500 dark:text-gray-400 mt-1">
+        Listen to YouTube videos and type what you hear to improve your listening skills.
+      </p>
+    </div>
+  </div>
+
+  <!-- Add Video Card -->
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 mb-8 border border-gray-200 dark:border-gray-700">
+    <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">➕ Add a new video</h2>
+    <div class="flex gap-3">
+      <input
+        type="url"
+        id="videoUrlInput"
+        placeholder="https://www.youtube.com/watch?v=..."
+        class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      />
+      <button
+        id="processBtn"
+        class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+      >
+        <span id="processBtnIcon">🔍</span>
+        <span id="processBtnText">Process</span>
+      </button>
+    </div>
+    <div id="processStatus" class="mt-3 hidden"></div>
+  </div>
+
+  <!-- Video Grid -->
+  {% if videos %}
+  <h2 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">📼 Available Videos</h2>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+    {% for video in videos %}
+    <a href="{% url 'dictation_practice' video.video_id %}"
+       class="group bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200">
+      <!-- Thumbnail -->
+      <div class="relative aspect-video bg-gray-100 dark:bg-gray-700">
+        {% if video.thumbnail_url %}
+        <img src="{{ video.thumbnail_url }}" alt="{{ video.title }}" class="w-full h-full object-cover" />
+        {% else %}
+        <div class="w-full h-full flex items-center justify-center text-4xl">🎬</div>
+        {% endif %}
+        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+          <span class="text-white text-4xl opacity-0 group-hover:opacity-100 transition-opacity">▶</span>
+        </div>
+        {% if video.duration_display %}
+        <span class="absolute bottom-2 right-2 bg-black bg-opacity-80 text-white text-xs px-2 py-0.5 rounded">
+          {{ video.duration_display }}
+        </span>
+        {% endif %}
+      </div>
+      <!-- Info -->
+      <div class="p-4">
+        <h3 class="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 mb-1">{{ video.title }}</h3>
+        {% if video.channel_name %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ video.channel_name }}</p>
+        {% endif %}
+        <div class="flex items-center gap-3 text-xs text-gray-400">
+          <span>{{ video.segment_count }} segments</span>
+          <span class="px-2 py-0.5 rounded-full {% if video.subtitle_source == 'cc' %}bg-green-100 text-green-700{% else %}bg-yellow-100 text-yellow-700{% endif %}">
+            {% if video.subtitle_source == 'cc' %}CC{% else %}Auto{% endif %}
+          </span>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center py-16 text-gray-400 dark:text-gray-500">
+    <div class="text-6xl mb-4">🎧</div>
+    <p class="text-lg font-medium">No videos yet.</p>
+    <p class="text-sm mt-1">Paste a YouTube URL above to get started.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+
+const processBtn = document.getElementById('processBtn');
+const processBtnText = document.getElementById('processBtnText');
+const processBtnIcon = document.getElementById('processBtnIcon');
+const processStatus = document.getElementById('processStatus');
+const urlInput = document.getElementById('videoUrlInput');
+
+function showStatus(msg, type = 'info') {
+  const colors = {
+    info: 'text-blue-600 dark:text-blue-400',
+    success: 'text-green-600 dark:text-green-400',
+    error: 'text-red-600 dark:text-red-400',
+    warning: 'text-yellow-600 dark:text-yellow-400',
+  };
+  processStatus.className = `mt-3 text-sm ${colors[type]}`;
+  processStatus.textContent = msg;
+  processStatus.classList.remove('hidden');
+}
+
+async function processVideo(url, confirmLong = false) {
+  processBtn.disabled = true;
+  processBtnText.textContent = 'Processing…';
+  processBtnIcon.textContent = '⏳';
+
+  try {
+    const resp = await fetch('/api/dictation/process-video/', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+      body: JSON.stringify({url, confirm_long: confirmLong}),
+    });
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      showStatus('Error: ' + (data.error || 'Unknown error'), 'error');
+      return;
+    }
+
+    if (data.warning) {
+      // Long video confirmation
+      if (confirm(data.warning + '\n\nProceed?')) {
+        return processVideo(url, true);
+      }
+      showStatus('Cancelled.', 'warning');
+      return;
+    }
+
+    if (data.already_exists) {
+      showStatus(`Video already exists: "${data.title}" (${data.segment_count} segments). Redirecting…`, 'success');
+    } else {
+      showStatus(`Processed "${data.title}" — ${data.segment_count} segments created. Redirecting…`, 'success');
+    }
+
+    setTimeout(() => {
+      window.location.href = `/dictation/${data.video_id}/`;
+    }, 1200);
+
+  } catch (e) {
+    showStatus('Network error: ' + e.message, 'error');
+  } finally {
+    processBtn.disabled = false;
+    processBtnText.textContent = 'Process';
+    processBtnIcon.textContent = '🔍';
+  }
+}
+
+processBtn.addEventListener('click', () => {
+  const url = urlInput.value.trim();
+  if (!url) { showStatus('Please enter a YouTube URL.', 'error'); return; }
+  showStatus('Fetching subtitles from YouTube…', 'info');
+  processVideo(url);
+});
+
+urlInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') processBtn.click();
+});
+</script>
+{% endblock %}

@@ -142,6 +142,14 @@
                   <span class="nav-icon">📊</span>
                   <span>{{ manual_texts.statistics }}</span>
                 </a>
+                <a
+                  href="{% url 'dictation_list' %}"
+                  class="{% if 'dictation' in request.resolver_match.url_name %}bg-gray-900 text-white{% else %}text-gray-500 dark:text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1"
+                  id="nav-dictation"
+                >
+                  <span class="nav-icon">🎧</span>
+                  <span>Dictation</span>
+                </a>
                 {% endif %}
               </div>
             </div>
@@ -357,6 +365,13 @@
           >
             <span class="nav-icon">📊</span>
             <span>{{ manual_texts.statistics }}</span>
+          </a>
+          <a
+            href="{% url 'dictation_list' %}"
+            class="{% if 'dictation' in request.resolver_match.url_name %}bg-gray-900 text-white{% else %}text-gray-300 hover:bg-gray-700 hover:text-white{% endif %} block px-3 py-2 rounded-md text-base font-medium flex items-center space-x-2"
+          >
+            <span class="nav-icon">🎧</span>
+            <span>Dictation</span>
           </a>
           {% else %}
           <a

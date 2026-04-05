@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ video.title }} — Dictation{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/dictation.css' %}" />
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-5">
+
+  <!-- Header row -->
+  <div class="flex items-center gap-3 mb-5">
+    <a href="{% url 'dictation_list' %}" class="text-gray-400 hover:text-indigo-500 transition-colors" title="Back to list">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </a>
+    <div class="min-w-0 flex-1">
+      <h1 class="text-lg font-bold text-gray-900 dark:text-white truncate">{{ video.title }}</h1>
+      {% if video.channel_name %}<p class="text-xs text-gray-400">{{ video.channel_name }}</p>{% endif %}
+    </div>
+    <!-- Overall progress pill -->
+    <div class="hidden sm:flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full px-4 py-1.5 text-sm shadow-sm shrink-0">
+      <span id="progressLabel" class="text-gray-500">0 / {{ video.segment_count }}</span>
+      <span class="text-gray-300">·</span>
+      <span id="avgScore" class="font-semibold text-indigo-600 dark:text-indigo-400"></span>
+    </div>
+  </div>
+
+  <!-- Thin progress bar -->
+  <div class="progress-bar-track mb-5">
+    <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+  </div>
+
+  <!-- Main 2-column layout -->
+  <div class="dictation-layout">
+
+    <!-- ── LEFT: segment list ── -->
+    <aside class="dictation-sidebar">
+      <div class="sidebar-header">
+        <span class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Segments</span>
+        <span class="text-xs text-gray-400" id="segCountLabel">{{ video.segment_count }} total</span>
+      </div>
+      <div class="segment-list" id="segmentList"></div>
+    </aside>
+
+    <!-- ── RIGHT: practice panel ── -->
+    <main class="dictation-panel">
+
+      <!-- ── Player section ── -->
+      <div class="player-section" id="playerSection">
+
+        <!-- Toggle + speed bar -->
+        <div class="player-toolbar">
+          <!-- Video toggle -->
+          <button id="btnToggleVideo" class="toggle-video-btn" title="Show/hide video">
+            <svg id="iconVideo" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>
+            </svg>
+            <span id="lblToggleVideo">Show video</span>
+          </button>
+
+          <div class="flex-1"></div>
+
+          <!-- Speed control -->
+          <div class="speed-control">
+            <span class="speed-label">Speed</span>
+            <!-- Quick presets -->
+            <div class="speed-presets">
+              <button class="speed-preset" data-speed="0.5">0.5×</button>
+              <button class="speed-preset" data-speed="0.75">0.75×</button>
+              <button class="speed-preset active" data-speed="1">1×</button>
+              <button class="speed-preset" data-speed="1.25">1.25×</button>
+            </div>
+            <!-- Slider -->
+            <input type="range" id="speedSlider" class="speed-slider"
+              min="0.25" max="1.5" step="0.05" value="1" />
+            <span id="speedDisplay" class="speed-value">1×</span>
+          </div>
+        </div>
+
+        <!-- YouTube player (hidden by default) -->
+        <div id="playerWrap" class="player-wrap hidden">
+          <div id="ytPlayer"></div>
+        </div>
+
+        <!-- Audio-only placeholder (shown when video hidden) -->
+        <div id="audioPlaceholder" class="audio-placeholder">
+          <div class="audio-wave" id="audioWave">
+            <span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <p id="audioStatus" class="text-sm text-gray-400 mt-2">Select a segment to begin</p>
+        </div>
+      </div>
+
+      <!-- ── Active segment info ── -->
+      <div id="segmentHeading" class="segment-heading-bar hidden">
+        <span id="segTitle" class="font-semibold text-gray-800 dark:text-white"></span>
+        <span id="segTime" class="text-xs text-gray-400 ml-2"></span>
+        <span id="segDuration" class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 rounded px-2 py-0.5 ml-auto"></span>
+      </div>
+
+      <!-- ── Play controls ── -->
+      <div class="play-controls" id="playControls" style="display:none">
+        <button class="btn-primary" id="btnPlay">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          Play
+          <kbd class="kbd-hint">Ctrl+Space</kbd>
+        </button>
+        <button class="btn-secondary" id="btnReplay">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Replay
+        </button>
+      </div>
+
+      <!-- ── Input area ── -->
+      <div id="inputArea" style="display:none" class="input-area">
+        <textarea
+          id="dictationInput"
+          class="dictation-textarea"
+          placeholder="Type what you hear…"
+          rows="3"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+        ></textarea>
+        <div class="input-actions">
+          <button class="btn-check" id="btnCheck">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            Check
+            <kbd class="kbd-hint">Ctrl+Enter</kbd>
+          </button>
+          <button class="btn-ghost" id="btnReveal">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+            Show Answer
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Result area ── -->
+      <div id="resultArea" class="result-area" style="display:none">
+        <div class="score-row" id="scoreRow"></div>
+        <div class="token-display" id="tokenDisplay"></div>
+        <div class="result-actions">
+          <button class="btn-primary" id="btnNext" style="display:none">
+            Next segment
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+          <button class="btn-ghost" id="btnRetry" style="display:none">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            Try again
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Answer reveal ── -->
+      <div id="answerReveal" class="answer-reveal" style="display:none">
+        <span class="text-xs font-semibold text-blue-500 uppercase tracking-wide">Answer</span>
+        <p id="answerText" class="mt-1 text-gray-800 dark:text-gray-100 leading-relaxed"></p>
+      </div>
+
+      <!-- ── Keyboard hints ── -->
+      <div class="kbd-row">
+        <span><kbd class="kbd">Ctrl+Space</kbd> play</span>
+        <span><kbd class="kbd">Ctrl+Enter</kbd> check</span>
+        <span><kbd class="kbd">Tab</kbd> next segment</span>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+window.DICTATION_DATA = {
+  videoId: "{{ video.video_id }}",
+  segments: {{ segments_json|safe }},
+  csrfToken: "{{ csrf_token }}",
+  progressUrl: "/api/dictation/progress/{{ video.video_id }}/",
+  checkUrl: "/api/dictation/check-answer/",
+  saveUrl: "/api/dictation/save-attempt/",
+};
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://www.youtube.com/iframe_api" defer></script>
+<script src="{% static 'js/dictation.js' %}" defer></script>
+{% endblock %}

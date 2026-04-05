@@ -41,6 +41,9 @@ dj-database-url==2.1.0
 
 
 
+# YouTube subtitle extraction
+youtube-transcript-api==1.2.4
+
 # Other essential dependencies
 certifi==2025.4.26
 typing_extensions==4.13.2
