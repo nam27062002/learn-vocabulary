@@ -119,4 +119,6 @@ def _parse_questions(content: str) -> list[dict]:
             })
         except (KeyError, TypeError, ValueError):
             return []
+    if sorted(q['order'] for q in questions) != list(range(1, 11)):
+        return []
     return questions

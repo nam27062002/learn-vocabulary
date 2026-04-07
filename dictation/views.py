@@ -2,6 +2,7 @@ import json
 import logging
 
 from django.contrib.auth.decorators import login_required
+from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET, require_POST
@@ -289,9 +290,12 @@ def api_generate_quiz(request, video_id):
         logger.warning('Quiz generation failed for %s: %s', video_id, e)
         return JsonResponse({'error': 'AI service unavailable, please try again later'}, status=503)
 
-    from django.db import IntegrityError
     try:
-        quiz = VideoQuiz.objects.create(video=video)
+        with transaction.atomic():
+            quiz = VideoQuiz.objects.create(video=video)
+            QuizQuestion.objects.bulk_create([
+                QuizQuestion(quiz=quiz, **q) for q in question_dicts
+            ])
     except IntegrityError:
         # Another concurrent request already created the quiz; return it
         quiz = VideoQuiz.objects.get(video=video)
@@ -299,9 +303,6 @@ def api_generate_quiz(request, video_id):
             'order', 'question_text', 'choice_a', 'choice_b', 'choice_c', 'choice_d'
         ))
         return JsonResponse({'quiz_id': quiz.id, 'from_cache': True, 'questions': questions})
-    QuizQuestion.objects.bulk_create([
-        QuizQuestion(quiz=quiz, **q) for q in question_dicts
-    ])
 
     questions = list(quiz.questions.values(
         'order', 'question_text', 'choice_a', 'choice_b', 'choice_c', 'choice_d'
@@ -350,10 +351,13 @@ def api_submit_quiz(request, quiz_id):
     total = len(questions)
     score = round(correct_count / total, 4) if total else 1.0
 
+    # Store only validated answers (not raw user input)
+    sanitized_answers = {str(q.order): answers.get(str(q.order), '') for q in questions}
+
     UserQuizAttempt.objects.create(
         user=request.user,
         quiz=quiz,
-        answers=answers,
+        answers=sanitized_answers,
         score=score,
     )
 
