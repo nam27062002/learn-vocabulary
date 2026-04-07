@@ -854,3 +854,244 @@ function addWordButton(word) {
   buildSegmentList();
   updateOverallProgress();
 })();
+
+/* ── Quiz State ── */
+let quizId         = null;
+let quizQuestions  = [];
+let quizAnswers    = {};   // { questionOrder: 'a'|'b'|'c'|'d' }
+let quizCurrentIdx = 0;
+
+/* ── Quiz DOM refs ── */
+const quizModal           = document.getElementById('quizModal');
+const quizScreenLoading   = document.getElementById('quizScreenLoading');
+const quizScreenQuestions = document.getElementById('quizScreenQuestions');
+const quizScreenResults   = document.getElementById('quizScreenResults');
+const quizProgressFill    = document.getElementById('quizProgressFill');
+const quizProgressLabel   = document.getElementById('quizProgressLabel');
+const quizQuestionText    = document.getElementById('quizQuestionText');
+const quizBtnPrev         = document.getElementById('quizBtnPrev');
+const quizBtnNext         = document.getElementById('quizBtnNext');
+const quizBtnSubmit       = document.getElementById('quizBtnSubmit');
+const quizScoreCircle     = document.getElementById('quizScoreCircle');
+const quizScoreText       = document.getElementById('quizScoreText');
+const quizScoreLabel      = document.getElementById('quizScoreLabel');
+const quizResultsList     = document.getElementById('quizResultsList');
+
+const CHOICE_IDS = { a: 'choiceA', b: 'choiceB', c: 'choiceC', d: 'choiceD' };
+
+function quizShowScreen(name) {
+  quizScreenLoading.classList.toggle('hidden',   name !== 'loading');
+  quizScreenQuestions.classList.toggle('hidden', name !== 'questions');
+  quizScreenResults.classList.toggle('hidden',   name !== 'results');
+}
+
+function quizOpenModal() {
+  quizModal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  if (quizId && quizQuestions.length) {
+    quizShowScreen('questions');
+    quizRenderQuestion(quizCurrentIdx);
+  } else {
+    quizShowScreen('loading');
+    quizFetchQuestions();
+  }
+}
+
+function quizCloseModal() {
+  quizModal.classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+async function quizFetchQuestions() {
+  try {
+    const resp = await fetch(D.quizGenerateUrl, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': D.csrfToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      alert(err.error || 'Failed to generate quiz. Please try again.');
+      quizCloseModal();
+      return;
+    }
+    const data = await resp.json();
+    quizId = data.quiz_id;
+    quizQuestions = data.questions;
+    quizAnswers = {};
+    quizCurrentIdx = 0;
+    quizShowScreen('questions');
+    quizRenderQuestion(0);
+  } catch (e) {
+    alert('Could not connect to the quiz service.');
+    quizCloseModal();
+  }
+}
+
+function quizRenderQuestion(idx) {
+  const q = quizQuestions[idx];
+  const total = quizQuestions.length;
+
+  // Progress
+  const pct = Math.round(((idx + 1) / total) * 100);
+  quizProgressFill.style.width = pct + '%';
+  quizProgressLabel.textContent = `Question ${idx + 1} / ${total}`;
+
+  // Question text
+  quizQuestionText.textContent = q.question_text;
+
+  // Choices
+  const choiceMap = { a: q.choice_a, b: q.choice_b, c: q.choice_c, d: q.choice_d };
+  for (const [letter, elId] of Object.entries(CHOICE_IDS)) {
+    const el = document.getElementById(elId);
+    el.querySelector('.quiz-choice-text').textContent = choiceMap[letter];
+    el.classList.remove('selected');
+    el.querySelector('input').checked = false;
+  }
+
+  // Restore saved answer
+  const saved = quizAnswers[q.order];
+  if (saved) {
+    const el = document.getElementById(CHOICE_IDS[saved]);
+    if (el) {
+      el.classList.add('selected');
+      el.querySelector('input').checked = true;
+    }
+  }
+
+  // Nav buttons
+  quizBtnPrev.disabled = idx === 0;
+  const isLast = idx === total - 1;
+  quizBtnNext.classList.toggle('hidden', isLast);
+  quizBtnSubmit.classList.toggle('hidden', !isLast);
+}
+
+function quizGetSelectedAnswer() {
+  for (const [letter, elId] of Object.entries(CHOICE_IDS)) {
+    if (document.getElementById(elId).querySelector('input').checked) {
+      return letter;
+    }
+  }
+  return null;
+}
+
+function quizSaveCurrentAnswer() {
+  const q = quizQuestions[quizCurrentIdx];
+  const ans = quizGetSelectedAnswer();
+  if (ans) quizAnswers[q.order] = ans;
+}
+
+async function quizSubmit() {
+  quizSaveCurrentAnswer();
+  const unanswered = quizQuestions.filter(q => !quizAnswers[q.order]);
+  if (unanswered.length) {
+    const ok = confirm(`You have ${unanswered.length} unanswered question(s). Submit anyway?`);
+    if (!ok) return;
+  }
+  try {
+    const resp = await fetch(`${D.quizSubmitUrl}${quizId}/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': D.csrfToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers: quizAnswers }),
+    });
+    const data = await resp.json();
+    quizShowResults(data);
+  } catch (e) {
+    alert('Failed to submit quiz.');
+  }
+}
+
+function quizShowResults(data) {
+  quizShowScreen('results');
+
+  // Score circle
+  const pct = Math.round(data.score * 100);
+  quizScoreText.textContent = pct + '%';
+  quizScoreCircle.className = 'quiz-score-circle ' +
+    (pct >= 70 ? 'score-high' : pct >= 40 ? 'score-mid' : 'score-low');
+  quizScoreLabel.textContent = `${data.correct_count} / ${data.total} correct`;
+
+  // Results list
+  quizResultsList.innerHTML = '';
+  for (const r of data.results) {
+    const q = quizQuestions[r.order - 1];
+    const item = document.createElement('div');
+    item.className = 'quiz-result-item ' + (r.correct ? 'correct' : 'wrong');
+    const choiceMap = { a: q.choice_a, b: q.choice_b, c: q.choice_c, d: q.choice_d };
+    const correctText = choiceMap[r.correct_choice];
+    const userText = r.user_choice ? choiceMap[r.user_choice] : '(no answer)';
+    item.innerHTML = `
+      <div class="quiz-result-icon">${r.correct ? '✓' : '✗'}</div>
+      <div class="quiz-result-detail">
+        <div class="quiz-result-q">Q${r.order}. ${q.question_text}</div>
+        <div class="quiz-result-ans">
+          ${r.correct
+            ? `<strong>${r.correct_choice.toUpperCase()}. ${correctText}</strong>`
+            : `Your answer: ${r.user_choice ? r.user_choice.toUpperCase() + '. ' + userText : '(none)'}
+               &nbsp;·&nbsp; Correct: <strong>${r.correct_choice.toUpperCase()}. ${correctText}</strong>`
+          }
+        </div>
+      </div>`;
+    quizResultsList.appendChild(item);
+  }
+}
+
+/* ── Quiz Event Listeners ── */
+document.getElementById('btnOpenQuiz').addEventListener('click', quizOpenModal);
+document.getElementById('quizModalClose').addEventListener('click', quizCloseModal);
+document.getElementById('quizBtnCloseResults').addEventListener('click', quizCloseModal);
+
+document.getElementById('quizBtnRetake').addEventListener('click', () => {
+  quizAnswers = {};
+  quizCurrentIdx = 0;
+  quizShowScreen('questions');
+  quizRenderQuestion(0);
+});
+
+quizBtnPrev.addEventListener('click', () => {
+  quizSaveCurrentAnswer();
+  quizCurrentIdx--;
+  quizRenderQuestion(quizCurrentIdx);
+});
+
+quizBtnNext.addEventListener('click', () => {
+  quizSaveCurrentAnswer();
+  quizCurrentIdx++;
+  quizRenderQuestion(quizCurrentIdx);
+});
+
+quizBtnSubmit.addEventListener('click', quizSubmit);
+
+// Choice click handlers
+for (const [letter, elId] of Object.entries(CHOICE_IDS)) {
+  document.getElementById(elId).addEventListener('click', () => {
+    document.querySelectorAll('.quiz-choice').forEach(el => el.classList.remove('selected'));
+    const el = document.getElementById(elId);
+    el.classList.add('selected');
+    el.querySelector('input').checked = true;
+  });
+}
+
+// Keyboard shortcuts: A/B/C/D to select, ArrowRight/Enter to next
+document.addEventListener('keydown', (e) => {
+  if (quizModal.classList.contains('hidden')) return;
+  if (quizScreenQuestions.classList.contains('hidden')) return;
+  const key = e.key.toLowerCase();
+  if (['a', 'b', 'c', 'd'].includes(key)) {
+    e.preventDefault();
+    document.getElementById(CHOICE_IDS[key]).click();
+  } else if ((e.key === 'ArrowRight' || e.key === 'Enter') && !quizBtnNext.classList.contains('hidden')) {
+    e.preventDefault();
+    quizBtnNext.click();
+  } else if (e.key === 'ArrowLeft' && !quizBtnPrev.disabled) {
+    e.preventDefault();
+    quizBtnPrev.click();
+  } else if (e.key === 'Escape') {
+    quizCloseModal();
+  }
+});
+
+// Close on overlay click
+quizModal.addEventListener('click', (e) => {
+  if (e.target === quizModal) quizCloseModal();
+});
