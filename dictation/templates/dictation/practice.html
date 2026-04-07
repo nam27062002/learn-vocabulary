@@ -47,6 +47,17 @@
     <!-- ── RIGHT: practice panel ── -->
     <main class="dictation-panel">
 
+      <!-- ── Quiz button ── -->
+      <div class="flex justify-end mb-3">
+        <button id="btnOpenQuiz" class="btn-quiz-open" title="Comprehension Quiz">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+          </svg>
+          Comprehension Quiz
+        </button>
+      </div>
+
       <!-- ── Player section ── -->
       <div class="player-section" id="playerSection">
 
@@ -311,6 +322,87 @@
   </div>
 </div>
 
+<!-- ── Comprehension Quiz Modal ── -->
+<div id="quizModal" class="quiz-modal-overlay hidden" role="dialog" aria-modal="true">
+  <div class="quiz-modal">
+
+    <!-- Header -->
+    <div class="quiz-modal-header">
+      <h3 class="quiz-modal-title">Comprehension Quiz</h3>
+      <button id="quizModalClose" class="quiz-close-btn" aria-label="Close">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Screen 1: Loading -->
+    <div id="quizScreenLoading" class="quiz-screen">
+      <div class="quiz-loading-body">
+        <svg class="animate-spin w-8 h-8 text-indigo-500 mx-auto mb-3" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        </svg>
+        <p class="text-gray-500 text-sm">Generating comprehension questions…</p>
+        <p class="text-gray-400 text-xs mt-1">This may take up to 30 seconds</p>
+      </div>
+    </div>
+
+    <!-- Screen 2: Questions -->
+    <div id="quizScreenQuestions" class="quiz-screen hidden">
+      <div class="quiz-progress-bar-track">
+        <div class="quiz-progress-bar-fill" id="quizProgressFill"></div>
+      </div>
+      <p class="quiz-progress-label" id="quizProgressLabel">Question 1 / 10</p>
+      <p class="quiz-question-text" id="quizQuestionText"></p>
+      <div class="quiz-choices" id="quizChoices">
+        <label class="quiz-choice" id="choiceA">
+          <input type="radio" name="quizAnswer" value="a">
+          <span class="quiz-choice-key">A</span>
+          <span class="quiz-choice-text" id="choiceAText"></span>
+        </label>
+        <label class="quiz-choice" id="choiceB">
+          <input type="radio" name="quizAnswer" value="b">
+          <span class="quiz-choice-key">B</span>
+          <span class="quiz-choice-text" id="choiceBText"></span>
+        </label>
+        <label class="quiz-choice" id="choiceC">
+          <input type="radio" name="quizAnswer" value="c">
+          <span class="quiz-choice-key">C</span>
+          <span class="quiz-choice-text" id="choiceCText"></span>
+        </label>
+        <label class="quiz-choice" id="choiceD">
+          <input type="radio" name="quizAnswer" value="d">
+          <span class="quiz-choice-key">D</span>
+          <span class="quiz-choice-text" id="choiceDText"></span>
+        </label>
+      </div>
+      <div class="quiz-nav">
+        <button id="quizBtnPrev" class="btn-ghost quiz-nav-btn" disabled>← Previous</button>
+        <span></span>
+        <button id="quizBtnNext" class="btn-check quiz-nav-btn">Next →</button>
+        <button id="quizBtnSubmit" class="btn-check quiz-nav-btn hidden">Submit Quiz</button>
+      </div>
+    </div>
+
+    <!-- Screen 3: Results -->
+    <div id="quizScreenResults" class="quiz-screen hidden">
+      <div class="quiz-score-display">
+        <div class="quiz-score-circle" id="quizScoreCircle">
+          <span id="quizScoreText"></span>
+        </div>
+        <p class="quiz-score-label" id="quizScoreLabel"></p>
+      </div>
+      <div class="quiz-results-list" id="quizResultsList"></div>
+      <div class="quiz-results-actions">
+        <button id="quizBtnRetake" class="btn-secondary">Retake Quiz</button>
+        <button id="quizBtnCloseResults" class="btn-ghost">Close</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <script>
 window.DICTATION_DATA = {
   videoId: "{{ video.video_id }}",
@@ -323,6 +415,8 @@ window.DICTATION_DATA = {
   decksUrl: "/api/decks/",
   saveFlashcardUrl: "/api/save-flashcards/",
   checkWordUrl: "/api/check-word-exists/",
+  quizGenerateUrl: "/api/dictation/quiz/generate/{{ video.video_id }}/",
+  quizSubmitUrl: "/api/dictation/quiz/submit/",
 };
 </script>
 {% endblock %}
