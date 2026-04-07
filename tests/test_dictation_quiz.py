@@ -94,24 +94,17 @@ class GenerateQuizViewTest(TestCase):
         resp = self.client.post(f'/api/dictation/quiz/generate/{self.video.video_id}/')
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
-        self.assertFalse(data['from_cache'])
         self.assertEqual(len(data['questions']), 10)
         self.assertNotIn('correct_choice', data['questions'][0])
         self.assertTrue(VideoQuiz.objects.filter(video=self.video).exists())
 
     @patch('dictation.views.generate_quiz_questions')
-    def test_second_call_returns_from_cache(self, mock_gen):
+    def test_second_call_always_generates_fresh_questions(self, mock_gen):
         mock_gen.return_value = self._make_fake_questions()
         self.client.post(f'/api/dictation/quiz/generate/{self.video.video_id}/')
         self.client.post(f'/api/dictation/quiz/generate/{self.video.video_id}/')
-        self.assertEqual(mock_gen.call_count, 1)
-
-    @patch('dictation.views.generate_quiz_questions')
-    def test_generate_returns_cached_on_second_request(self, mock_gen):
-        mock_gen.return_value = self._make_fake_questions()
-        self.client.post(f'/api/dictation/quiz/generate/{self.video.video_id}/')
-        r2 = self.client.post(f'/api/dictation/quiz/generate/{self.video.video_id}/')
-        self.assertTrue(r2.json()['from_cache'])
+        self.assertEqual(mock_gen.call_count, 2)
+        self.assertEqual(VideoQuiz.objects.filter(video=self.video).count(), 2)
 
     @patch('dictation.views.generate_quiz_questions', side_effect=RuntimeError('LM Studio unavailable'))
     def test_generate_returns_503_on_lm_failure(self, mock_gen):

@@ -93,10 +93,10 @@ class DictationAttempt(models.Model):
 
 
 class VideoQuiz(models.Model):
-    video = models.OneToOneField(
+    video = models.ForeignKey(
         DictationVideo,
         on_delete=models.CASCADE,
-        related_name='quiz',
+        related_name='quizzes',
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

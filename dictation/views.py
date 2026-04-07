@@ -2,7 +2,7 @@ import json
 import logging
 
 from django.contrib.auth.decorators import login_required
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET, require_POST
@@ -264,21 +264,13 @@ def api_get_progress(request, video_id):
 
 
 # ---------------------------------------------------------------------------
-# API: Generate or fetch cached comprehension quiz
+# API: Generate a fresh comprehension quiz (always generates new questions)
 # ---------------------------------------------------------------------------
 
 @login_required
 @require_POST
 def api_generate_quiz(request, video_id):
     video = get_object_or_404(DictationVideo, video_id=video_id, is_processed=True)
-
-    # Return cached quiz if exists
-    existing = VideoQuiz.objects.filter(video=video).first()
-    if existing:
-        questions = list(existing.questions.values(
-            'order', 'question_text', 'choice_a', 'choice_b', 'choice_c', 'choice_d'
-        ))
-        return JsonResponse({'quiz_id': existing.id, 'from_cache': True, 'questions': questions})
 
     # Build full transcript from all segments
     transcripts = video.segments.order_by('order').values_list('transcript', flat=True)
@@ -290,24 +282,16 @@ def api_generate_quiz(request, video_id):
         logger.warning('Quiz generation failed for %s: %s', video_id, e)
         return JsonResponse({'error': 'AI service unavailable, please try again later'}, status=503)
 
-    try:
-        with transaction.atomic():
-            quiz = VideoQuiz.objects.create(video=video)
-            QuizQuestion.objects.bulk_create([
-                QuizQuestion(quiz=quiz, **q) for q in question_dicts
-            ])
-    except IntegrityError:
-        # Another concurrent request already created the quiz; return it
-        quiz = VideoQuiz.objects.get(video=video)
-        questions = list(quiz.questions.values(
-            'order', 'question_text', 'choice_a', 'choice_b', 'choice_c', 'choice_d'
-        ))
-        return JsonResponse({'quiz_id': quiz.id, 'from_cache': True, 'questions': questions})
+    with transaction.atomic():
+        quiz = VideoQuiz.objects.create(video=video)
+        QuizQuestion.objects.bulk_create([
+            QuizQuestion(quiz=quiz, **q) for q in question_dicts
+        ])
 
     questions = list(quiz.questions.values(
         'order', 'question_text', 'choice_a', 'choice_b', 'choice_c', 'choice_d'
     ))
-    return JsonResponse({'quiz_id': quiz.id, 'from_cache': False, 'questions': questions})
+    return JsonResponse({'quiz_id': quiz.id, 'questions': questions})
 
 
 # ---------------------------------------------------------------------------

@@ -888,13 +888,10 @@ function quizShowScreen(name) {
 function quizOpenModal() {
   quizModal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
-  if (quizId && quizQuestions.length) {
-    quizShowScreen('questions');
-    quizRenderQuestion(quizCurrentIdx);
-  } else {
-    quizShowScreen('loading');
-    quizFetchQuestions();
-  }
+  quizAnswers = {};
+  quizCurrentIdx = 0;
+  quizShowScreen('loading');
+  quizFetchQuestions();
 }
 
 function quizCloseModal() {
