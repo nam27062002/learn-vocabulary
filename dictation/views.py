@@ -7,7 +7,8 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET, require_POST
 
 from .checker import compare
-from .models import DictationAttempt, DictationSegment, DictationVideo
+from .models import DictationAttempt, DictationSegment, DictationVideo, VideoQuiz, QuizQuestion, UserQuizAttempt
+from .quiz_service import generate_quiz_questions
 from .youtube_service import build_segments, extract_video_id, fetch_subtitles
 
 logger = logging.getLogger(__name__)
@@ -259,3 +260,92 @@ def api_get_progress(request, video_id):
             }
 
     return JsonResponse({'progress': progress})
+
+
+# ---------------------------------------------------------------------------
+# API: Generate or fetch cached comprehension quiz
+# ---------------------------------------------------------------------------
+
+@login_required
+@require_POST
+def api_generate_quiz(request, video_id):
+    video = get_object_or_404(DictationVideo, video_id=video_id, is_processed=True)
+
+    # Return cached quiz if exists
+    existing = VideoQuiz.objects.filter(video=video).first()
+    if existing:
+        questions = list(existing.questions.values(
+            'order', 'question_text', 'choice_a', 'choice_b', 'choice_c', 'choice_d'
+        ))
+        return JsonResponse({'quiz_id': existing.id, 'from_cache': True, 'questions': questions})
+
+    # Build full transcript from all segments
+    transcripts = video.segments.order_by('order').values_list('transcript', flat=True)
+    full_transcript = ' '.join(transcripts)
+
+    try:
+        question_dicts = generate_quiz_questions(full_transcript)
+    except Exception as e:
+        logger.warning('Quiz generation failed for %s: %s', video_id, e)
+        return JsonResponse({'error': 'AI service unavailable, please try again later'}, status=503)
+
+    quiz = VideoQuiz.objects.create(video=video)
+    QuizQuestion.objects.bulk_create([
+        QuizQuestion(quiz=quiz, **q) for q in question_dicts
+    ])
+
+    questions = list(quiz.questions.values(
+        'order', 'question_text', 'choice_a', 'choice_b', 'choice_c', 'choice_d'
+    ))
+    return JsonResponse({'quiz_id': quiz.id, 'from_cache': False, 'questions': questions})
+
+
+# ---------------------------------------------------------------------------
+# API: Submit quiz answers and return score
+# ---------------------------------------------------------------------------
+
+@login_required
+@require_POST
+def api_submit_quiz(request, quiz_id):
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    answers = data.get('answers')  # {"1": "b", "2": "a", ...}
+    if not isinstance(answers, dict):
+        return JsonResponse({'error': 'answers must be an object'}, status=400)
+
+    quiz = get_object_or_404(VideoQuiz, id=quiz_id)
+    questions = list(quiz.questions.order_by('order'))
+
+    correct_count = 0
+    results = []
+    for q in questions:
+        user_choice = answers.get(str(q.order), '').lower().strip()
+        is_correct = user_choice == q.correct_choice
+        if is_correct:
+            correct_count += 1
+        results.append({
+            'order': q.order,
+            'correct_choice': q.correct_choice,
+            'user_choice': user_choice or None,
+            'correct': is_correct,
+        })
+
+    total = len(questions)
+    score = round(correct_count / total, 4) if total else 1.0
+
+    UserQuizAttempt.objects.create(
+        user=request.user,
+        quiz=quiz,
+        answers=answers,
+        score=score,
+    )
+
+    return JsonResponse({
+        'score': score,
+        'correct_count': correct_count,
+        'total': total,
+        'results': results,
+    })
