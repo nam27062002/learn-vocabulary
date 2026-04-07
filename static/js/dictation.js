@@ -994,6 +994,11 @@ async function quizSubmit() {
       headers: { 'X-CSRFToken': D.csrfToken, 'Content-Type': 'application/json' },
       body: JSON.stringify({ answers: quizAnswers }),
     });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      alert(err.error || 'Failed to submit quiz.');
+      return;
+    }
     const data = await resp.json();
     quizShowResults(data);
   } catch (e) {
@@ -1023,12 +1028,12 @@ function quizShowResults(data) {
     item.innerHTML = `
       <div class="quiz-result-icon">${r.correct ? '✓' : '✗'}</div>
       <div class="quiz-result-detail">
-        <div class="quiz-result-q">Q${r.order}. ${q.question_text}</div>
+        <div class="quiz-result-q">Q${r.order}. ${escHtml(q.question_text)}</div>
         <div class="quiz-result-ans">
           ${r.correct
-            ? `<strong>${r.correct_choice.toUpperCase()}. ${correctText}</strong>`
-            : `Your answer: ${r.user_choice ? r.user_choice.toUpperCase() + '. ' + userText : '(none)'}
-               &nbsp;·&nbsp; Correct: <strong>${r.correct_choice.toUpperCase()}. ${correctText}</strong>`
+            ? `<strong>${r.correct_choice.toUpperCase()}. ${escHtml(correctText)}</strong>`
+            : `Your answer: ${r.user_choice ? r.user_choice.toUpperCase() + '. ' + escHtml(userText) : '(none)'}
+               &nbsp;·&nbsp; Correct: <strong>${r.correct_choice.toUpperCase()}. ${escHtml(correctText)}</strong>`
           }
         </div>
       </div>`;
@@ -1080,9 +1085,15 @@ document.addEventListener('keydown', (e) => {
   if (['a', 'b', 'c', 'd'].includes(key)) {
     e.preventDefault();
     document.getElementById(CHOICE_IDS[key]).click();
-  } else if ((e.key === 'ArrowRight' || e.key === 'Enter') && !quizBtnNext.classList.contains('hidden')) {
+  } else if (e.key === 'ArrowRight' && !quizBtnNext.classList.contains('hidden')) {
     e.preventDefault();
     quizBtnNext.click();
+  } else if (e.key === 'Enter' && !quizBtnNext.classList.contains('hidden')) {
+    e.preventDefault();
+    quizBtnNext.click();
+  } else if (e.key === 'Enter' && !quizBtnSubmit.classList.contains('hidden')) {
+    e.preventDefault();
+    quizBtnSubmit.click();
   } else if (e.key === 'ArrowLeft' && !quizBtnPrev.disabled) {
     e.preventDefault();
     quizBtnPrev.click();
