@@ -90,3 +90,55 @@ class DictationAttempt(models.Model):
 
     def __str__(self):
         return f'{self.user} – Seg {self.segment_id} – {self.score:.0%}'
+
+
+class VideoQuiz(models.Model):
+    video = models.OneToOneField(
+        DictationVideo,
+        on_delete=models.CASCADE,
+        related_name='quiz',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'Quiz for {self.video.title}'
+
+
+class QuizQuestion(models.Model):
+    CHOICE_VALUES = [('a', 'A'), ('b', 'B'), ('c', 'C'), ('d', 'D')]
+
+    quiz = models.ForeignKey(VideoQuiz, on_delete=models.CASCADE, related_name='questions')
+    order = models.IntegerField()
+    question_text = models.TextField()
+    choice_a = models.CharField(max_length=500)
+    choice_b = models.CharField(max_length=500)
+    choice_c = models.CharField(max_length=500)
+    choice_d = models.CharField(max_length=500)
+    correct_choice = models.CharField(max_length=1, choices=CHOICE_VALUES)
+
+    class Meta:
+        ordering = ['order']
+        unique_together = ['quiz', 'order']
+
+    def __str__(self):
+        return f'Q{self.order}: {self.question_text[:60]}'
+
+
+class UserQuizAttempt(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='quiz_attempts',
+    )
+    quiz = models.ForeignKey(VideoQuiz, on_delete=models.CASCADE, related_name='attempts')
+    answers = models.JSONField()   # {"1": "b", "2": "a", ...}  key = str(question.order)
+    score = models.FloatField()    # 0.0 – 1.0
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', 'quiz']),
+        ]
+
+    def __str__(self):
+        return f'{self.user} – Quiz {self.quiz_id} – {self.score:.0%}'
