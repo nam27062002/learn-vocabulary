@@ -289,7 +289,16 @@ def api_generate_quiz(request, video_id):
         logger.warning('Quiz generation failed for %s: %s', video_id, e)
         return JsonResponse({'error': 'AI service unavailable, please try again later'}, status=503)
 
-    quiz = VideoQuiz.objects.create(video=video)
+    from django.db import IntegrityError
+    try:
+        quiz = VideoQuiz.objects.create(video=video)
+    except IntegrityError:
+        # Another concurrent request already created the quiz; return it
+        quiz = VideoQuiz.objects.get(video=video)
+        questions = list(quiz.questions.values(
+            'order', 'question_text', 'choice_a', 'choice_b', 'choice_c', 'choice_d'
+        ))
+        return JsonResponse({'quiz_id': quiz.id, 'from_cache': True, 'questions': questions})
     QuizQuestion.objects.bulk_create([
         QuizQuestion(quiz=quiz, **q) for q in question_dicts
     ])
@@ -315,14 +324,19 @@ def api_submit_quiz(request, quiz_id):
     answers = data.get('answers')  # {"1": "b", "2": "a", ...}
     if not isinstance(answers, dict):
         return JsonResponse({'error': 'answers must be an object'}, status=400)
+    if len(answers) > 20:
+        return JsonResponse({'error': 'Too many answers'}, status=400)
 
     quiz = get_object_or_404(VideoQuiz, id=quiz_id)
     questions = list(quiz.questions.order_by('order'))
 
+    _VALID_CHOICES = {'a', 'b', 'c', 'd', ''}
     correct_count = 0
     results = []
     for q in questions:
         user_choice = answers.get(str(q.order), '').lower().strip()
+        if user_choice not in _VALID_CHOICES:
+            return JsonResponse({'error': f'Invalid choice "{user_choice}" for question {q.order}'}, status=400)
         is_correct = user_choice == q.correct_choice
         if is_correct:
             correct_count += 1
