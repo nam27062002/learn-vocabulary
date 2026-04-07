@@ -111,10 +111,10 @@ def _parse_questions(content: str) -> list[dict]:
             questions.append({
                 'order': int(item['order']),
                 'question_text': str(item['question']),
-                'choice_a': str(item['a']),
-                'choice_b': str(item['b']),
-                'choice_c': str(item['c']),
-                'choice_d': str(item['d']),
+                'choice_a': str(item['a'])[:500],
+                'choice_b': str(item['b'])[:500],
+                'choice_c': str(item['c'])[:500],
+                'choice_d': str(item['d'])[:500],
                 'correct_choice': correct,
             })
         except (KeyError, TypeError, ValueError):
