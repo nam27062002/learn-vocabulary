@@ -62,7 +62,7 @@ def main():
                     message = (
                         f"🌐 <b>Learn Vocabulary Server</b>\n\n"
                         f"Tunnel is ready!\n"
-                        f"<code>{tunnel_url}</code>"
+                        f"<a href=\"{tunnel_url}\">{tunnel_url}</a>"
                     )
                     if send_telegram(message):
                         print("[Telegram] URL sent successfully!")
