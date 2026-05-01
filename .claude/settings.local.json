@@ -5,7 +5,26 @@
       "Read(*)",
       "Write(*)",
       "Edit(*)",
-      "WebSearch"
+      "WebSearch",
+      "mcp__plugin_oh-my-claudecode_t__lsp_diagnostics",
+      "mcp__plugin_oh-my-claudecode_t__ast_grep_search",
+      "PowerShell(cloudflared *)",
+      "PowerShell(winget install *)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(& \"C:\\\\Program Files \\(x86\\)\\\\cloudflared\\\\cloudflared.exe\" --version)",
+      "PowerShell(Start-Process cmd -ArgumentList '/c', 'cd /d \"D:\\\\My Projects\\\\Web\\\\learn-vocabulary\" && call .venv\\\\Scripts\\\\activate.bat && python manage.py runserver 8000' -WindowStyle Normal)",
+      "PowerShell(Start-Process -FilePath \"C:\\\\Program Files \\(x86\\)\\\\cloudflared\\\\cloudflared.exe\" -ArgumentList \"tunnel\",\"--url\",\"http://localhost:8000\" -RedirectStandardError \"$env:TEMP\\\\cloudflared_output.txt\" -NoNewWindow -PassThru | Select-Object Id)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(try { $response = Invoke-WebRequest -Uri \"http://localhost:8000\" -UseBasicParsing -TimeoutSec 5; $response.StatusCode } catch { $_.Exception.Message })",
+      "PowerShell(Start-Process cmd -ArgumentList '/k', 'cd /d \"D:\\\\My Projects\\\\Web\\\\learn-vocabulary\" && call .venv\\\\Scripts\\\\activate.bat && python manage.py runserver 8000' -WindowStyle Normal)",
+      "PowerShell(Start-Sleep -Seconds 5; try { $response = Invoke-WebRequest -Uri \"http://localhost:8000\" -UseBasicParsing -TimeoutSec 5 -MaximumRedirection 0; $response.StatusCode } catch { if \\($_.Exception.Response\\) { [int]$_.Exception.Response.StatusCode } else { $_.Exception.Message } })",
+      "PowerShell(python -c \"import django; print\\(django.get_version\\(\\)\\)\" 2>&1)",
+      "PowerShell(Start-Process python -ArgumentList \"manage.py\",\"runserver\",\"8000\" -WorkingDirectory \"D:\\\\My Projects\\\\Web\\\\learn-vocabulary\" -NoNewWindow -PassThru | Select-Object Id)",
+      "PowerShell(Start-Sleep -Seconds 3; try { $r = Invoke-WebRequest -Uri \"http://localhost:8000\" -UseBasicParsing -TimeoutSec 5 -MaximumRedirection 0; $r.StatusCode } catch { if \\($_.Exception.Response\\) { [int]$_.Exception.Response.StatusCode } else { $_.Exception.Message } })",
+      "PowerShell(Join-Path *)",
+      "PowerShell(& \"D:\\\\My Projects\\\\Web\\\\learn-vocabulary\\\\.venv\\\\Scripts\\\\python.exe\" -c \"import urllib.request, urllib.parse; data = urllib.parse.urlencode\\({'chat_id': '5255113327', 'text': '\\\\U0001f310 Learn Vocabulary Server\\\\n\\\\nTunnel is ready!\\\\nhttps://test-example.trycloudflare.com', 'parse_mode': 'HTML'}\\).encode\\(\\); req = urllib.request.Request\\('https://api.telegram.org/bot8722014885:AAGZK1kFeDUdOZ5U60zo2qhUrx-m-5CCxm8/sendMessage', data=data\\); resp = urllib.request.urlopen\\(req, timeout=10\\); print\\(resp.read\\(\\).decode\\(\\)\\)\")",
+      "PowerShell(Get-Command *)",
+      "PowerShell(py *)"
     ]
   },
   "enabledPlugins": {

@@ -25,6 +25,7 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ENABLE_DEBUG = config('ENABLE_DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS += ['.trycloudflare.com']
 
 # Application definition
 
@@ -134,6 +135,10 @@ SESSION_SAVE_EVERY_REQUEST = True
 CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = False
 CSRF_USE_SESSIONS = False
+
+# Cloudflare Tunnel support
+CSRF_TRUSTED_ORIGINS = ['https://*.trycloudflare.com']
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
