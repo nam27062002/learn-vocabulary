@@ -229,6 +229,11 @@ LLM_MODEL = config('MODEL', default='claude-haiku-4-5-20251001')
 LLM_API_KEY = config('ANTHROPIC_AUTH_TOKEN', default='')
 LLM_TIMEOUT = config('LLM_TIMEOUT', default=120, cast=int)
 
+# Image generation configuration
+LLM_IMAGE_URL = _LLM_BASE_URL.rstrip('/') + '/v1/images/generations'
+LLM_IMAGE_MODEL = config('IMAGE_MODEL', default='gpt-image-1')
+LLM_IMAGE_TIMEOUT = config('LLM_IMAGE_TIMEOUT', default=60, cast=int)
+
 # Cache timeouts for different data types (in seconds)
 CACHE_TIMEOUTS = {
     'flashcard_list': 60 * 10,  # 10 minutes
@@ -238,6 +243,7 @@ CACHE_TIMEOUTS = {
     'api_response': 60 * 2,  # 2 minutes
     'incorrect_words': 60 * 5,  # 5 minutes
     'favorites': 60 * 10,  # 10 minutes
+    'generated_image': 60 * 60 * 24 * 7,  # 7 days
 }
 
 # Session storage using database

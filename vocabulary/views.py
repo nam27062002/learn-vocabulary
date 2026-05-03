@@ -2567,6 +2567,24 @@ def api_vstep_suggestions(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+@login_required
+def api_generate_word_image(request):
+    """Generate an illustrative image for a vocabulary word using AI."""
+    word = request.GET.get('word', '').strip()
+    definition = request.GET.get('definition', '').strip()
+
+    if not word:
+        return JsonResponse({'success': False, 'error': 'No word provided'}, status=400)
+
+    from .image_service import generate_word_image
+    b64_data = generate_word_image(word, definition)
+
+    if b64_data:
+        return JsonResponse({'success': True, 'image_b64': b64_data})
+    else:
+        return JsonResponse({'success': False, 'error': 'Image generation failed'}, status=500)
+
+
 def debug_study_template(request):
     """Debug view to check study template rendering without authentication."""
     context = {

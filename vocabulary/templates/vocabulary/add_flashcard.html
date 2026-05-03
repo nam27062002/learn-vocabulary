@@ -385,6 +385,31 @@
       display: none;
     }
 
+    .image-upload.generating {
+      position: relative;
+      pointer-events: none;
+    }
+    .image-upload.generating::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 30px;
+      height: 30px;
+      margin: -15px 0 0 -15px;
+      border: 3px solid rgba(106, 108, 255, 0.3);
+      border-top: 3px solid #6a6cff;
+      border-radius: 50%;
+      animation: imgSpin 1s linear infinite;
+      z-index: 10;
+    }
+    .image-upload.generating .image-upload-content {
+      opacity: 0.3;
+    }
+    @keyframes imgSpin {
+      to { transform: rotate(360deg); }
+    }
+
     .suggestions-list {
       position: absolute;
       top: 100%;
@@ -884,7 +909,8 @@
        data-suggest-words-url="{% url 'suggest_words' %}"
        data-word-details-url="{% url 'get_word_details_api' %}"
        data-translate-url="{% url 'translate_to_vietnamese' %}"
-       data-check-word-exists-url="{% url 'check_word_exists' %}">
+       data-check-word-exists-url="{% url 'check_word_exists' %}"
+       data-generate-image-url="{% url 'api_generate_word_image' %}">
     <div class="flashcard-section" data-card-index="1">
       <div class="flashcard-header">
         <span class="card-number">1</span>
@@ -1046,6 +1072,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const wordDetailsUrl = flashcardContainer.dataset.wordDetailsUrl;
     const translateUrl = flashcardContainer.dataset.translateUrl;
     const checkWordExistsUrl = flashcardContainer.dataset.checkWordExistsUrl;
+    const generateImageUrl = flashcardContainer.dataset.generateImageUrl;
     
     const addCardBtn = document.getElementById('add-card-btn');
     const saveAllBtn = document.getElementById('save-all-btn');
@@ -1243,6 +1270,82 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // =============================================
+    // IMAGE GENERATION
+    // =============================================
+
+    let imageGenCache = {};
+    let imageGenRunning = 0;
+    const IMAGE_GEN_MAX_CONCURRENT = 3;
+    const imageGenQueue = [];
+
+    function processImageGenQueue() {
+        while (imageGenRunning < IMAGE_GEN_MAX_CONCURRENT && imageGenQueue.length > 0) {
+            const { word, definition, card, resolve } = imageGenQueue.shift();
+            imageGenRunning++;
+            _doGenerateImage(word, definition, card)
+                .then(resolve)
+                .finally(() => {
+                    imageGenRunning--;
+                    processImageGenQueue();
+                });
+        }
+    }
+
+    function generateImageForCard(word, definition, card) {
+        if (!word || !generateImageUrl) return Promise.resolve();
+        const lowerWord = word.toLowerCase();
+
+        if (imageGenCache[lowerWord]) {
+            setCardImageFromBase64(card, imageGenCache[lowerWord]);
+            return Promise.resolve();
+        }
+
+        return new Promise(resolve => {
+            imageGenQueue.push({ word, definition, card, resolve });
+            processImageGenQueue();
+        });
+    }
+
+    async function _doGenerateImage(word, definition, card) {
+        const imageUpload = card.querySelector('.image-upload');
+        imageUpload.classList.add('generating');
+
+        try {
+            const params = new URLSearchParams({ word, definition: definition || '' });
+            const res = await fetch(`${generateImageUrl}?${params}`);
+            if (!res.ok) throw new Error('Generation failed');
+
+            const data = await res.json();
+            if (data.success && data.image_b64) {
+                imageGenCache[word.toLowerCase()] = data.image_b64;
+                setCardImageFromBase64(card, data.image_b64);
+            }
+        } catch (err) {
+            console.error('Image generation error for', word, ':', err);
+        } finally {
+            imageUpload.classList.remove('generating');
+        }
+    }
+
+    function setCardImageFromBase64(card, b64Data) {
+        const imgPreview = card.querySelector('.preview');
+        const deleteImgBtn = card.querySelector('.delete-img-btn');
+        const termWord = card.querySelector('.term-input').value.trim() || 'image';
+
+        imgPreview.src = `data:image/png;base64,${b64Data}`;
+        imgPreview.style.display = 'block';
+        deleteImgBtn.style.display = 'flex';
+
+        const byteChars = atob(b64Data);
+        const byteArray = new Uint8Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) {
+            byteArray[i] = byteChars.charCodeAt(i);
+        }
+        const blob = new Blob([byteArray], { type: 'image/png' });
+        card._generatedImageFile = new File([blob], `ai_${termWord}_${Date.now()}.png`, { type: 'image/png' });
+    }
+
     // 3. Fetch Word Details (for correct spelling) and update UI
     function fetchWordDetailsAndCache(word, card) {
         if (!word) return Promise.resolve();
@@ -1359,9 +1462,15 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Validate card after updating UI
         validateCard(card);
+
+        // Auto-generate image (async, non-blocking)
+        const termValue = card.querySelector('.term-input').value.trim();
+        const firstDef = data.meanings?.[0]?.definitions?.[0]?.en || '';
+        generateImageForCard(termValue, firstDef, card);
     }
-    
+
     function resetCardUI(card) {
+        card._generatedImageFile = null;
         const phoneticInput = card.querySelector(".phonetic-input");
         if (phoneticInput) phoneticInput.value = "";
 
@@ -1842,11 +1951,12 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             deleteImgBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); // Prevent triggering the file input
-                fileInput.value = ''; // Clear the file input
+                e.stopPropagation();
+                fileInput.value = '';
                 imgPreview.src = '';
                 imgPreview.style.display = 'none';
                 deleteImgBtn.style.display = 'none';
+                card._generatedImageFile = null;
             });
         }
         
@@ -2044,10 +2154,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 formData.append(`flashcards-${idx}-vietnamese_definition`, card.querySelector('.vietnamese-textarea').value.trim());
                 formData.append(`flashcards-${idx}-audio_url`, card.querySelector('.auto-audio').dataset.audioUrl || '');
                 
-                // Handle image file if present
+                // Handle image file if present (user upload or AI-generated)
                 const imageInput = card.querySelector('input[type="file"]');
                 if (imageInput.files[0]) {
                     formData.append(`flashcards-${idx}-image`, imageInput.files[0]);
+                } else if (card._generatedImageFile) {
+                    formData.append(`flashcards-${idx}-image`, card._generatedImageFile);
                 }
             });
 
