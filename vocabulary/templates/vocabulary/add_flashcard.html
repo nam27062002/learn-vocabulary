@@ -1637,9 +1637,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Small delay to allow DOM to settle
                         await new Promise(resolve => setTimeout(resolve, 100));
 
-                        // Trigger the existing spell check functionality
-                        // Direct duplicate check since we removed spell checking
+                        // Direct duplicate check
                         checkDuplicates(word, termInput, suggestionsList, targetCard);
+
+                        // Auto-fetch word details (phonetic, definition, audio, Vietnamese translation)
+                        fetchWordDetailsAndCache(word, targetCard);
                     }
                 } catch (error) {
                     console.error(`Error processing word "${word}":`, error);

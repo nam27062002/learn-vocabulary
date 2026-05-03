@@ -70,18 +70,18 @@ def get_vstep_suggestions(existing_words: list[str]) -> list[str]:
     if cached is not None:
         return cached
 
-    exclusion_text = ', '.join(existing_words[:200]) if existing_words else 'none'
+    exclusion_text = ', '.join(existing_words[:500]) if existing_words else 'none'
 
     prompt = (
         'You are a VSTEP exam preparation expert. '
-        'Give me exactly 20 English vocabulary words that are most commonly tested '
+        'Give me exactly 40 English vocabulary words that are most commonly tested '
         'in VSTEP exams (levels B1 to C1).\n\n'
         'Rules:\n'
         '- Prioritize words by frequency of appearance in VSTEP exams (most common first)\n'
         '- Focus on academic and general English words used across Reading, Listening, Writing sections\n'
         '- Do NOT include any of these words the user already knows: '
         f'{exclusion_text}\n'
-        '- Return ONLY a JSON array of 20 strings, no explanation\n'
+        '- Return ONLY a JSON array of 40 strings, no explanation\n'
         '- Example: ["phenomenon", "substantial", "prevalent"]'
     )
 
@@ -91,7 +91,7 @@ def get_vstep_suggestions(existing_words: list[str]) -> list[str]:
             'model': settings.LLM_MODEL,
             'messages': [{'role': 'user', 'content': prompt}],
             'temperature': 0.7,
-            'max_tokens': 400,
+            'max_tokens': 800,
         },
         headers={'Authorization': f'Bearer {settings.LLM_API_KEY}'},
         timeout=settings.LLM_TIMEOUT,

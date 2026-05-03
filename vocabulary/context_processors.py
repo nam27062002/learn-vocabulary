@@ -348,12 +348,12 @@ def i18n_compatible_translations(request):
             'connection_error_message': 'Could not send request to server: {error}',
             'yes_replace_all': 'Yes, Replace All',
 
-            # VSTEP Vocabulary Suggestions
-            'vstep_suggestion_title': 'VSTEP Vocabulary Suggestions',
-            'vstep_suggestion_description': 'Auto-generate 20 common VSTEP exam words you haven\'t learned yet',
-            'vstep_suggest_button': 'Suggest 20 VSTEP Words',
-            'vstep_processing_text': 'Generating VSTEP suggestions...',
-            'vstep_error_message': 'Failed to generate VSTEP suggestions. Please try again.',
+            # AI Vocabulary Suggestions
+            'vstep_suggestion_title': 'AI Vocabulary Suggestions',
+            'vstep_suggestion_description': 'Auto-generate 20 new words you haven\'t learned yet, prioritized by exam frequency',
+            'vstep_suggest_button': 'Suggest 20 New Words',
+            'vstep_processing_text': 'Generating word suggestions...',
+            'vstep_error_message': 'Failed to generate suggestions. Please try again.',
             'vstep_connection_error': 'Cannot connect to AI service. Make sure it is running.',
 
             # Blacklist Management
