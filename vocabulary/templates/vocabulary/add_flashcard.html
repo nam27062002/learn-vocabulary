@@ -673,6 +673,67 @@
       100% { transform: rotate(360deg); }
     }
 
+    /* VSTEP Suggestion Section */
+    .vstep-suggestion-section {
+      background: linear-gradient(135deg, rgba(106, 108, 255, 0.08), rgba(142, 68, 173, 0.08));
+      border: 1px solid rgba(106, 108, 255, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .vstep-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .vstep-header h3 {
+      margin: 0;
+      color: var(--text-main);
+      font-size: 1.2em;
+      font-weight: 600;
+    }
+
+    .vstep-description {
+      color: var(--text-muted);
+      font-size: 0.9em;
+      margin-bottom: 15px;
+    }
+
+    .vstep-suggest-btn {
+      background: linear-gradient(135deg, #8e44ad, #6a6cff);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .vstep-suggest-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(142, 68, 173, 0.4);
+    }
+
+    .vstep-suggest-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    #vstep-processing {
+      margin-top: 10px;
+    }
+
     /* Full-screen loading overlay */
     .save-loading-overlay {
       position: fixed;
@@ -797,6 +858,25 @@
     <div id="processing-indicator" class="processing-indicator">
       <div class="spinner"></div>
       <span id="processing-text">{{ manual_texts.processing_words }}</span>
+    </div>
+  </div>
+
+  <!-- VSTEP Vocabulary Suggestions Section -->
+  <div class="vstep-suggestion-section">
+    <div class="vstep-header">
+      <span style="font-size: 1.3em;">🎓</span>
+      <h3>{{ manual_texts.vstep_suggestion_title }}</h3>
+    </div>
+    <p class="vstep-description">{{ manual_texts.vstep_suggestion_description }}</p>
+    <button id="vstep-suggest-btn" class="vstep-suggest-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+      </svg>
+      {{ manual_texts.vstep_suggest_button }}
+    </button>
+    <div id="vstep-processing" class="processing-indicator">
+      <div class="spinner"></div>
+      <span id="vstep-processing-text">{{ manual_texts.vstep_processing_text }}</span>
     </div>
   </div>
 
@@ -1806,6 +1886,74 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event listener for adding a new card
     if(addCardBtn) {
         addCardBtn.addEventListener('click', createNewCard);
+    }
+
+    // VSTEP Suggestion elements
+    const vstepSuggestBtn = document.getElementById('vstep-suggest-btn');
+    const vstepProcessing = document.getElementById('vstep-processing');
+    const vstepProcessingText = document.getElementById('vstep-processing-text');
+
+    if (vstepSuggestBtn) {
+        vstepSuggestBtn.addEventListener('click', async () => {
+            const selectedDeckId = deckSelector.value;
+            if (!selectedDeckId || selectedDeckId === 'new_deck') {
+                Notify.warning('{{ manual_texts.select_deck_before_adding }}');
+                return;
+            }
+
+            vstepSuggestBtn.disabled = true;
+            vstepProcessing.classList.add('active');
+            vstepProcessingText.textContent = '{{ manual_texts.vstep_processing_text }}';
+
+            try {
+                const response = await fetch("{% url 'api_vstep_suggestions' %}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCSRFToken(),
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || '{{ manual_texts.vstep_error_message }}');
+                }
+
+                if (!data.words || data.words.length === 0) {
+                    Notify.info('No new VSTEP words found. You may have learned them all!');
+                    return;
+                }
+
+                // Check if there are existing cards with content
+                const existingCards = flashcardContainer.querySelectorAll('.flashcard-section');
+                const hasContent = Array.from(existingCards).some(card => {
+                    const termInput = card.querySelector('.term-input');
+                    return termInput && termInput.value.trim().length > 0;
+                });
+
+                if (hasContent && existingCards.length > 0) {
+                    const confirmed = await Notify.confirm({
+                        type: 'warning',
+                        title: '{{ manual_texts.replace_existing_cards }}',
+                        html: `{{ manual_texts.replace_cards_confirmation_html }}`.replace('{count}', data.words.length),
+                        confirmText: '{{ manual_texts.yes_replace_all }}',
+                        cancelText: '{{ manual_texts.cancel }}',
+                    });
+                    if (!confirmed) return;
+                }
+
+                await generateCardsFromWords(data.words);
+                Notify.success(`Generated ${data.words.length} VSTEP vocabulary cards!`);
+
+            } catch (error) {
+                console.error('VSTEP suggestion error:', error);
+                Notify.error(error.message || '{{ manual_texts.vstep_error_message }}');
+            } finally {
+                vstepSuggestBtn.disabled = false;
+                vstepProcessing.classList.remove('active');
+            }
+        });
     }
 
     // Event listeners for Quick Add functionality
