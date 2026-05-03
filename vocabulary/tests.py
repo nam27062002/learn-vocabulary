@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.http import JsonResponse
 from .models import Flashcard, Deck
 import json
+from unittest.mock import patch, MagicMock
 
 User = get_user_model()
 
@@ -342,3 +343,44 @@ class FlashcardUpdateTestCase(TestCase):
 
         # Should return 302 (redirect) or 404 because the URL doesn't exist without language prefix
         self.assertIn(response.status_code, [302, 404])
+
+
+class VSTEPSuggestionsServiceTest(TestCase):
+    @patch('vocabulary.ai_service.requests.post')
+    def test_get_vstep_suggestions_returns_words(self, mock_post):
+        """Test that get_vstep_suggestions returns a list of words from LLM."""
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            'choices': [{'message': {'content': '["phenomenon", "substantial", "prevalent"]'}}]
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        from vocabulary.ai_service import get_vstep_suggestions
+        result = get_vstep_suggestions(['hello', 'world'])
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 3)
+        self.assertIn('phenomenon', result)
+
+    @patch('vocabulary.ai_service.requests.post')
+    def test_get_vstep_suggestions_filters_existing_words(self, mock_post):
+        """Test that words already in existing_words are filtered out."""
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            'choices': [{'message': {'content': '["hello", "phenomenon", "world"]'}}]
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        from vocabulary.ai_service import get_vstep_suggestions
+        result = get_vstep_suggestions(['hello', 'world'])
+        self.assertEqual(result, ['phenomenon'])
+
+    @patch('vocabulary.ai_service.requests.post')
+    def test_get_vstep_suggestions_handles_llm_failure(self, mock_post):
+        """Test graceful handling when LLM request fails."""
+        mock_post.side_effect = Exception('Connection refused')
+
+        from vocabulary.ai_service import get_vstep_suggestions
+        with self.assertRaises(Exception):
+            get_vstep_suggestions([])
