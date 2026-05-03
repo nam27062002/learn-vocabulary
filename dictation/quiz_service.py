@@ -1,13 +1,16 @@
 """
-LM Studio integration for generating TOEIC-style comprehension quiz questions.
+LLM integration for generating TOEIC-style comprehension quiz questions.
 """
 import json
+import ssl
 import urllib.error
 import urllib.request
 
-LM_STUDIO_URL = "http://127.0.0.1:1234/v1/chat/completions"
-LM_STUDIO_MODEL = "qwen2.5-vl-3b-instruct"
-LM_STUDIO_TIMEOUT = 6000  # 72b model can be slow
+from django.conf import settings
+
+_SSL_CTX = ssl.create_default_context()
+_SSL_CTX.check_hostname = False
+_SSL_CTX.verify_mode = ssl.CERT_NONE
 
 
 _PROMPT_TEMPLATE = """\
@@ -54,7 +57,7 @@ def generate_quiz_questions(transcript: str) -> list[dict]:
     """
     prompt = _PROMPT_TEMPLATE.format(transcript=transcript[:12000])  # cap at ~3k tokens
     payload = {
-        "model": LM_STUDIO_MODEL,
+        "model": settings.LLM_MODEL,
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.3,
         "max_tokens": 3000,
@@ -65,12 +68,15 @@ def generate_quiz_questions(transcript: str) -> list[dict]:
     for attempt in range(2):
         try:
             req = urllib.request.Request(
-                LM_STUDIO_URL,
+                settings.LLM_URL,
                 data=encoded,
-                headers={"Content-Type": "application/json"},
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {settings.LLM_API_KEY}",
+                },
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=LM_STUDIO_TIMEOUT) as resp:
+            with urllib.request.urlopen(req, timeout=settings.LLM_TIMEOUT, context=_SSL_CTX) as resp:
                 data = json.loads(resp.read())
             content = data["choices"][0]["message"]["content"].strip()
             questions = _parse_questions(content)
@@ -78,7 +84,7 @@ def generate_quiz_questions(transcript: str) -> list[dict]:
                 return questions
             last_error = ValueError("Model returned unparseable or wrong-count response")
         except (urllib.error.URLError, OSError) as e:
-            last_error = RuntimeError(f"LM Studio unavailable: {e}")
+            last_error = RuntimeError(f"LLM unavailable: {e}")
         except Exception as e:
             last_error = RuntimeError(f"Unexpected error: {e}")
 

@@ -1,21 +1,22 @@
 """
 LCS-based word-level answer checker for dictation practice.
 Includes proper-noun leniency via fuzzy matching and AI semantic equivalence
-via LM Studio (OpenAI-compatible local API).
+via LLM proxy (OpenAI-compatible API).
 """
 import json
 import re
+import ssl
 import urllib.error
 import urllib.request
 from difflib import SequenceMatcher
 
+from django.conf import settings
+
+_SSL_CTX = ssl.create_default_context()
+_SSL_CTX.check_hostname = False
+_SSL_CTX.verify_mode = ssl.CERT_NONE
 
 _STRIP_PUNCT = re.compile(r"[.,!?;:'\"\-\(\)\[\]]")
-
-# ── LM Studio config ───────────────────────────────────────────────────────
-LM_STUDIO_URL   = "http://localhost:1234/v1/chat/completions"
-LM_STUDIO_MODEL = "qwen2.5-vl-3b-instruct"
-LM_STUDIO_TIMEOUT = 8  # seconds
 
 
 # ── Normalisation ──────────────────────────────────────────────────────────
@@ -160,7 +161,7 @@ def _batch_semantic_check(pairs: list[tuple[str, str]]) -> list[bool]:
     )
 
     payload = {
-        "model": LM_STUDIO_MODEL,
+        "model": settings.LLM_MODEL,
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0,
         "max_tokens": max(16, n * 8),
@@ -168,12 +169,15 @@ def _batch_semantic_check(pairs: list[tuple[str, str]]) -> list[bool]:
 
     try:
         req = urllib.request.Request(
-            LM_STUDIO_URL,
+            settings.LLM_URL,
             data=json.dumps(payload).encode(),
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {settings.LLM_API_KEY}",
+            },
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=LM_STUDIO_TIMEOUT) as resp:
+        with urllib.request.urlopen(req, timeout=settings.LLM_TIMEOUT, context=_SSL_CTX) as resp:
             data = json.loads(resp.read())
         content = data["choices"][0]["message"]["content"].strip()
         start = content.find('[')

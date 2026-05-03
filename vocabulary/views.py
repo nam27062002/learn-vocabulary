@@ -905,7 +905,10 @@ def get_word_details_api(request):
     details = get_word_details(word)
 
     if settings.ENABLE_DEBUG:
-        print(f"[DEBUG] Word details from service: {details}")
+        try:
+            print(f"[DEBUG] Word details from service: {details}")
+        except UnicodeEncodeError:
+            print(f"[DEBUG] Word details from service: {details!r}")
 
     if "error" in details:
         return JsonResponse(details, status=404 if "Không tìm thấy từ" in details["error"] else 500)

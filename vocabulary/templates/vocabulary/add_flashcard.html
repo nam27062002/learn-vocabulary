@@ -1245,21 +1245,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 3. Fetch Word Details (for correct spelling) and update UI
     function fetchWordDetailsAndCache(word, card) {
-        if (!word) return;
+        if (!word) return Promise.resolve();
         const lowerCaseWord = word.toLowerCase();
 
         // Use cache if available
         if (wordApiCache[lowerCaseWord]) {
             updateCardUI(card, wordApiCache[lowerCaseWord]);
-            return;
+            return Promise.resolve();
         }
 
         // Fetch from API if not in cache
-        fetch(`${wordDetailsUrl}?word=${encodeURIComponent(word)}`)
+        return fetch(`${wordDetailsUrl}?word=${encodeURIComponent(word)}`)
         .then(res => res.ok ? res.json() : Promise.reject('API error'))
         .then(data => {
             if (data && !data.error) {
-                wordApiCache[lowerCaseWord] = data; // Cache the result
+                wordApiCache[lowerCaseWord] = data;
                 updateCardUI(card, data);
             } else {
                 console.error("Word details error:", data.error);
@@ -1630,18 +1630,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (targetCard) {
                         results.successful.push(word);
 
-                        // Trigger spell check and word details fetching
-                        const termInput = targetCard.querySelector('.term-input');
-                        const suggestionsList = targetCard.querySelector('.suggestions-list');
-
-                        // Small delay to allow DOM to settle
-                        await new Promise(resolve => setTimeout(resolve, 100));
-
-                        // Direct duplicate check
-                        checkDuplicates(word, termInput, suggestionsList, targetCard);
-
-                        // Auto-fetch word details (phonetic, definition, audio, Vietnamese translation)
-                        fetchWordDetailsAndCache(word, targetCard);
+                        // Fetch word details sequentially to avoid overwhelming the API
+                        await fetchWordDetailsAndCache(word, targetCard);
                     }
                 } catch (error) {
                     console.error(`Error processing word "${word}":`, error);

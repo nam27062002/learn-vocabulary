@@ -222,10 +222,12 @@ CACHES = {
     }
 }
 
-# LM Studio (local AI) configuration
-LM_STUDIO_URL = config('LM_STUDIO_URL', default='http://127.0.0.1:1234/v1/chat/completions')
-LM_STUDIO_MODEL = config('LM_STUDIO_MODEL', default='phi-3.1-mini-4k-instruct')
-LM_STUDIO_TIMEOUT = config('LM_STUDIO_TIMEOUT', default=120, cast=int)
+# LLM configuration (LiteLLM proxy)
+_LLM_BASE_URL = config('ANTHROPIC_BASE_URL', default='https://litellm.ubisoft.org')
+LLM_URL = _LLM_BASE_URL.rstrip('/') + '/v1/chat/completions'
+LLM_MODEL = config('MODEL', default='claude-haiku-4-5-20251001')
+LLM_API_KEY = config('ANTHROPIC_AUTH_TOKEN', default='')
+LLM_TIMEOUT = config('LLM_TIMEOUT', default=120, cast=int)
 
 # Cache timeouts for different data types (in seconds)
 CACHE_TIMEOUTS = {
