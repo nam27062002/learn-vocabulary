@@ -22,6 +22,7 @@ import sys
 from django.contrib.auth.decorators import login_required
 from deep_translator import GoogleTranslator
 from django.db.models.functions import Random
+from .ai_service import get_vstep_suggestions
 
 # Difficulty-Based Card Selection Configuration
 SPACED_REPETITION_CONFIG = {
@@ -2538,6 +2539,25 @@ def api_ai_word_examples(request):
     except requests.exceptions.ConnectionError:
         return JsonResponse(
             {'success': False, 'error': 'Cannot connect to LM Studio. Make sure it is running.'},
+            status=503,
+        )
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def api_vstep_suggestions(request):
+    """Return 20 AI-generated VSTEP vocabulary words the user doesn't already know."""
+    try:
+        existing_words = list(
+            Flashcard.objects.filter(user=request.user).values_list('word', flat=True)
+        )
+        words = get_vstep_suggestions(existing_words)
+        return JsonResponse({'success': True, 'words': words})
+    except requests.exceptions.ConnectionError:
+        return JsonResponse(
+            {'success': False, 'error': 'Cannot connect to LLM service. Make sure it is running.'},
             status=503,
         )
     except Exception as e:

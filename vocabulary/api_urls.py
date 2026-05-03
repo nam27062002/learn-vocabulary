@@ -65,4 +65,5 @@ urlpatterns = [
 
     # AI features
     path('api/ai/word-examples/', views.api_ai_word_examples, name='api_ai_word_examples'),
+    path('api/ai/vstep-suggestions/', views.api_vstep_suggestions, name='api_vstep_suggestions'),
 ]

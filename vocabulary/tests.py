@@ -384,3 +384,57 @@ class VSTEPSuggestionsServiceTest(TestCase):
         from vocabulary.ai_service import get_vstep_suggestions
         with self.assertRaises(Exception):
             get_vstep_suggestions([])
+
+
+class VSTEPSuggestionsViewTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            email='vstep-test@example.com',
+            password='testpass123'
+        )
+        self.deck = Deck.objects.create(user=self.user, name='Test Deck')
+        Flashcard.objects.create(user=self.user, deck=self.deck, word='hello')
+        Flashcard.objects.create(user=self.user, deck=self.deck, word='world')
+
+    def test_vstep_suggestions_requires_login(self):
+        """Unauthenticated requests should be redirected."""
+        response = self.client.post(reverse('api_vstep_suggestions'))
+        self.assertNotEqual(response.status_code, 200)
+
+    def test_vstep_suggestions_requires_post(self):
+        """GET requests should return 405."""
+        self.client.login(email='vstep-test@example.com', password='testpass123')
+        response = self.client.get(reverse('api_vstep_suggestions'))
+        self.assertEqual(response.status_code, 405)
+
+    @patch('vocabulary.views.get_vstep_suggestions')
+    def test_vstep_suggestions_returns_words(self, mock_fn):
+        """Successful request returns JSON with words array."""
+        mock_fn.return_value = ['phenomenon', 'substantial']
+        self.client.login(email='vstep-test@example.com', password='testpass123')
+        response = self.client.post(reverse('api_vstep_suggestions'))
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertTrue(data['success'])
+        self.assertEqual(data['words'], ['phenomenon', 'substantial'])
+
+    @patch('vocabulary.views.get_vstep_suggestions')
+    def test_vstep_suggestions_excludes_existing_words(self, mock_fn):
+        """The view passes the user's existing words to the service."""
+        mock_fn.return_value = ['phenomenon']
+        self.client.login(email='vstep-test@example.com', password='testpass123')
+        self.client.post(reverse('api_vstep_suggestions'))
+        called_words = mock_fn.call_args[0][0]
+        self.assertIn('hello', called_words)
+        self.assertIn('world', called_words)
+
+    @patch('vocabulary.views.get_vstep_suggestions')
+    def test_vstep_suggestions_handles_llm_error(self, mock_fn):
+        """LLM failure returns error JSON."""
+        mock_fn.side_effect = Exception('LLM down')
+        self.client.login(email='vstep-test@example.com', password='testpass123')
+        response = self.client.post(reverse('api_vstep_suggestions'))
+        self.assertEqual(response.status_code, 500)
+        data = json.loads(response.content)
+        self.assertFalse(data['success'])
