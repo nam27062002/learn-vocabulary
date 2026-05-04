@@ -1478,7 +1478,6 @@
   border-radius: 20px;
   padding: 24px 32px 20px;
   min-height: 340px;
-  max-height: 80vh;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -1494,13 +1493,15 @@
 /* Special layout for dictation mode to prevent grade button overflow */
 .flashcard-container:has(.dictation-mode) {
   justify-content: flex-start;
-  gap: 15px;
+  gap: 12px;
+  min-height: auto;
 }
 
 /* Fallback for browsers that don't support :has() */
 .flashcard-container.dictation-layout {
   justify-content: flex-start;
-  gap: 15px;
+  gap: 12px;
+  min-height: auto;
 }
 
 .flashcard-container::before {
@@ -1515,7 +1516,7 @@
 
 .card-header {
   width: 100%;
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 
 .word-section {
@@ -1739,18 +1740,102 @@
   margin: 0 0 10px 0;
 }
 
-/* Card Image */
-.card-image {
-  max-width: 240px;
-  max-height: 160px;
+/* Card Metadata Strip */
+.card-metadata-strip {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--card-text-main, #1f2937) 6%, transparent);
+  border: 1px solid var(--card-border-color, #e5e7eb);
   border-radius: 12px;
-  margin: 8px 0;
+  margin-bottom: 4px;
+}
+
+.card-image-thumb {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  object-fit: cover;
+  border-radius: 8px;
   box-shadow: var(--shadow-md);
   display: none;
 }
 
-.card-image.show {
+.card-image-thumb.show {
   display: block;
+}
+
+.metadata-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.metadata-pos {
+  color: var(--card-text-muted);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.metadata-separator {
+  color: var(--card-text-muted);
+  opacity: 0.4;
+  font-size: 0.85rem;
+}
+
+.metadata-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.metadata-actions .audio-button {
+  width: 36px;
+  height: 36px;
+  font-size: 0.9rem;
+}
+
+.metadata-actions .favorite-button,
+.metadata-actions .blacklist-button {
+  width: 36px;
+  height: 36px;
+  font-size: 1.1rem;
+  border-width: 1.5px;
+  border-color: var(--card-text-muted, #9ca3af);
+}
+
+.metadata-actions .blacklist-button {
+  margin-left: 0;
+}
+
+.metadata-actions .edit-card-button {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  padding: 0;
+  font-size: 0.85rem;
+  border-radius: 50%;
+  justify-content: center;
+  gap: 0;
+  color: var(--card-text-muted, #6b7280);
+  border-color: var(--card-text-muted, #9ca3af);
+}
+
+.metadata-actions .recording-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.metadata-actions .record-button,
+.metadata-actions .play-recording-button {
+  width: 36px;
+  height: 36px;
+  font-size: 0.85rem;
 }
 
 /* Answer Section */
@@ -1810,9 +1895,88 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 15px;
+  gap: 10px;
   min-height: 160px;
-  max-height: 180px;
+}
+
+/* Audio Hero dictation layout */
+.dictation-hero-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 400px;
+  padding: 8px 0;
+}
+
+.dictation-hero-btn {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.15));
+  border: 2px solid rgba(99,102,241,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.dictation-hero-btn:hover {
+  transform: scale(1.05);
+  border-color: rgba(99,102,241,0.5);
+}
+
+.dictation-hero-btn:active {
+  transform: scale(0.97);
+}
+
+.hero-icon {
+  font-size: 1.8rem;
+  color: var(--primary-color, #6366f1);
+  z-index: 2;
+  transition: color 0.2s ease;
+}
+
+.hero-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(99,102,241,0.15);
+  pointer-events: none;
+}
+
+.hero-ring-outer {
+  inset: -14px;
+  border-color: rgba(99,102,241,0.08);
+}
+
+/* Pulse animation when playing */
+.dictation-hero-btn.playing .hero-ring {
+  animation: heroPulse 1.2s ease-in-out infinite;
+}
+
+.dictation-hero-btn.playing .hero-ring-outer {
+  animation: heroPulse 1.2s ease-in-out infinite 0.2s;
+}
+
+.dictation-hero-btn.playing {
+  border-color: rgba(99,102,241,0.5);
+  background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.25));
+}
+
+@keyframes heroPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.5; }
+}
+
+.dictation-hero-hint {
+  color: var(--card-text-muted, #6b7280);
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
 }
 
 .dictation-container {
@@ -2157,6 +2321,33 @@
     font-size: 2rem;
   }
 
+  .card-metadata-strip {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .card-image-thumb {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+  }
+
+  .metadata-actions .audio-button,
+  .metadata-actions .favorite-button,
+  .metadata-actions .blacklist-button,
+  .metadata-actions .edit-card-button,
+  .metadata-actions .record-button,
+  .metadata-actions .play-recording-button {
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
+  }
+
+  .metadata-actions .favorite-button,
+  .metadata-actions .blacklist-button {
+    font-size: 1rem;
+  }
+
   .word-section {
     flex-direction: column;
     gap: 10px;
@@ -2173,9 +2364,17 @@
   }
 
   .options-area.dictation-mode {
-    gap: 12px;
+    gap: 10px;
     min-height: 120px;
-    max-height: 140px;
+  }
+
+  .dictation-hero-btn {
+    width: 80px;
+    height: 80px;
+  }
+
+  .hero-icon {
+    font-size: 1.5rem;
   }
 
   .dictation-input-row, .input-row {

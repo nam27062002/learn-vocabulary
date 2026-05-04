@@ -57,3 +57,4 @@ tools/migrate_database/migration_config.json
 .render/
 .omc/
 .playwright-mcp/
+.superpowers/

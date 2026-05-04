@@ -297,9 +297,9 @@
 
   /* CEFR Level Badge Styles */
   .card-cefr-level {
-    margin: 8px 0;
-    display: flex;
-    justify-content: center;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
   }
 
   .cefr-level-badge {
@@ -817,9 +817,14 @@
     </div>
 
     <div id="cardBox" class="flashcard-container">
-      <div class="card-header">
-        <div class="word-section">
-          <h2 id="cardWord" class="card-word"></h2>
+      <div class="card-metadata-strip" id="cardMetadataStrip">
+        <img id="cardImage" src="" alt="image" class="card-image-thumb" />
+        <div class="metadata-info">
+          <span id="cardPartOfSpeech" class="metadata-pos"></span>
+          <span class="metadata-separator">·</span>
+          <div id="cardCefrLevel" class="card-cefr-level" style="display: none;"></div>
+        </div>
+        <div class="metadata-actions">
           <button id="audioButton" class="audio-button" style="display: none">
             <i class="fas fa-volume-up"></i>
           </button>
@@ -841,14 +846,17 @@
             <i class="fas fa-edit"></i>
           </button>
           <button id="aiExamplesButton" class="edit-card-button" style="display: none" title="See word in context">
-            <i class="fas fa-lightbulb"></i> Examples
+            <i class="fas fa-lightbulb"></i>
           </button>
         </div>
-        <div id="cardCefrLevel" class="card-cefr-level" style="display: none;"></div>
-        <p id="cardPhonetic" class="card-phonetic"></p>
       </div>
 
-      <img id="cardImage" src="" alt="image" class="card-image" />
+      <div class="card-header">
+        <div class="word-section">
+          <h2 id="cardWord" class="card-word"></h2>
+        </div>
+        <p id="cardPhonetic" class="card-phonetic"></p>
+      </div>
 
       <div id="answerSection" class="answer-section">
         <div id="cardDefs" class="card-definitions"></div>

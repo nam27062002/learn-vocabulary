@@ -10,6 +10,8 @@
   const cardPhoneticEl = document.getElementById("cardPhonetic");
   const cardCefrLevelEl = document.getElementById("cardCefrLevel");
   const cardImageEl = document.getElementById("cardImage");
+  const cardPartOfSpeechEl = document.getElementById("cardPartOfSpeech");
+  const metadataSeparatorEl = document.querySelector(".metadata-separator");
   const cardDefsEl = document.getElementById("cardDefs");
   const favoriteButton = document.getElementById("favoriteButton");
   const blacklistButton = document.getElementById("blacklistButton");
@@ -100,31 +102,19 @@
   // Function to display CEFR level badge
   function displayCefrLevel(level, showImmediately = false) {
     if (!cardCefrLevelEl) return;
-    
+
     if (level) {
       const cefrInfo = getCefrLevelInfo(level);
       cardCefrLevelEl.innerHTML = `
-        <div class="cefr-level-badge" 
+        <div class="cefr-level-badge"
              style="background-color: ${cefrInfo.color};"
              title="CEFR Level: ${cefrInfo.description}">
           ${cefrInfo.level}
         </div>
       `;
+      cardCefrLevelEl.style.display = 'inline-flex';
     } else {
-      cardCefrLevelEl.innerHTML = `
-        <div class="cefr-level-badge" 
-             style="background-color: #9E9E9E;"
-             title="CEFR Level: Not classified">
-          N/A
-        </div>
-      `;
-    }
-    
-    // Only show immediately if explicitly requested (like after editing)
-    if (showImmediately) {
-      cardCefrLevelEl.style.display = 'block';
-    } else {
-      // Hide initially, will be shown after answer
+      cardCefrLevelEl.innerHTML = '';
       cardCefrLevelEl.style.display = 'none';
     }
   }
@@ -1130,12 +1120,10 @@
 
     if (cardWordEl) {
       cardWordEl.innerHTML = "";
+      cardWordEl.style.display = "";
     }
     if (cardPhoneticEl) {
       cardPhoneticEl.style.display = "none";
-    }
-    if (cardCefrLevelEl) {
-      cardCefrLevelEl.style.display = "none";
     }
     if (cardDefsEl) {
       cardDefsEl.className = "card-definitions";
@@ -1242,8 +1230,21 @@
       optionsArea.innerHTML = "";
     }
 
-    // Display CEFR level for all question types
-    displayCefrLevel(q.cefr_level);
+    // Display CEFR level in metadata strip (always visible)
+    displayCefrLevel(q.cefr_level, true);
+
+    // Display part of speech in metadata strip
+    if (cardPartOfSpeechEl) {
+      if (q.part_of_speech) {
+        cardPartOfSpeechEl.textContent = q.part_of_speech;
+        cardPartOfSpeechEl.style.display = "";
+        if (metadataSeparatorEl) metadataSeparatorEl.style.display = "";
+      } else {
+        cardPartOfSpeechEl.textContent = "";
+        cardPartOfSpeechEl.style.display = "none";
+        if (metadataSeparatorEl) metadataSeparatorEl.style.display = "none";
+      }
+    }
 
     // Handle different question types
     if (q.type === "mc") {
@@ -1288,51 +1289,71 @@
         optionsArea.appendChild(btn);
       });
     } else if (q.type === "dictation") {
-      // Dictation mode - hide word, show instruction
+      // Dictation mode — Audio Hero layout
       if (cardWordEl) {
-        cardWordEl.innerHTML = `<strong>🎧 ${STUDY_CFG.labels.listen_and_type}</strong>`;
+        cardWordEl.innerHTML = "";
+        cardWordEl.style.display = "none";
       }
 
-      // Hide phonetic initially
       if (cardPhoneticEl) {
         cardPhoneticEl.style.display = "none";
       }
 
-      // Set dictation mode class for proper centering and layout
       if (optionsArea) {
         optionsArea.className = "options-area dictation-mode";
       }
 
-      // Add dictation layout class to flashcard container for proper spacing
       const flashcardContainer = document.getElementById("cardBox");
       if (flashcardContainer) {
         flashcardContainer.classList.add("dictation-layout");
       }
 
-      // Auto-play audio once when dictation question loads
-      if (q.audio_url) {
-        setTimeout(() => {
-          const audio = new Audio(q.audio_url);
-          audio.play().catch((err) => console.log("Auto-play failed:", err));
-        }, 1000); // Delay 1 second to let user read the instruction
-      }
-
-      // Create dictation container with proper classes
       const dictationContainer = document.createElement("div");
-      dictationContainer.className = "dictation-container";
+      dictationContainer.className = "dictation-hero-container";
 
-      // Add replay audio button for dictation mode
-      if (q.audio_url) {
-        const replayButton = document.createElement("button");
-        replayButton.innerHTML = `<i class="fas fa-redo"></i> ${STUDY_CFG.labels.replay_audio}`;
-        replayButton.className = "replay-audio-btn";
-        replayButton.addEventListener("click", () => {
-          const audio = new Audio(q.audio_url);
-          audio.play().catch((err) => console.log("Audio replay failed:", err));
+      // Audio hero circle — play/replay on click
+      const heroBtn = document.createElement("button");
+      heroBtn.className = "dictation-hero-btn";
+      heroBtn.innerHTML = `
+        <span class="hero-ring"></span>
+        <span class="hero-ring hero-ring-outer"></span>
+        <i class="fas fa-play hero-icon"></i>
+      `;
+      heroBtn.title = STUDY_CFG.labels.play_audio || "Play audio";
+
+      let dictationAudio = null;
+      let heroPlayed = false;
+
+      function playDictationAudio() {
+        if (dictationAudio) {
+          dictationAudio.pause();
+          dictationAudio.currentTime = 0;
+        }
+        dictationAudio = new Audio(q.audio_url);
+        heroBtn.classList.add("playing");
+        heroBtn.querySelector(".hero-icon").className = "fas fa-volume-up hero-icon";
+        dictationAudio.play().catch((err) => console.log("Audio play failed:", err));
+        dictationAudio.addEventListener("ended", () => {
+          heroBtn.classList.remove("playing");
+          heroBtn.querySelector(".hero-icon").className = "fas fa-redo hero-icon";
+          heroPlayed = true;
         });
-        dictationContainer.appendChild(replayButton);
       }
 
+      if (q.audio_url) {
+        heroBtn.addEventListener("click", playDictationAudio);
+        setTimeout(playDictationAudio, 800);
+      }
+
+      dictationContainer.appendChild(heroBtn);
+
+      // Hint text
+      const hint = document.createElement("div");
+      hint.className = "dictation-hero-hint";
+      hint.textContent = STUDY_CFG.labels.type_what_you_hear || "Type what you hear";
+      dictationContainer.appendChild(hint);
+
+      // Input row
       const inputRow = document.createElement("div");
       inputRow.className = "dictation-input-row";
 
@@ -1366,14 +1387,9 @@
       optionsArea.appendChild(dictationContainer);
       setTimeout(() => inp.focus(), 100);
     } else {
-      // Type answer mode - show definitions with part of speech, hide word initially
+      // Type answer mode - show definitions, hide word initially
       if (cardDefsEl && q.definitions && q.definitions.length > 0) {
         let defsHTML = "";
-
-        // Add part of speech if available
-        if (q.part_of_speech) {
-          defsHTML += `<div class="part-of-speech-hint">${STUDY_CFG.labels.part_of_speech}: <em>${q.part_of_speech}</em></div>`;
-        }
 
         q.definitions.forEach((def) => {
           if (def.english_definition) {
@@ -1488,23 +1504,13 @@
         btn.style.display = "none";
       });
     } else if (currentQuestion.type === "dictation") {
-      // Dictation mode: hide replay button, input field, and check button
-      const replayBtn = optionsArea.querySelector(".replay-audio-btn");
-      const inputField = optionsArea.querySelector(".type-input");
-      const checkBtn = optionsArea.querySelector(".check-btn");
-
-      if (replayBtn) {
-        replayBtn.classList.add("hidden");
-        replayBtn.style.display = "none";
+      // Dictation mode: hide the entire hero container and collapse the options area
+      const heroContainer = optionsArea.querySelector(".dictation-hero-container");
+      if (heroContainer) {
+        heroContainer.style.display = "none";
       }
-      if (inputField) {
-        inputField.classList.add("hidden");
-        inputField.style.display = "none";
-      }
-      if (checkBtn) {
-        checkBtn.classList.add("hidden");
-        checkBtn.style.display = "none";
-      }
+      optionsArea.style.minHeight = "0";
+      optionsArea.style.display = "none";
     } else {
       // Input mode: hide the entire input row (input field and check button)
       const inputRow = optionsArea.querySelector(".input-row");
@@ -1554,6 +1560,9 @@
     }
 
     // NOW reveal the correct answer and make word clickable for Cambridge Dictionary with fallback
+    if (cardWordEl) {
+      cardWordEl.style.display = "";
+    }
     if (cardWordEl && currentQuestion.word) {
       // Check if DictionaryUtils is available
       if (typeof window.DictionaryUtils !== "undefined") {
@@ -1652,7 +1661,7 @@
     }
 
     if (currentFavoriteButton && currentQuestion.id) {
-      currentFavoriteButton.style.display = "block";
+      currentFavoriteButton.style.display = "flex";
       currentFavoriteButton.setAttribute("data-card-id", currentQuestion.id);
 
       // Also show edit button when showing other action buttons
@@ -1687,7 +1696,7 @@
     }
 
     if (currentBlacklistButton && currentQuestion.id) {
-      currentBlacklistButton.style.display = "block";
+      currentBlacklistButton.style.display = "flex";
       currentBlacklistButton.setAttribute("data-card-id", currentQuestion.id);
 
       // To prevent stale event listeners, clone and replace the button.
@@ -1725,7 +1734,7 @@
 
     // NOW show audio button after answer submission
     if (audioButton && currentQuestion.audio_url) {
-      audioButton.style.display = "block";
+      audioButton.style.display = "flex";
       audioButton.onclick = () => {
         const audio = new Audio(currentQuestion.audio_url);
         audio.play().catch((err) => console.log("Audio play failed:", err));
@@ -4182,9 +4191,9 @@
         transcriptionEl = document.createElement('div');
         transcriptionEl.className = 'live-transcription';
         
-        const recordingControls = document.querySelector('.recording-controls');
-        if (recordingControls && recordingControls.parentNode) {
-          recordingControls.parentNode.insertBefore(transcriptionEl, recordingControls.nextSibling);
+        const metadataStrip = document.getElementById('cardMetadataStrip');
+        if (metadataStrip && metadataStrip.parentNode) {
+          metadataStrip.parentNode.insertBefore(transcriptionEl, metadataStrip.nextSibling);
         }
       }
       
@@ -4285,9 +4294,9 @@
       const feedbackEl = document.createElement('div');
       feedbackEl.className = 'pronunciation-feedback';
       
-      const recordingControls = document.querySelector('.recording-controls');
-      if (recordingControls && recordingControls.parentNode) {
-        recordingControls.parentNode.insertBefore(feedbackEl, recordingControls.nextSibling);
+      const metadataStrip = document.getElementById('cardMetadataStrip');
+      if (metadataStrip && metadataStrip.parentNode) {
+        metadataStrip.parentNode.insertBefore(feedbackEl, metadataStrip.nextSibling);
       }
       
       // Check if pronunciation is correct (exact match or very close)
@@ -4343,9 +4352,9 @@
       const feedbackEl = document.createElement('div');
       feedbackEl.className = 'pronunciation-feedback feedback-warning';
       
-      const recordingControls = document.querySelector('.recording-controls');
-      if (recordingControls && recordingControls.parentNode) {
-        recordingControls.parentNode.insertBefore(feedbackEl, recordingControls.nextSibling);
+      const metadataStrip = document.getElementById('cardMetadataStrip');
+      if (metadataStrip && metadataStrip.parentNode) {
+        metadataStrip.parentNode.insertBefore(feedbackEl, metadataStrip.nextSibling);
       }
       
       feedbackEl.innerHTML = `
@@ -4377,9 +4386,9 @@
       const feedbackEl = document.createElement('div');
       feedbackEl.className = 'pronunciation-feedback feedback-error';
       
-      const recordingControls = document.querySelector('.recording-controls');
-      if (recordingControls && recordingControls.parentNode) {
-        recordingControls.parentNode.insertBefore(feedbackEl, recordingControls.nextSibling);
+      const metadataStrip = document.getElementById('cardMetadataStrip');
+      if (metadataStrip && metadataStrip.parentNode) {
+        metadataStrip.parentNode.insertBefore(feedbackEl, metadataStrip.nextSibling);
       }
       
       feedbackEl.innerHTML = `
@@ -4730,7 +4739,7 @@
     const audioButton = document.getElementById('audioButton');
     if (audioButton) {
       if (updatedCard.audio_url) {
-        audioButton.style.display = 'block';
+        audioButton.style.display = 'flex';
         audioButton.onclick = () => {
           const audio = new Audio(updatedCard.audio_url);
           audio.play().catch(e => console.log('Audio play failed:', e));
