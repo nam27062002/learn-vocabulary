@@ -274,6 +274,9 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize audio fetching functionality
   initializeAudioFetching();
 
+  // Initialize image fetching functionality
+  initializeImageFetching();
+
   // Initialize dictionary links with fallback mechanism
   initializeDictionaryLinks();
 
@@ -1564,6 +1567,105 @@ document.addEventListener("DOMContentLoaded", function () {
                   .join(", ")}
             </div>
         `;
+  }
+
+  // Image fetching functionality
+  function initializeImageFetching() {
+    const fetchBtn = document.getElementById("fetch-missing-images-btn");
+    if (!fetchBtn) return;
+    fetchBtn.addEventListener("click", fetchMissingImagesForDeck);
+  }
+
+  async function fetchMissingImagesForDeck() {
+    const fetchBtn = document.getElementById("fetch-missing-images-btn");
+
+    const cardIds = [
+      ...document.querySelectorAll("[data-card-id][data-has-image='false']"),
+    ].map((el) => el.dataset.cardId);
+
+    if (cardIds.length === 0) {
+      Notify.info("No cards need images");
+      return;
+    }
+
+    fetchBtn.disabled = true;
+    const originalText = fetchBtn.innerHTML;
+    fetchBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Generating images...`;
+
+    const progressDiv = document.createElement("div");
+    progressDiv.className = "audio-fetch-progress";
+    progressDiv.innerHTML = `
+      <button class="close-btn" onclick="this.parentNode.remove()">
+        <i class="fas fa-times"></i>
+      </button>
+      <div class="progress-header">
+        <i class="fas fa-image"></i>
+        <span>Generating images... 0/${cardIds.length}</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width: 0%"></div>
+      </div>
+      <div class="progress-text">
+        <span class="current-word">Starting...</span>
+      </div>
+    `;
+    document.body.appendChild(progressDiv);
+
+    const header = progressDiv.querySelector(".progress-header span");
+    const progressFill = progressDiv.querySelector(".progress-fill");
+    const currentWordEl = progressDiv.querySelector(".current-word");
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+    let generated = 0;
+    let failed = 0;
+
+    for (let i = 0; i < cardIds.length; i++) {
+      progressFill.style.width = `${(i / cardIds.length) * 100}%`;
+      header.textContent = `Generating images... ${i}/${cardIds.length}`;
+
+      try {
+        const res = await fetch("/api/ai/save-generated-image/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken,
+          },
+          body: JSON.stringify({ flashcard_id: cardIds[i] }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          generated++;
+          currentWordEl.textContent = `✓ ${data.word}`;
+        } else {
+          failed++;
+          currentWordEl.textContent = `✗ failed`;
+        }
+      } catch {
+        failed++;
+        currentWordEl.textContent = `✗ error`;
+      }
+
+      progressFill.style.width = `${((i + 1) / cardIds.length) * 100}%`;
+      header.textContent = `Generating images... ${i + 1}/${cardIds.length}`;
+    }
+
+    header.textContent = "Image generation complete";
+    currentWordEl.textContent = `Generated: ${generated} / Failed: ${failed}`;
+    progressFill.style.width = "100%";
+
+    fetchBtn.disabled = false;
+    fetchBtn.innerHTML = originalText;
+
+    if (generated > 0) {
+      Notify.success(`${generated} images generated!`);
+      setTimeout(() => window.location.reload(), 2000);
+    } else {
+      Notify.info("No images could be generated");
+      setTimeout(() => {
+        if (progressDiv.parentNode) progressDiv.parentNode.removeChild(progressDiv);
+      }, 3000);
+    }
   }
 
   function fetchAudioForSingleCard(cardId) {
