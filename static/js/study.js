@@ -1112,11 +1112,7 @@
     // Reset UI elements
     feedbackMsg.className = "feedback-message";
 
-    // Clear any existing detailed feedback from previous question
-    const existingFeedback = document.querySelector('.detailed-input-feedback');
-    if (existingFeedback) {
-      existingFeedback.remove();
-    }
+    hideDetailedInputFeedback();
 
     if (cardWordEl) {
       cardWordEl.innerHTML = "";
@@ -1155,11 +1151,7 @@
       VoiceRecording.clearRecording();
     }
     
-    // Clear detailed input feedback from previous question
-    const previousFeedback = document.querySelector('.detailed-input-feedback');
-    if (previousFeedback) {
-      previousFeedback.remove();
-    }
+    hideDetailedInputFeedback();
 
     // Hide and reset favorite button during question phase - it will be shown after answer submission
     let currentFavoriteButton = favoriteButton;
@@ -1779,9 +1771,7 @@
 
             const retypeMessage = document.createElement('p');
             retypeMessage.textContent = 'Type the correct answer to continue:';
-            retypeMessage.style.color = 'white';
-            retypeMessage.style.textAlign = 'center';
-            retypeMessage.style.marginBottom = '10px';
+            retypeMessage.className = 'retype-prompt';
             optionsArea.appendChild(retypeMessage);
 
             const inputRow = document.createElement("div");
@@ -1799,6 +1789,7 @@
             inputRow.appendChild(inp);
             inputRow.appendChild(btn);
             optionsArea.appendChild(inputRow);
+            scrollStudyCardIntoView();
             setTimeout(() => inp.focus(), 100);
 
             const handleRetype = () => {
@@ -3609,198 +3600,202 @@
   console.log(`[DEBUG] Added window focus/blur listeners for timer pause/resume`);
 
   // Detailed Input Feedback System - Only for incorrect answers
+  function hideDetailedInputFeedback() {
+    const feedbackArea = document.getElementById('detailedFeedbackArea');
+    if (feedbackArea) {
+      feedbackArea.classList.remove('show');
+      feedbackArea.style.display = 'none';
+      feedbackArea.innerHTML = '';
+    }
+
+    if (studyArea) {
+      studyArea.classList.remove('compact-feedback-layout');
+    }
+
+    if (cardBox) {
+      cardBox.classList.remove('has-detailed-feedback');
+    }
+
+    const legacyFeedback = document.querySelector('.detailed-input-feedback');
+    if (legacyFeedback) {
+      legacyFeedback.remove();
+    }
+  }
+
+  function scrollStudyCardIntoView() {
+    if (!cardBox) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      cardBox.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+  }
+
   function showDetailedInputFeedback(correct, userAnswer, expectedAnswer) {
     if (correct) return;
 
-    const existingFeedback = document.querySelector('.detailed-input-feedback');
-    if (existingFeedback) existingFeedback.remove();
+    const feedbackArea = document.getElementById('detailedFeedbackArea');
+    const answerSection = document.getElementById('answerSection');
+    const optionsArea = document.getElementById('optionsArea');
 
-    const comparisonHtml = generateLetterComparison(userAnswer, expectedAnswer);
+    if (!feedbackArea || !answerSection) {
+      return;
+    }
 
-    const feedbackEl = document.createElement('div');
-    feedbackEl.className = 'detailed-input-feedback';
-    feedbackEl.innerHTML = `
-      <div class="dif-header">
-        <span class="dif-label">Your answer</span>
-        <span class="dif-user-text">${userAnswer}</span>
-      </div>
-      <div class="dif-comparison">${comparisonHtml}</div>
-      <div class="dif-legend">
-        <span class="legend-item"><span class="legend-correct">●</span> Correct</span>
-        <span class="legend-item"><span class="legend-incorrect">●</span> Incorrect</span>
-        <span class="legend-item"><span class="legend-missing">●</span> Missing</span>
-        <span class="legend-item"><span class="legend-extra">●</span> Extra</span>
+    hideDetailedInputFeedback();
+
+    const submittedAnswer = (userAnswer || '').trim();
+    const correctAnswer = (expectedAnswer || '').trim();
+    const comparison = generateLetterComparison(submittedAnswer, correctAnswer);
+    const summaryItems = [
+      createFeedbackSummaryItem('correct', comparison.stats.correct, STUDY_CFG.labels.correct || 'Correct'),
+      createFeedbackSummaryItem('incorrect', comparison.stats.wrong, STUDY_CFG.labels.incorrect || 'Incorrect'),
+      createFeedbackSummaryItem('missing', comparison.stats.missing, 'Missing'),
+      createFeedbackSummaryItem('extra', comparison.stats.extra, 'Extra'),
+    ].join('');
+
+    feedbackArea.innerHTML = `
+      <div class="detailed-feedback-content">
+        <div class="detailed-feedback-header">
+          <div class="detailed-feedback-heading">
+            <span class="detailed-feedback-kicker">Spelling check</span>
+            <div class="detailed-feedback-summary">${summaryItems}</div>
+          </div>
+          <span class="detailed-feedback-caption">Compare each letter, then retype the correct word.</span>
+        </div>
+
+        <div class="detailed-answer-section">
+          <div class="detailed-answer-box detailed-answer-box-user">
+            <span class="detailed-answer-label">You typed</span>
+            <span class="detailed-user-answer">${escapeHtml(submittedAnswer || '—')}</span>
+          </div>
+          <div class="detailed-answer-box detailed-answer-box-expected">
+            <span class="detailed-answer-label">Correct word</span>
+            <span class="detailed-expected-answer">${escapeHtml(correctAnswer || '—')}</span>
+          </div>
+        </div>
+
+        <div class="detailed-letter-comparison">
+          <div class="detailed-comparison-header">
+            <span class="detailed-comparison-label">Letter by letter</span>
+            <span class="detailed-comparison-caption">Green matches, warm colors mark issues.</span>
+          </div>
+          <div class="detailed-comparison-display">${comparison.html}</div>
+        </div>
       </div>
     `;
 
-    const cardBox = document.getElementById('cardBox');
-    const cardHeader = cardBox?.querySelector('.card-header');
-    if (cardHeader) {
-      cardHeader.parentNode.insertBefore(feedbackEl, cardHeader);
-    } else if (cardBox) {
-      cardBox.prepend(feedbackEl);
+    if (optionsArea && feedbackArea.parentNode === answerSection) {
+      answerSection.insertBefore(feedbackArea, optionsArea);
     }
 
-    if (!document.getElementById('detailed-input-feedback-styles')) {
-      const style = document.createElement('style');
-      style.id = 'detailed-input-feedback-styles';
-      style.textContent = `
-        .detailed-input-feedback {
-          width: 100%;
-          background: color-mix(in srgb, var(--error-color, #ef4444) 8%, transparent);
-          border: 1px solid color-mix(in srgb, var(--error-color, #ef4444) 25%, transparent);
-          border-radius: 12px;
-          padding: 12px 16px;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          animation: difFadeIn 0.3s ease;
-        }
-
-        .dif-header {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .dif-label {
-          font-size: 0.78rem;
-          font-weight: 600;
-          color: var(--error-color, #ef4444);
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          flex-shrink: 0;
-        }
-
-        .dif-user-text {
-          font-family: 'Courier New', monospace;
-          font-size: 0.95rem;
-          font-weight: 600;
-          color: var(--card-text-main, #1f2937);
-          text-decoration: line-through;
-          opacity: 0.7;
-        }
-
-        .dif-comparison {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 3px;
-          padding: 8px 10px;
-          background: color-mix(in srgb, var(--card-text-main, #1f2937) 6%, transparent);
-          border-radius: 8px;
-        }
-
-        .char-comparison {
-          font-family: 'Courier New', monospace;
-          padding: 3px 6px;
-          border-radius: 4px;
-          font-weight: 700;
-          font-size: 0.95rem;
-          min-width: 18px;
-          text-align: center;
-          line-height: 1.3;
-        }
-
-        .char-correct {
-          background: color-mix(in srgb, var(--success-color, #10b981) 20%, transparent);
-          color: var(--success-color, #10b981);
-        }
-
-        .char-wrong {
-          background: color-mix(in srgb, var(--error-color, #ef4444) 20%, transparent);
-          color: var(--error-color, #ef4444);
-        }
-
-        .char-missing {
-          background: color-mix(in srgb, var(--warning-color, #f59e0b) 20%, transparent);
-          color: var(--warning-color, #f59e0b);
-          border-bottom: 2px dashed var(--warning-color, #f59e0b);
-        }
-
-        .char-extra {
-          background: color-mix(in srgb, #8b5cf6 20%, transparent);
-          color: #8b5cf6;
-          text-decoration: line-through;
-        }
-
-        .dif-legend {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-          padding-top: 4px;
-        }
-
-        .dif-legend .legend-item {
-          font-size: 0.72rem;
-          color: var(--card-text-muted, #6b7280);
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-
-        .legend-correct { color: var(--success-color, #10b981); font-size: 0.6rem; }
-        .legend-incorrect { color: var(--error-color, #ef4444); font-size: 0.6rem; }
-        .legend-missing { color: var(--warning-color, #f59e0b); font-size: 0.6rem; }
-        .legend-extra { color: #8b5cf6; font-size: 0.6rem; }
-
-        @keyframes difFadeIn {
-          from { opacity: 0; transform: translateY(-6px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes shake {
-          10%, 90% { transform: translateX(-1px); }
-          20%, 80% { transform: translateX(2px); }
-          30%, 50%, 70% { transform: translateX(-4px); }
-          40%, 60% { transform: translateX(4px); }
-        }
-        .shake-animation { animation: shake 0.5s ease-in-out; }
-      `;
-      document.head.appendChild(style);
+    if (studyArea) {
+      studyArea.classList.add('compact-feedback-layout');
     }
+
+    if (cardBox) {
+      cardBox.classList.add('has-detailed-feedback');
+    }
+
+    feedbackArea.style.display = 'block';
+    feedbackArea.classList.add('show');
+    scrollStudyCardIntoView();
   }
   
+  function createFeedbackSummaryItem(type, count, label) {
+    return `
+      <span class="detailed-summary-item ${type}">
+        <strong>${count}</strong>
+        <span>${escapeHtml(label)}</span>
+      </span>
+    `;
+  }
+
   function generateLetterComparison(userAnswer, expectedAnswer) {
-    const user = userAnswer.toLowerCase();
-    const expected = expectedAnswer.toLowerCase();
-    const maxLength = Math.max(user.length, expected.length);
+    const userChars = Array.from(userAnswer || '');
+    const expectedChars = Array.from(expectedAnswer || '');
+    const maxLength = Math.max(userChars.length, expectedChars.length);
+    const stats = {
+      correct: 0,
+      wrong: 0,
+      missing: 0,
+      extra: 0,
+    };
 
     let comparisonHtml = '';
 
     for (let i = 0; i < maxLength; i++) {
-      const userChar = user[i] || '';
-      const expectedChar = expected[i] || '';
+      const userChar = userChars[i] || '';
+      const expectedChar = expectedChars[i] || '';
+      const normalizedUserChar = userChar.toLowerCase();
+      const normalizedExpectedChar = expectedChar.toLowerCase();
 
       let charClass = '';
       let displayChar = '';
       let tooltip = '';
 
-      if (i >= user.length) {
-        // Missing character
-        charClass = 'char-missing';
-        displayChar = expectedChar;
-        tooltip = `Missing: "${expectedChar}"`;
-      } else if (i >= expected.length) {
-        // Extra character
-        charClass = 'char-extra';
-        displayChar = userChar;
-        tooltip = `Extra: "${userChar}"`;
-      } else if (userChar === expectedChar) {
-        // Correct character
-        charClass = 'char-correct';
-        displayChar = userChar;
-        tooltip = `Correct: "${userChar}"`;
+      if (i >= userChars.length) {
+        charClass = 'detailed-char-missing';
+        displayChar = getComparisonDisplayChar(expectedChar);
+        tooltip = `Missing: "${getReadableChar(expectedChar)}"`;
+        stats.missing += 1;
+      } else if (i >= expectedChars.length) {
+        charClass = 'detailed-char-extra';
+        displayChar = getComparisonDisplayChar(userChar);
+        tooltip = `Extra: "${getReadableChar(userChar)}"`;
+        stats.extra += 1;
+      } else if (normalizedUserChar === normalizedExpectedChar) {
+        charClass = 'detailed-char-correct';
+        displayChar = getComparisonDisplayChar(userChar);
+        tooltip = `Correct: "${getReadableChar(userChar)}"`;
+        stats.correct += 1;
       } else {
-        // Wrong character
-        charClass = 'char-wrong';
-        displayChar = userChar;
-        tooltip = `Wrong: "${userChar}" should be "${expectedChar}"`;
+        charClass = 'detailed-char-wrong';
+        displayChar = getComparisonDisplayChar(userChar);
+        tooltip = `Incorrect: "${getReadableChar(userChar)}" should be "${getReadableChar(expectedChar)}"`;
+        stats.wrong += 1;
       }
 
-      comparisonHtml += `<span class="char-comparison ${charClass}" title="${tooltip}">${displayChar || '·'}</span>`;
+      comparisonHtml += `<span class="detailed-char-comparison ${charClass}" title="${escapeHtml(tooltip)}">${displayChar}</span>`;
     }
 
-    return comparisonHtml;
+    return {
+      html: comparisonHtml,
+      stats,
+    };
+  }
+
+  function getComparisonDisplayChar(char) {
+    if (!char || char === ' ') {
+      return '&middot;';
+    }
+
+    return escapeHtml(char);
+  }
+
+  function getReadableChar(char) {
+    if (!char) {
+      return 'blank';
+    }
+
+    if (char === ' ') {
+      return 'space';
+    }
+
+    return char;
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   // Voice Recording System
