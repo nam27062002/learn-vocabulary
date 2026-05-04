@@ -221,6 +221,8 @@ def i18n_compatible_translations(request):
             'deck_name_required': 'Deck name is required',
             # Audio fetching
             'fetch_missing_audio': 'Fetch Missing Audio',
+            # Image fetching
+            'fetch_missing_images': 'Fetch Missing Images',
             'fetching_audio': 'Fetching audio...',
             'audio_fetched_successfully': 'Audio fetched successfully!',
             'no_audio_found': 'No audio found for some words',
