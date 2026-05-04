@@ -1246,6 +1246,12 @@
       }
     }
 
+    // Reset optionsArea inline styles (dictation submit hides it)
+    if (optionsArea) {
+      optionsArea.style.display = "";
+      optionsArea.style.minHeight = "";
+    }
+
     // Handle different question types
     if (q.type === "mc") {
       // Multiple choice mode - show definitions in the main word area
@@ -1768,6 +1774,8 @@
         const optionsArea = document.getElementById("optionsArea");
         if (optionsArea) {
             optionsArea.innerHTML = '';
+            optionsArea.style.display = "";
+            optionsArea.style.minHeight = "";
 
             const retypeMessage = document.createElement('p');
             retypeMessage.textContent = 'Type the correct answer to continue:';
@@ -3602,291 +3610,151 @@
 
   // Detailed Input Feedback System - Only for incorrect answers
   function showDetailedInputFeedback(correct, userAnswer, expectedAnswer) {
-    console.log(`[DEBUG] Showing detailed feedback: correct=${correct}, user="${userAnswer}", expected="${expectedAnswer}"`);
+    if (correct) return;
 
-    // Only show feedback for incorrect answers
-    if (correct) {
-      return;
-    }
-
-    // Remove any existing feedback
     const existingFeedback = document.querySelector('.detailed-input-feedback');
-    if (existingFeedback) {
-      existingFeedback.remove();
-    }
+    if (existingFeedback) existingFeedback.remove();
 
-    // Create feedback container
-    const feedbackContainer = document.createElement('div');
-    feedbackContainer.className = 'detailed-input-feedback';
-    feedbackContainer.id = 'current-feedback';
-    
-    // Position it to the left of cardBox
-    const cardBox = document.getElementById('cardBox');
-    if (cardBox && cardBox.parentNode) {
-      // Insert before cardBox (so it appears to the left)
-      cardBox.parentNode.insertBefore(feedbackContainer, cardBox);
-    } else {
-      // Fallback: insert in study area
-      const studyArea = document.getElementById('studyArea');
-      if (studyArea) {
-        studyArea.appendChild(feedbackContainer);
-      }
-    }
-
-    // Incorrect answer - show detailed comparison with improved UI
     const comparisonHtml = generateLetterComparison(userAnswer, expectedAnswer);
 
-    feedbackContainer.innerHTML = `
-      <div class="feedback-content incorrect">
-        <div class="feedback-header">
-          <span class="feedback-icon">❌</span>
-          <span class="feedback-title">Incorrect</span>
-          <button class="close-feedback-btn" onclick="document.getElementById('current-feedback').remove()">×</button>
-        </div>
-        <div class="answer-comparison">
-          <div class="answer-section">
-            <div class="answer-row">
-              <span class="answer-label">Your answer:</span>
-              <div class="user-answer-box incorrect">"${userAnswer}"</div>
-            </div>
-            <div class="answer-row">
-              <span class="answer-label">Correct answer:</span>
-              <div class="expected-answer-box">"${expectedAnswer}"</div>
-            </div>
-          </div>
-          <div class="letter-comparison">
-            <span class="comparison-label">Letter by letter comparison:</span>
-            <div class="comparison-display">${comparisonHtml}</div>
-            <div class="comparison-legend">
-              <span class="legend-item"><span class="legend-correct">●</span> Correct</span>
-              <span class="legend-item"><span class="legend-incorrect">●</span> Incorrect</span>
-              <span class="legend-item"><span class="legend-missing">●</span> Missing</span>
-              <span class="legend-item"><span class="legend-extra">●</span> Extra</span>
-            </div>
-          </div>
-        </div>
-        <div class="feedback-footer">
-          <small>This feedback will remain until you move to the next card</small>
-        </div>
+    const feedbackEl = document.createElement('div');
+    feedbackEl.className = 'detailed-input-feedback';
+    feedbackEl.innerHTML = `
+      <div class="dif-header">
+        <span class="dif-label">Your answer</span>
+        <span class="dif-user-text">${userAnswer}</span>
+      </div>
+      <div class="dif-comparison">${comparisonHtml}</div>
+      <div class="dif-legend">
+        <span class="legend-item"><span class="legend-correct">●</span> Correct</span>
+        <span class="legend-item"><span class="legend-incorrect">●</span> Incorrect</span>
+        <span class="legend-item"><span class="legend-missing">●</span> Missing</span>
+        <span class="legend-item"><span class="legend-extra">●</span> Extra</span>
       </div>
     `;
 
-    // Apply improved styles with better contrast and readability
-    feedbackContainer.style.cssText = `
-      position: fixed;
-      left: 20px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 400px;
-      max-height: 85vh;
-      overflow-y: auto;
-      background: linear-gradient(145deg, #1e293b, #334155);
-      color: #f1f5f9;
-      padding: 28px;
-      border-radius: 24px;
-      font-size: 15px;
-      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
-      z-index: 1000;
-      animation: slideInFromLeft 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-    `;
+    const cardBox = document.getElementById('cardBox');
+    const cardHeader = cardBox?.querySelector('.card-header');
+    if (cardHeader) {
+      cardHeader.parentNode.insertBefore(feedbackEl, cardHeader);
+    } else if (cardBox) {
+      cardBox.prepend(feedbackEl);
+    }
 
-    // No auto-hide - feedback stays until next question
-    
-    // Auto-remove after longer time
-    setTimeout(() => {
-      if (feedbackContainer.parentNode) {
-        feedbackContainer.style.transition = 'all 0.5s ease';
-        feedbackContainer.style.opacity = '0';
-        feedbackContainer.style.transform = 'translateX(-100%) translateY(-50%)';
-        setTimeout(() => {
-          if (feedbackContainer.parentNode) {
-            feedbackContainer.remove();
-          }
-        }, 500);
-      }
-    }, 15000);
-    
-    // Inject CSS if not already present
     if (!document.getElementById('detailed-input-feedback-styles')) {
       const style = document.createElement('style');
       style.id = 'detailed-input-feedback-styles';
       style.textContent = `
-        .detailed-input-feedback .feedback-content {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-        
-        .detailed-input-feedback .feedback-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-          font-weight: 600;
-          font-size: 16px;
-        }
-        
-        .detailed-input-feedback .close-feedback-btn {
-          background: rgba(255, 255, 255, 0.2);
-          border: none;
-          color: white;
-          font-size: 20px;
-          font-weight: bold;
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: background-color 0.2s;
-        }
-        
-        .detailed-input-feedback .close-feedback-btn:hover {
-          background: rgba(255, 255, 255, 0.3);
-        }
-        
-        .detailed-input-feedback .feedback-icon {
-          font-size: 18px;
-        }
-        
-        .detailed-input-feedback .answer-comparison {
+        .detailed-input-feedback {
+          width: 100%;
+          background: color-mix(in srgb, var(--error-color, #ef4444) 8%, transparent);
+          border: 1px solid color-mix(in srgb, var(--error-color, #ef4444) 25%, transparent);
+          border-radius: 12px;
+          padding: 12px 16px;
           display: flex;
           flex-direction: column;
           gap: 8px;
+          animation: difFadeIn 0.3s ease;
         }
-        
-        .detailed-input-feedback .answer-row {
+
+        .dif-header {
           display: flex;
-          flex-direction: column;
-          gap: 4px;
+          align-items: center;
+          gap: 10px;
         }
-        
-        .detailed-input-feedback .answer-label {
-          font-size: 12px;
-          opacity: 0.9;
-          font-weight: 500;
-        }
-        
-        .detailed-input-feedback .user-answer,
-        .detailed-input-feedback .expected-answer {
-          font-family: 'Courier New', monospace;
-          font-size: 16px;
+
+        .dif-label {
+          font-size: 0.78rem;
           font-weight: 600;
-          padding: 6px 12px;
-          border-radius: 6px;
-          background-color: rgba(255, 255, 255, 0.2);
+          color: var(--error-color, #ef4444);
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          flex-shrink: 0;
         }
-        
-        .detailed-input-feedback .letter-comparison {
-          margin-top: 8px;
-        }
-        
-        .detailed-input-feedback .comparison-label {
-          font-size: 12px;
-          opacity: 0.9;
-          font-weight: 500;
-          display: block;
-          margin-bottom: 6px;
-        }
-        
-        .detailed-input-feedback .comparison-display {
+
+        .dif-user-text {
           font-family: 'Courier New', monospace;
-          font-size: 16px;
+          font-size: 0.95rem;
           font-weight: 600;
+          color: var(--card-text-main, #1f2937);
+          text-decoration: line-through;
+          opacity: 0.7;
+        }
+
+        .dif-comparison {
           display: flex;
           flex-wrap: wrap;
-          gap: 2px;
-          padding: 8px;
-          background-color: rgba(255, 255, 255, 0.1);
-          border-radius: 6px;
+          gap: 3px;
+          padding: 8px 10px;
+          background: color-mix(in srgb, var(--card-text-main, #1f2937) 6%, transparent);
+          border-radius: 8px;
         }
-        
-        .detailed-input-feedback .char-comparison {
-          padding: 4px 6px;
+
+        .char-comparison {
+          font-family: 'Courier New', monospace;
+          padding: 3px 6px;
           border-radius: 4px;
-          font-weight: 600;
-          min-width: 16px;
+          font-weight: 700;
+          font-size: 0.95rem;
+          min-width: 18px;
           text-align: center;
+          line-height: 1.3;
         }
-        
-        .detailed-input-feedback .char-correct {
-          background-color: rgba(16, 185, 129, 0.3);
-          color: #d1fae5;
+
+        .char-correct {
+          background: color-mix(in srgb, var(--success-color, #10b981) 20%, transparent);
+          color: var(--success-color, #10b981);
         }
-        
-        .detailed-input-feedback .char-wrong {
-          background-color: rgba(239, 68, 68, 0.4);
-          color: #fecaca;
-          font-size: 14px;
+
+        .char-wrong {
+          background: color-mix(in srgb, var(--error-color, #ef4444) 20%, transparent);
+          color: var(--error-color, #ef4444);
         }
-        
-        .detailed-input-feedback .char-missing {
-          background-color: rgba(245, 158, 11, 0.4);
-          color: #fef3c7;
-          text-decoration: underline;
+
+        .char-missing {
+          background: color-mix(in srgb, var(--warning-color, #f59e0b) 20%, transparent);
+          color: var(--warning-color, #f59e0b);
+          border-bottom: 2px dashed var(--warning-color, #f59e0b);
         }
-        
-        .detailed-input-feedback .char-extra {
-          background-color: rgba(168, 85, 247, 0.4);
-          color: #e9d5ff;
+
+        .char-extra {
+          background: color-mix(in srgb, #8b5cf6 20%, transparent);
+          color: #8b5cf6;
           text-decoration: line-through;
         }
-        
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+
+        .dif-legend {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          padding-top: 4px;
         }
-        
-        @keyframes slideInFromLeft {
-          from {
-            opacity: 0;
-            transform: translateX(-100%) translateY(-50%);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0) translateY(-50%);
-          }
+
+        .dif-legend .legend-item {
+          font-size: 0.72rem;
+          color: var(--card-text-muted, #6b7280);
+          display: flex;
+          align-items: center;
+          gap: 4px;
         }
-        
-        /* Responsive design for mobile */
-        @media (max-width: 768px) {
-          .detailed-input-feedback {
-            position: fixed !important;
-            left: 10px !important;
-            right: 10px !important;
-            top: 20px !important;
-            transform: none !important;
-            width: auto !important;
-            max-width: calc(100vw - 20px) !important;
-          }
-        }
-        
-        /* Ensure it doesn't interfere with small screens */
-        @media (max-width: 1200px) {
-          .detailed-input-feedback {
-            width: 280px !important;
-            left: 10px !important;
-          }
+
+        .legend-correct { color: var(--success-color, #10b981); font-size: 0.6rem; }
+        .legend-incorrect { color: var(--error-color, #ef4444); font-size: 0.6rem; }
+        .legend-missing { color: var(--warning-color, #f59e0b); font-size: 0.6rem; }
+        .legend-extra { color: #8b5cf6; font-size: 0.6rem; }
+
+        @keyframes difFadeIn {
+          from { opacity: 0; transform: translateY(-6px); }
+          to { opacity: 1; transform: translateY(0); }
         }
 
         @keyframes shake {
-            10%, 90% { transform: translateX(-1px); }
-            20%, 80% { transform: translateX(2px); }
-            30%, 50%, 70% { transform: translateX(-4px); }
-            40%, 60% { transform: translateX(4px); }
+          10%, 90% { transform: translateX(-1px); }
+          20%, 80% { transform: translateX(2px); }
+          30%, 50%, 70% { transform: translateX(-4px); }
+          40%, 60% { transform: translateX(4px); }
         }
-        .shake-animation {
-            animation: shake 0.5s ease-in-out;
-        }
+        .shake-animation { animation: shake 0.5s ease-in-out; }
       `;
       document.head.appendChild(style);
     }
