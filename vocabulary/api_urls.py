@@ -67,4 +67,5 @@ urlpatterns = [
     path('api/ai/word-examples/', views.api_ai_word_examples, name='api_ai_word_examples'),
     path('api/ai/vstep-suggestions/', views.api_vstep_suggestions, name='api_vstep_suggestions'),
     path('api/ai/generate-image/', views.api_generate_word_image, name='api_generate_word_image'),
+    path('api/ai/save-generated-image/', views.api_save_generated_image, name='api_save_generated_image'),
 ]
