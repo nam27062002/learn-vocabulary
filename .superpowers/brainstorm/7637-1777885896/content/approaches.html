@@ -1,0 +1,142 @@
+<h2>Deck Detail — Card Layout Approaches</h2>
+<p class="subtitle">Chọn cách xử lý xung đột giữa action buttons và card image khi hover</p>
+
+<style>
+.mock-card {
+  background: linear-gradient(145deg, #1f2937, #111827);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 16px;
+  position: relative;
+  min-height: 180px;
+  font-family: system-ui, sans-serif;
+  color: #f3f4f6;
+  overflow: hidden;
+}
+.mock-word { font-size: 1.4rem; font-weight: 700; }
+.mock-pos { font-size: 0.85rem; color: #9ca3af; font-style: italic; }
+.mock-badge { display: inline-block; background: #22c55e; color: white; font-size: 0.7rem; padding: 2px 7px; border-radius: 999px; margin-left: 6px; }
+.mock-phonetic { font-size: 0.9rem; color: #9ca3af; margin-top: 4px; }
+.mock-def { font-size: 0.8rem; color: #d1d5db; margin-top: 8px; line-height: 1.5; }
+.mock-btn-row { display: flex; gap: 4px; }
+.mock-btn { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; border: 1px solid rgba(255,255,255,0.15); cursor: default; }
+.mock-img { width: 90px; height: 90px; border-radius: 10px; background: #374151; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: #6b7280; text-align: center; overflow: hidden; }
+.mock-img-inner { width: 100%; height: 100%; background: linear-gradient(135deg,#374151,#4b5563); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.mock-label-tag { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; padding: 3px 8px; border-radius: 4px; margin-bottom: 4px; }
+.issue-tag { background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+.fix-tag { background: rgba(34,197,94,0.2); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+
+/* Approach A: margin-top spacing */
+.approach-a .mock-img-container { float: right; margin: 44px 0 12px 12px; }
+.approach-a .mock-btn-row { position: absolute; top: 12px; right: 12px; }
+
+/* Approach B: buttons overlay on image */
+.approach-b .mock-img-wrapper { position: relative; float: right; margin: 0 0 12px 12px; }
+.approach-b .mock-img-wrapper .hover-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.55); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 3px; padding: 6px; }
+.approach-b .hover-overlay .mock-btn { width: 26px; height: 26px; font-size: 0.6rem; background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.25); }
+
+/* Approach C: bottom toolbar */
+.approach-c .mock-img-container { float: right; margin: 0 0 12px 12px; }
+.approach-c .bottom-bar { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(17,24,39,0.9); border-top: 1px solid rgba(255,255,255,0.08); padding: 6px 12px; display: flex; justify-content: flex-end; gap: 4px; border-radius: 0 0 12px 12px; }
+
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.card { cursor: pointer; }
+.card-image { padding: 16px 16px 0; }
+.card-body { padding: 12px 16px 16px; }
+.card-body h3 { color: #f3f4f6; margin: 0 0 4px; font-size: 0.95rem; }
+.card-body p { color: #9ca3af; font-size: 0.8rem; margin: 0; line-height: 1.4; }
+</style>
+
+<div class="cards">
+
+  <!-- Option A -->
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <div class="card-image">
+        <span class="mock-label-tag fix-tag">Buttons trên, Image xuống dưới</span>
+        <div class="mock-card approach-a">
+          <div class="mock-btn-row">
+            <div class="mock-btn">🔍</div>
+            <div class="mock-btn">🤍</div>
+            <div class="mock-btn">⛔</div>
+            <div class="mock-btn">✏️</div>
+            <div class="mock-btn">🗑️</div>
+          </div>
+          <div class="mock-img-container">
+            <div class="mock-img"><div class="mock-img-inner"><span style="font-size:1.5rem">🏛️</span><span>image</span></div></div>
+          </div>
+          <div class="mock-word">advocate <span class="mock-badge">A2</span></div>
+          <div class="mock-pos">(noun)</div>
+          <div class="mock-phonetic">/ˈæd.və.keɪt/</div>
+          <div class="mock-def">English: Someone whose job is to speak for someone's case...</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <h3>Approach A — Offset Image</h3>
+        <p>Thêm margin-top cho image (~52px) để image luôn bắt đầu dưới row buttons. Buttons vẫn ở top-right, không overlap.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <div class="card-image">
+        <span class="mock-label-tag fix-tag">Buttons overlay trên image</span>
+        <div class="mock-card approach-b">
+          <div class="mock-img-wrapper">
+            <div class="mock-img"><div class="mock-img-inner"><span style="font-size:1.5rem">🏛️</span></div></div>
+            <div class="hover-overlay">
+              <div class="mock-btn">🔍</div>
+              <div class="mock-btn">🤍</div>
+              <div class="mock-btn">⛔</div>
+              <div class="mock-btn">✏️</div>
+              <div class="mock-btn">🗑️</div>
+            </div>
+          </div>
+          <div class="mock-word">advocate <span class="mock-badge">A2</span></div>
+          <div class="mock-pos">(noun)</div>
+          <div class="mock-phonetic">/ˈæd.və.keɪt/</div>
+          <div class="mock-def">English: Someone whose job is to speak for someone's case...</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <h3>Approach B — Image Overlay</h3>
+        <p>Khi hover, buttons xuất hiện như overlay bên trên image. Image trở thành "action zone" — hiện đại, tiết kiệm không gian.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option C -->
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <div class="card-image">
+        <span class="mock-label-tag fix-tag">Bottom toolbar</span>
+        <div class="mock-card approach-c" style="padding-bottom: 52px;">
+          <div class="mock-img-container">
+            <div class="mock-img"><div class="mock-img-inner"><span style="font-size:1.5rem">🏛️</span><span>image</span></div></div>
+          </div>
+          <div class="mock-word">advocate <span class="mock-badge">A2</span></div>
+          <div class="mock-pos">(noun)</div>
+          <div class="mock-phonetic">/ˈæd.və.keɪt/</div>
+          <div class="mock-def">English: Someone whose job is to speak for someone's case...</div>
+          <div class="bottom-bar">
+            <div class="mock-btn">🔍</div>
+            <div class="mock-btn">🤍</div>
+            <div class="mock-btn">⛔</div>
+            <div class="mock-btn">✏️</div>
+            <div class="mock-btn">🗑️</div>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <h3>Approach C — Bottom Toolbar</h3>
+        <p>Chuyển action buttons xuống thanh ngang ở đáy card khi hover. Image ở top-right không bị ảnh hưởng gì cả.</p>
+      </div>
+    </div>
+  </div>
+
+</div>

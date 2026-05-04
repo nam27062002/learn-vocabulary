@@ -322,6 +322,15 @@ document.addEventListener("DOMContentLoaded", function () {
       prevSlide();
     } else if (event.key === "ArrowRight") {
       nextSlide();
+    } else if (event.key === " ") {
+      event.preventDefault();
+      const currentSlide = slides[currentSlideIndex];
+      if (currentSlide) {
+        const audioIcon = currentSlide.querySelector(".audio-icon-tailwind");
+        if (audioIcon && audioIcon.dataset.audioUrl) {
+          playAudioWithDebug(audioIcon.dataset.audioUrl, audioIcon);
+        }
+      }
     }
   });
 
