@@ -2594,6 +2594,8 @@ def api_save_generated_image(request):
     try:
         data = json.loads(request.body)
         card_id = data.get('flashcard_id')
+        if not card_id:
+            return JsonResponse({'success': False, 'error': 'flashcard_id is required'}, status=400)
 
         try:
             card = Flashcard.objects.get(id=card_id, user=request.user)
