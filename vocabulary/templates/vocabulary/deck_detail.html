@@ -167,6 +167,7 @@
           class="flex-shrink-0 snap-center"
           style="width: 100%"
           data-card-id="{{ card.id }}"
+          data-has-image="{% if card.image or card.related_image_url %}true{% else %}false{% endif %}"
         >
         <!-- View Mode -->
         <div
