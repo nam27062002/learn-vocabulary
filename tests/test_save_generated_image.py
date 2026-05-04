@@ -24,7 +24,7 @@ class SaveGeneratedImageTest(TestCase):
     def test_save_generated_image_success(self):
         """Endpoint saves b64 image to card.image and returns success."""
         fake_b64 = base64.b64encode(b'fake-png-data').decode()
-        with patch('vocabulary.views.generate_word_image', return_value=fake_b64):
+        with patch('vocabulary.image_service.generate_word_image', return_value=fake_b64):
             response = self.client.post(
                 '/api/ai/save-generated-image/',
                 data=json.dumps({'flashcard_id': self.card.id}),
@@ -50,7 +50,7 @@ class SaveGeneratedImageTest(TestCase):
 
     def test_returns_error_when_generation_fails(self):
         """Endpoint returns success=False when image_service returns None."""
-        with patch('vocabulary.views.generate_word_image', return_value=None):
+        with patch('vocabulary.image_service.generate_word_image', return_value=None):
             response = self.client.post(
                 '/api/ai/save-generated-image/',
                 data=json.dumps({'flashcard_id': self.card.id}),
@@ -74,4 +74,4 @@ class SaveGeneratedImageTest(TestCase):
             data=json.dumps({'flashcard_id': self.card.id}),
             content_type='application/json',
         )
-        self.assertIn(response.status_code, [302, 401, 403])
+        self.assertEqual(response.status_code, 302)
