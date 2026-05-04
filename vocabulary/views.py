@@ -2585,6 +2585,40 @@ def api_generate_word_image(request):
         return JsonResponse({'success': False, 'error': 'Image generation failed'}, status=500)
 
 
+@login_required
+@require_POST
+def api_save_generated_image(request):
+    """Generate an AI image for a flashcard and save it as a local file."""
+    import base64
+    from .image_service import generate_word_image
+    try:
+        data = json.loads(request.body)
+        card_id = data.get('flashcard_id')
+
+        try:
+            card = Flashcard.objects.get(id=card_id, user=request.user)
+        except Flashcard.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Flashcard not found'}, status=404)
+
+        first_def = card.definitions.first()
+        definition = first_def.english_definition if first_def else ''
+
+        b64 = generate_word_image(card.word, definition)
+        if not b64:
+            return JsonResponse({'success': False, 'error': 'Image generation failed'})
+
+        image_bytes = base64.b64decode(b64)
+        filename = f'{card.word}.png'
+        card.image.save(filename, ContentFile(image_bytes), save=True)
+
+        return JsonResponse({'success': True, 'word': card.word})
+
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
 def debug_study_template(request):
     """Debug view to check study template rendering without authentication."""
     context = {
