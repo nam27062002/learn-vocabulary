@@ -1619,52 +1619,60 @@ document.addEventListener("DOMContentLoaded", function () {
     let generated = 0;
     let failed = 0;
 
-    for (let i = 0; i < cardIds.length; i++) {
-      progressFill.style.width = `${(i / cardIds.length) * 100}%`;
-      header.textContent = `Generating images... ${i}/${cardIds.length}`;
+    try {
+      for (let i = 0; i < cardIds.length; i++) {
+        progressFill.style.width = `${(i / cardIds.length) * 100}%`;
+        header.textContent = `Generating images... ${i}/${cardIds.length}`;
 
-      try {
-        const res = await fetch("/api/ai/save-generated-image/", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": csrfToken,
-          },
-          body: JSON.stringify({ flashcard_id: cardIds[i] }),
-        });
-        const data = await res.json();
+        try {
+          const res = await fetch("/api/ai/save-generated-image/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": csrfToken,
+            },
+            body: JSON.stringify({ flashcard_id: cardIds[i] }),
+          });
+          if (!res.ok) {
+            console.error(`Image generation failed for card ${cardIds[i]}: HTTP ${res.status}`);
+            failed++;
+            currentWordEl.textContent = `✗ failed (${res.status})`;
+          } else {
+            const data = await res.json();
 
-        if (data.success) {
-          generated++;
-          currentWordEl.textContent = `✓ ${data.word}`;
-        } else {
+            if (data.success) {
+              generated++;
+              currentWordEl.textContent = `✓ ${data.word}`;
+            } else {
+              failed++;
+              currentWordEl.textContent = `✗ failed`;
+            }
+          }
+        } catch {
           failed++;
-          currentWordEl.textContent = `✗ failed`;
+          currentWordEl.textContent = `✗ error`;
         }
-      } catch {
-        failed++;
-        currentWordEl.textContent = `✗ error`;
+
+        progressFill.style.width = `${((i + 1) / cardIds.length) * 100}%`;
+        header.textContent = `Generating images... ${i + 1}/${cardIds.length}`;
       }
 
-      progressFill.style.width = `${((i + 1) / cardIds.length) * 100}%`;
-      header.textContent = `Generating images... ${i + 1}/${cardIds.length}`;
-    }
+      header.textContent = "Image generation complete";
+      currentWordEl.textContent = `Generated: ${generated} / Failed: ${failed}`;
+      progressFill.style.width = "100%";
 
-    header.textContent = "Image generation complete";
-    currentWordEl.textContent = `Generated: ${generated} / Failed: ${failed}`;
-    progressFill.style.width = "100%";
-
-    fetchBtn.disabled = false;
-    fetchBtn.innerHTML = originalText;
-
-    if (generated > 0) {
-      Notify.success(`${generated} images generated!`);
-      setTimeout(() => window.location.reload(), 2000);
-    } else {
-      Notify.info("No images could be generated");
-      setTimeout(() => {
-        if (progressDiv.parentNode) progressDiv.parentNode.removeChild(progressDiv);
-      }, 3000);
+      if (generated > 0) {
+        Notify.success(`${generated} images generated!`);
+        setTimeout(() => window.location.reload(), 2000);
+      } else {
+        Notify.info("No images could be generated");
+        setTimeout(() => {
+          if (progressDiv.parentNode) progressDiv.parentNode.removeChild(progressDiv);
+        }, 3000);
+      }
+    } finally {
+      fetchBtn.disabled = false;
+      fetchBtn.innerHTML = originalText;
     }
   }
 
