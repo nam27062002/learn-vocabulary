@@ -276,6 +276,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Initialize image fetching functionality
   initializeImageFetching();
+  updateImageStats();
 
   // Initialize dictionary links with fallback mechanism
   initializeDictionaryLinks();
@@ -1574,6 +1575,20 @@ document.addEventListener("DOMContentLoaded", function () {
     const fetchBtn = document.getElementById("fetch-missing-images-btn");
     if (!fetchBtn) return;
     fetchBtn.addEventListener("click", fetchMissingImagesForDeck);
+  }
+
+  function updateImageStats() {
+    const allCards = document.querySelectorAll("[data-card-id][data-has-image]");
+    let withImage = 0;
+    let withoutImage = 0;
+    allCards.forEach((el) => {
+      if (el.dataset.hasImage === "true") withImage++;
+      else withoutImage++;
+    });
+    const withEl = document.getElementById("cards-with-image-count");
+    const withoutEl = document.getElementById("cards-without-image-count");
+    if (withEl) withEl.textContent = withImage;
+    if (withoutEl) withoutEl.textContent = withoutImage;
   }
 
   async function fetchMissingImagesForDeck() {
