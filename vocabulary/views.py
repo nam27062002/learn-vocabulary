@@ -965,8 +965,13 @@ def save_flashcards(request):
                 'phonetic': card_data.get('phonetic'),
                 'part_of_speech': card_data.get('part_of_speech'),
                 'audio_url': card_data.get('audio_url'),
-                'deck': deck
+                'deck': deck,
             }
+
+            cefr_from_frontend = card_data.get('cefr_level', '').strip()
+            if cefr_from_frontend:
+                defaults['cefr_level'] = cefr_from_frontend
+                defaults['cefr_level_auto'] = True
             
             # Only update image if a new one is provided
             if 'image' in card_data:
@@ -978,8 +983,7 @@ def save_flashcards(request):
                 defaults=defaults
             )
 
-            # Update CEFR level for new or updated flashcards
-            if created or not flashcard.cefr_level:
+            if not flashcard.cefr_level:
                 flashcard.update_cefr_level(save=True)
 
             # Clear old definitions and create new one(s)
