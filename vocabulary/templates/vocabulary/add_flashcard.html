@@ -936,6 +936,63 @@
         justify-content: flex-start;
       }
     }
+
+    .cefr-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+      position: relative;
+      cursor: default;
+      opacity: 0;
+      transition: opacity 0.3s ease-in;
+      margin-left: auto;
+      margin-right: 8px;
+    }
+
+    .cefr-badge.visible {
+      opacity: 1;
+    }
+
+    .cefr-badge[data-level="A1"] { background: #58CC02; }
+    .cefr-badge[data-level="A2"] { background: #89E219; color: #1a1a2e; }
+    .cefr-badge[data-level="B1"] { background: #FFC800; color: #1a1a2e; }
+    .cefr-badge[data-level="B2"] { background: #FF9600; }
+    .cefr-badge[data-level="C1"] { background: #FF4B4B; }
+    .cefr-badge[data-level="C2"] { background: #8B0000; }
+
+    .cefr-tooltip {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1a1a2e;
+      color: #e0e0e0;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 400;
+      white-space: nowrap;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .cefr-badge:hover .cefr-tooltip {
+      display: block;
+    }
+
+    @media (max-width: 600px) {
+      .cefr-badge {
+        padding: 1px 7px;
+        font-size: 0.65rem;
+      }
+    }
   </style>
 
   <div class="deck-selection-area">
@@ -1014,6 +1071,10 @@
     <div class="flashcard-section" data-card-index="1">
       <div class="flashcard-header">
         <span class="card-number">1</span>
+        <div class="cefr-badge" style="display:none;" data-level="">
+          <span class="cefr-text"></span>
+          <span class="cefr-tooltip"></span>
+        </div>
         <div class="actions">
           <button class="action-icon drag-handle" title="{{ manual_texts.drag_to_move }}">
             <svg
@@ -1180,6 +1241,15 @@ document.addEventListener('DOMContentLoaded', function() {
     let cardCount = 1;
     let wordApiCache = {};
     let autoImageEnabled = false;
+
+    const CEFR_DESCRIPTIONS = {
+        'A1': 'A1 - Beginner',
+        'A2': 'A2 - Elementary',
+        'B1': 'B1 - Intermediate',
+        'B2': 'B2 - Upper-Intermediate',
+        'C1': 'C1 - Advanced',
+        'C2': 'C2 - Proficiency',
+    };
 
     // Save loading overlay elements
     const saveLoadingOverlay = document.getElementById('save-loading-overlay');
@@ -1496,12 +1566,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const definitionTextarea = card.querySelector(".definition-textarea");
         const vietnameseTextarea = card.querySelector(".vietnamese-textarea");
         const definitionSuggestions = card.querySelector('.definition-suggestions');
+        const cefrBadge = card.querySelector('.cefr-badge');
 
         // Reset previous state first
         resetCardUI(card);
 
-        // Phonetic
-        const phoneticText = data.phonetics?.find(p => p.text)?.text || "";
+        // Phonetic — prefer flat Cambridge field, fallback to array
+        const phoneticText = data.phonetic || data.phonetics?.find(p => p.text)?.text || "";
         phoneticInput.value = phoneticText;
 
         if (autoInfo) {
@@ -1509,12 +1580,12 @@ document.addEventListener('DOMContentLoaded', function() {
             autoInfo.classList.remove('inactive');
         }
 
-        // Part of Speech
-        const partOfSpeech = data.meanings?.[0]?.part_of_speech || "";
+        // Part of Speech — prefer flat field
+        const partOfSpeech = data.part_of_speech || data.meanings?.[0]?.part_of_speech || "";
         if (autoPos) autoPos.textContent = partOfSpeech;
 
-        // Audio
-        const audioUrl = data.phonetics?.find(p => p.audio)?.audio || "";
+        // Audio — prefer flat field
+        const audioUrl = data.audio_url || data.phonetics?.find(p => p.audio)?.audio || "";
         if (autoAudio) {
             autoAudio.dataset.audioUrl = audioUrl;
             autoAudio.innerHTML = audioUrl ? `
@@ -1523,12 +1594,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (autoInfo) autoInfo.style.display = "flex";
 
-        // Handle Definitions
+        // CEFR Badge
+        if (cefrBadge) {
+            if (data.cefr_level && CEFR_DESCRIPTIONS[data.cefr_level]) {
+                cefrBadge.dataset.level = data.cefr_level;
+                cefrBadge.querySelector('.cefr-text').textContent = data.cefr_level;
+                cefrBadge.querySelector('.cefr-tooltip').textContent = CEFR_DESCRIPTIONS[data.cefr_level];
+                cefrBadge.style.display = '';
+                // Trigger fade-in animation
+                requestAnimationFrame(() => cefrBadge.classList.add('visible'));
+            } else {
+                cefrBadge.style.display = 'none';
+                cefrBadge.classList.remove('visible');
+            }
+        }
+
+        // Vietnamese Definition — use LLM-translated field directly
+        if (data.definition_vi) {
+            vietnameseTextarea.value = data.definition_vi;
+        }
+
+        // Handle Definitions — still populate suggestion dropdown from meanings array
         definitionSuggestions.innerHTML = '';
         const allDefinitions = data.meanings?.flatMap(m => m.definitions.map(d => ({ ...d, part_of_speech: m.part_of_speech }))) || [];
-        
+
         if (allDefinitions.length > 0) {
-            // Populate suggestions list
             allDefinitions.forEach(def => {
                 const item = document.createElement('div');
                 item.className = 'suggestion-item';
@@ -1537,15 +1627,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     e.stopPropagation();
                     definitionTextarea.value = def.en;
                     definitionSuggestions.style.display = 'none';
-                    // No need to re-translate, as the core term hasn't changed.
-                    // The initial translation is sufficient.
-                    // Validate card after selecting definition
                     validateCard(card);
                 });
                 definitionSuggestions.appendChild(item);
             });
 
-            // Set up show/hide events for the suggestion box
             definitionTextarea.addEventListener('focus', () => {
                 if(definitionSuggestions.innerHTML !== ''){
                    definitionSuggestions.style.display = 'block';
@@ -1554,28 +1640,32 @@ document.addEventListener('DOMContentLoaded', function() {
             definitionTextarea.addEventListener('blur', () => {
                 setTimeout(() => {
                     definitionSuggestions.style.display = 'none';
-                }, 200); // Delay to allow click on suggestion
+                }, 200);
             });
-            
-            // Auto-fill the first definition and then translate the *term*
-            const firstDefinition = allDefinitions[0].en;
-            const termToTranslate = card.querySelector('.term-input').value.trim();
+
+            // Auto-fill first English definition
+            const firstDefinition = data.definition_en || allDefinitions[0].en;
             definitionTextarea.value = firstDefinition;
-            translateToVietnamese(termToTranslate, vietnameseTextarea);
+
+            // If no LLM translation was provided, leave Vietnamese empty for user
+            if (!data.definition_vi) {
+                vietnameseTextarea.value = "";
+            }
 
         } else {
-            // No definitions found
-            definitionTextarea.value = '';
-            vietnameseTextarea.value = '';
+            definitionTextarea.value = data.definition_en || '';
+            if (!data.definition_vi) {
+                vietnameseTextarea.value = '';
+            }
         }
-        
+
         // Validate card after updating UI
         validateCard(card);
 
         // Auto-generate image (async, non-blocking)
         const termValue = card.querySelector('.term-input').value.trim();
-        const firstDef = data.meanings?.[0]?.definitions?.[0]?.en || '';
-        if (autoImageEnabled) generateImageForCard(termValue, firstDef, card);
+        const firstDef = data.definition_en || data.meanings?.[0]?.definitions?.[0]?.en || '';
+        generateImageForCard(termValue, firstDef, card);
     }
 
     function resetCardUI(card) {
@@ -1607,6 +1697,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (definitionSuggestions) {
             definitionSuggestions.innerHTML = "";
             definitionSuggestions.style.display = "none";
+        }
+
+        // Reset CEFR badge
+        const cefrBadge = card.querySelector('.cefr-badge');
+        if (cefrBadge) {
+            cefrBadge.style.display = 'none';
+            cefrBadge.classList.remove('visible');
+            cefrBadge.dataset.level = '';
+            cefrBadge.querySelector('.cefr-text').textContent = '';
+            cefrBadge.querySelector('.cefr-tooltip').textContent = '';
         }
     }
 
@@ -1893,6 +1993,14 @@ document.addEventListener('DOMContentLoaded', function() {
             // Reset UI state
             newCard.querySelector('.term-input').classList.remove('correct-spelling', 'incorrect-spelling', 'duplicate-warning');
             resetCardUI(newCard);
+
+            // Reset CEFR badge on cloned card
+            const cefrBadge = newCard.querySelector('.cefr-badge');
+            if (cefrBadge) {
+                cefrBadge.style.display = 'none';
+                cefrBadge.classList.remove('visible');
+                cefrBadge.dataset.level = '';
+            }
 
             // Update IDs to be unique
             newCard.querySelectorAll('[id]').forEach(el => {
@@ -2262,7 +2370,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 formData.append(`flashcards-${idx}-english_definition`, card.querySelector('.definition-textarea').value.trim());
                 formData.append(`flashcards-${idx}-vietnamese_definition`, card.querySelector('.vietnamese-textarea').value.trim());
                 formData.append(`flashcards-${idx}-audio_url`, card.querySelector('.auto-audio').dataset.audioUrl || '');
-                
+                formData.append(`flashcards-${idx}-cefr_level`, card.querySelector('.cefr-badge')?.dataset?.level || '');
+
                 // Handle image file if present (user upload or AI-generated)
                 const imageInput = card.querySelector('input[type="file"]');
                 if (imageInput.files[0]) {
