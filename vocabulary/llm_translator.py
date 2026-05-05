@@ -71,7 +71,9 @@ class LiteLLMTranslator(BaseLLMTranslator):
         if result is None:
             result = self._fallback_google_translate(word_data)
 
-        cache.set(cache_key, result, timeout=TRANSLATION_CACHE_TIMEOUT)
+        if result.definition_vi or result.short_meaning_vi:
+            cache.set(cache_key, result, timeout=TRANSLATION_CACHE_TIMEOUT)
+
         return result
 
     def _call_llm(self, word_data: 'CambridgeWordData') -> TranslationResult | None:
