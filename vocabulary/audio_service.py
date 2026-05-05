@@ -7,6 +7,7 @@ import time
 import logging
 from urllib.parse import urljoin
 from django.conf import settings
+from django.core.cache import cache
 from dataclasses import dataclass
 from typing import List, Dict, Optional
 
@@ -20,6 +21,20 @@ class AudioOption:
     selector_source: str  # e.g., "audio1", "audio2"
     is_valid: bool
     error_message: Optional[str] = None
+
+@dataclass
+class CambridgeWordData:
+    """Complete word data scraped from Cambridge Dictionary in a single request."""
+    word: str
+    phonetic_uk: str = ""
+    phonetic_us: str = ""
+    audio_uk: str = ""
+    audio_us: str = ""
+    definition_en: str = ""
+    part_of_speech: str = ""
+    cefr_level: str = ""
+    example_en: str = ""
+    source: str = "cambridge"
 
 # Configuration for multiple audio source selectors
 AUDIO_SELECTORS = [
@@ -349,6 +364,103 @@ class EnhancedCambridgeAudioFetcher(CambridgeAudioFetcher):
                 validated_options.append(audio_option)
 
         return validated_options
+
+    def _parse_word_data(self, tree, word: str) -> Optional[CambridgeWordData]:
+        """Parse all word data fields from a Cambridge Dictionary HTML tree.
+
+        Pure parse method — no I/O. Returns None if the page has no dictionary entry.
+        """
+        pos_elements = tree.xpath('//span[contains(@class,"pos dpos")]')
+        if not pos_elements:
+            return None
+
+        def _first_text(xpath: str) -> str:
+            elems = tree.xpath(xpath)
+            return elems[0].text_content().strip() if elems else ""
+
+        def _first_src(xpath: str) -> str:
+            elems = tree.xpath(xpath)
+            if elems:
+                src = elems[0].get("src", "")
+                if src.startswith("/"):
+                    return urljoin(self.BASE_URL, src)
+                return src
+            return ""
+
+        phonetic_uk_raw = _first_text('//span[contains(@class,"uk dpron-i")]//span[contains(@class,"ipa")]')
+        phonetic_us_raw = _first_text('//span[contains(@class,"us dpron-i")]//span[contains(@class,"ipa")]')
+
+        cefr = ""
+        cefr_elems = tree.xpath('//span[contains(@class,"epp-xref")]')
+        if cefr_elems:
+            cefr = cefr_elems[0].text_content().strip()
+
+        definition_raw = _first_text('//div[contains(@class,"def ddef_d")]')
+        definition_en = definition_raw.rstrip(": ")
+
+        return CambridgeWordData(
+            word=word,
+            phonetic_uk=f"/{phonetic_uk_raw}/" if phonetic_uk_raw else "",
+            phonetic_us=f"/{phonetic_us_raw}/" if phonetic_us_raw else "",
+            audio_uk=_first_src('//*[@id="audio1"]/source[1]'),
+            audio_us=_first_src('//*[@id="audio2"]/source[1]'),
+            definition_en=definition_en,
+            part_of_speech=_first_text('//span[contains(@class,"pos dpos")]'),
+            cefr_level=cefr,
+            example_en=_first_text('//span[contains(@class,"eg deg")]'),
+        )
+
+    def fetch_word_data(self, word: str) -> Optional[CambridgeWordData]:
+        """Fetch complete word data from Cambridge Dictionary.
+
+        Checks cache first. On cache miss, makes a single HTTP request and parses
+        all fields (phonetic, audio, definition, POS, CEFR, example). Caches the
+        result for 24 hours.
+
+        Returns None if the word is not found or on network error.
+        """
+        if not word or not word.strip():
+            return None
+
+        word = word.strip().lower()
+        cache_key = f"cambridge_word:{word}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            logger.info(f"Cambridge cache hit for '{word}'")
+            return cached
+
+        url = self.DICTIONARY_URL.format(word=word)
+        logger.info(f"Fetching word data from Cambridge for: {word}")
+
+        for attempt in range(self.MAX_RETRIES):
+            try:
+                self._rate_limit()
+                response = self.session.get(url, timeout=self.TIMEOUT)
+                response.raise_for_status()
+
+                tree = html.fromstring(response.content)
+                result = self._parse_word_data(tree, word)
+
+                if result:
+                    cache.set(cache_key, result, timeout=86400)
+                    logger.info(f"Cambridge data cached for '{word}': POS={result.part_of_speech}, CEFR={result.cefr_level}")
+                else:
+                    logger.info(f"No dictionary entry found on Cambridge for '{word}'")
+
+                return result
+
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"Cambridge fetch failed for '{word}' (attempt {attempt + 1}/{self.MAX_RETRIES}): {e}")
+                if attempt < self.MAX_RETRIES - 1:
+                    time.sleep(2 ** attempt)
+                else:
+                    logger.error(f"Cambridge fetch failed for '{word}' after {self.MAX_RETRIES} attempts")
+
+            except Exception as e:
+                logger.error(f"Unexpected error fetching Cambridge data for '{word}': {e}")
+                break
+
+        return None
 
 
 # Global instances
