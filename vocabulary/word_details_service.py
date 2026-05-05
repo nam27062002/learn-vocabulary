@@ -1,140 +1,203 @@
-import requests
-from googletrans import Translator
 import logging
-from .audio_service import EnhancedCambridgeAudioFetcher
 
-# Set up logging
+import requests
+from django.conf import settings
+
+from .audio_service import EnhancedCambridgeAudioFetcher, CambridgeWordData
+from .llm_translator import LiteLLMTranslator, TranslationResult
+
 logger = logging.getLogger(__name__)
 
-def get_cambridge_british_audio(word):
-    """
-    Fetch British English audio from Cambridge Dictionary.
-    Prioritizes UK pronunciation over US pronunciation.
+_cambridge_fetcher = EnhancedCambridgeAudioFetcher()
+_translator = LiteLLMTranslator()
 
-    Args:
-        word (str): The word to fetch audio for
 
-    Returns:
-        str: Audio URL if found, empty string otherwise
+def get_word_details(word: str) -> dict:
+    """Fetch word details using Cambridge Dictionary first, with dictionaryapi.dev fallback."""
+    if not word or not word.strip():
+        return {"error": "No word provided"}
+
+    word = word.strip()
+
+    cambridge_data = _fetch_from_cambridge(word)
+    if cambridge_data:
+        translation = _translate(cambridge_data)
+        return _build_cambridge_response(cambridge_data, translation)
+
+    fallback_data = _fetch_from_dictionary_api(word)
+    if fallback_data:
+        translation = _translate_fallback(word, fallback_data)
+        return _build_fallback_response(fallback_data, translation)
+
+    return {"error": f"Không tìm thấy từ '{word}'."}
+
+
+def _fetch_from_cambridge(word: str) -> CambridgeWordData | None:
+    try:
+        return _cambridge_fetcher.fetch_word_data(word)
+    except Exception as e:
+        logger.warning(f"Cambridge fetch error for '{word}': {e}")
+        return None
+
+
+def _translate(cambridge_data: CambridgeWordData) -> TranslationResult:
+    try:
+        return _translator.translate_definition(cambridge_data)
+    except Exception as e:
+        logger.warning(f"Translation error for '{cambridge_data.word}': {e}")
+        return TranslationResult(definition_vi="", short_meaning_vi="", source="error")
+
+
+def _translate_fallback(word: str, fallback_data: dict) -> TranslationResult:
+    """Translate using fallback data by constructing a minimal CambridgeWordData."""
+    first_meaning = (fallback_data.get("meanings") or [{}])[0]
+    first_def = (first_meaning.get("definitions") or [{}])[0]
+
+    synthetic = CambridgeWordData(
+        word=word,
+        definition_en=first_def.get("en", ""),
+        part_of_speech=first_meaning.get("part_of_speech", ""),
+        example_en=first_def.get("example", ""),
+    )
+    return _translate(synthetic)
+
+
+def _fetch_from_dictionary_api(word: str) -> dict | None:
+    """Fetch word data from dictionaryapi.dev as fallback."""
+    api_url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
+    try:
+        response = requests.get(api_url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+
+        if not isinstance(data, list) or not data:
+            return None
+
+        word_data = data[0]
+        if not isinstance(word_data, dict):
+            return None
+
+        from .audio_service import EnhancedCambridgeAudioFetcher as _Fetcher
+
+        cambridge_audio = ""
+        try:
+            fetcher = _Fetcher()
+            audio_options = fetcher.fetch_multiple_audio_sources(word)
+            for option in audio_options:
+                if option.is_valid:
+                    label_lower = option.label.lower()
+                    if "uk" in label_lower or "british" in label_lower:
+                        cambridge_audio = option.url
+                        break
+                    if not cambridge_audio:
+                        cambridge_audio = option.url
+        except Exception as e:
+            logger.warning(f"Cambridge audio fetch failed during fallback for '{word}': {e}")
+
+        phonetics = []
+        for p in word_data.get("phonetics", []):
+            if isinstance(p, dict):
+                phonetics.append({
+                    "text": p.get("text", ""),
+                    "audio": cambridge_audio or p.get("audio", ""),
+                })
+
+        meanings = []
+        for m in word_data.get("meanings", []):
+            if not isinstance(m, dict):
+                continue
+            definitions = []
+            for d in m.get("definitions", []):
+                if isinstance(d, dict):
+                    definitions.append({
+                        "en": d.get("definition", ""),
+                        "example": d.get("example", ""),
+                    })
+            meanings.append({
+                "part_of_speech": m.get("partOfSpeech", ""),
+                "definitions": definitions,
+            })
+
+        return {
+            "word": word_data.get("word", word),
+            "phonetics": phonetics,
+            "meanings": meanings,
+        }
+
+    except requests.exceptions.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            logger.info(f"Word '{word}' not found on dictionaryapi.dev")
+        else:
+            logger.warning(f"dictionaryapi.dev HTTP error for '{word}': {e}")
+        return None
+    except Exception as e:
+        logger.error(f"dictionaryapi.dev error for '{word}': {e}")
+        return None
+
+
+def _build_cambridge_response(data: CambridgeWordData, translation: TranslationResult) -> dict:
+    return {
+        "word": data.word,
+        "phonetic": data.phonetic_uk,
+        "phonetic_us": data.phonetic_us,
+        "phonetic_source": "cambridge_uk" if data.phonetic_uk else "",
+        "audio_url": data.audio_uk,
+        "definition_en": data.definition_en,
+        "definition_vi": translation.definition_vi,
+        "short_meaning_vi": translation.short_meaning_vi,
+        "part_of_speech": data.part_of_speech,
+        "cefr_level": data.cefr_level,
+        "example_en": data.example_en,
+        "source": "cambridge",
+        # Backward compat
+        "phonetics": [{"text": data.phonetic_uk, "audio": data.audio_uk}],
+        "meanings": [{
+            "part_of_speech": data.part_of_speech,
+            "definitions": [{"en": data.definition_en, "example": data.example_en}],
+        }],
+    }
+
+
+def _build_fallback_response(fallback_data: dict, translation: TranslationResult) -> dict:
+    first_phonetic = (fallback_data.get("phonetics") or [{}])[0]
+    first_meaning = (fallback_data.get("meanings") or [{}])[0]
+    first_def = (first_meaning.get("definitions") or [{}])[0]
+
+    return {
+        "word": fallback_data.get("word", ""),
+        "phonetic": first_phonetic.get("text", ""),
+        "phonetic_us": "",
+        "phonetic_source": "dictionary_api",
+        "audio_url": first_phonetic.get("audio", ""),
+        "definition_en": first_def.get("en", ""),
+        "definition_vi": translation.definition_vi,
+        "short_meaning_vi": translation.short_meaning_vi,
+        "part_of_speech": first_meaning.get("part_of_speech", ""),
+        "cefr_level": "",
+        "example_en": first_def.get("example", ""),
+        "source": "dictionary_api",
+        # Backward compat
+        "phonetics": fallback_data.get("phonetics", []),
+        "meanings": fallback_data.get("meanings", []),
+    }
+
+
+# Keep for backward compatibility — other endpoints may import this
+def get_cambridge_british_audio(word: str) -> str:
+    """Fetch British English audio URL from Cambridge Dictionary.
+
+    Deprecated: use EnhancedCambridgeAudioFetcher.fetch_word_data() instead.
     """
     if not word or not word.strip():
         return ""
 
     try:
-        # Use the enhanced Cambridge audio fetcher
-        enhanced_fetcher = EnhancedCambridgeAudioFetcher()
-        audio_options = enhanced_fetcher.fetch_multiple_audio_sources(word.strip())
-
-        if not audio_options:
-            logger.info(f"No audio options found for word: {word}")
-            return ""
-
-        # Prioritize UK/British pronunciation
-        uk_audio = None
-        fallback_audio = None
-
-        for option in audio_options:
-            if not option.is_valid:
-                continue
-
-            # Check if this is UK/British pronunciation
-            label_lower = option.label.lower()
-            if 'uk' in label_lower or 'british' in label_lower:
-                uk_audio = option.url
-                break
-
-            # Keep first valid audio as fallback
-            if fallback_audio is None:
-                fallback_audio = option.url
-
-        # Return UK audio if found, otherwise fallback to any available audio
-        selected_audio = uk_audio or fallback_audio or ""
-
-        if selected_audio:
-            logger.info(f"Selected audio for '{word}': {selected_audio}")
-        else:
-            logger.info(f"No valid audio found for word: {word}")
-
-        return selected_audio
-
+        data = _cambridge_fetcher.fetch_word_data(word)
+        if data and data.audio_uk:
+            return data.audio_uk
+        if data and data.audio_us:
+            return data.audio_us
     except Exception as e:
-        logger.error(f"Error fetching Cambridge audio for word '{word}': {e}")
-        return ""
+        logger.error(f"Error in get_cambridge_british_audio for '{word}': {e}")
 
-def get_word_details(word):
-    """
-    Lấy chi tiết đầy đủ của một từ một cách an toàn.
-    Hàm này được thiết kế để xử lý các cấu trúc dữ liệu không nhất quán từ API.
-    """
-    api_url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
-    try:
-        response = requests.get(api_url)
-        response.raise_for_status()
-        data = response.json()
-
-        if not isinstance(data, list) or not data:
-            return {"error": f"Không tìm thấy dữ liệu cho từ '{word}'."}
-        
-        word_data = data[0]
-        if not isinstance(word_data, dict):
-            return {"error": "Định dạng dữ liệu từ API không hợp lệ."}
-
-        # Trích xuất phát âm một cách an toàn
-        phonetics = []
-        api_phonetics = word_data.get('phonetics', [])
-
-        # Get Cambridge Dictionary audio (prioritizing British English)
-        cambridge_audio = get_cambridge_british_audio(word)
-
-        if isinstance(api_phonetics, list):
-            for p in api_phonetics:
-                if isinstance(p, dict):
-                    # Replace dictionaryapi.dev audio with Cambridge Dictionary audio
-                    phonetics.append({
-                        "text": p.get("text", ""),
-                        "audio": cambridge_audio  # Use Cambridge audio instead of p.get("audio", "")
-                    })
-
-        # If no phonetics from dictionaryapi.dev but we have Cambridge audio, create a phonetic entry
-        if not phonetics and cambridge_audio:
-            phonetics.append({
-                "text": "",  # No phonetic text available
-                "audio": cambridge_audio
-            })
-
-        # Trích xuất nghĩa một cách an toàn
-        meanings = []
-        api_meanings = word_data.get('meanings', [])
-        if isinstance(api_meanings, list):
-            for m in api_meanings:
-                if not isinstance(m, dict):
-                    continue
-
-                definitions = []
-                api_definitions = m.get('definitions', [])
-                if isinstance(api_definitions, list):
-                    for d in api_definitions:
-                        if isinstance(d, dict):
-                            definitions.append({
-                                "en": d.get("definition", ""),
-                                "example": d.get("example", "")
-                            })
-                
-                meanings.append({
-                    "part_of_speech": m.get("partOfSpeech", ""),
-                    "definitions": definitions
-                })
-
-        return {
-            "word": word_data.get("word", word),
-            "phonetics": phonetics,
-            "meanings": meanings
-        }
-
-    except requests.exceptions.HTTPError as e:
-        if e.response.status_code == 404:
-            return {"error": f"Từ '{word}' không tồn tại trong từ điển."}
-        return {"error": f"Lỗi HTTP khi gọi API từ điển: {e}"}
-    except Exception as e:
-        print(f"Lỗi không mong muốn trong get_word_details cho từ '{word}': {e}")
-        return {"error": "Lỗi hệ thống khi đang xử lý yêu cầu từ điển."} 
+    return ""
