@@ -1,7 +1,6 @@
 import logging
 
 import requests
-from django.conf import settings
 
 from .audio_service import EnhancedCambridgeAudioFetcher, CambridgeWordData
 from .llm_translator import LiteLLMTranslator, TranslationResult
