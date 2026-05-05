@@ -24,7 +24,12 @@
       "PowerShell(Join-Path *)",
       "PowerShell(& \"D:\\\\My Projects\\\\Web\\\\learn-vocabulary\\\\.venv\\\\Scripts\\\\python.exe\" -c \"import urllib.request, urllib.parse; data = urllib.parse.urlencode\\({'chat_id': '5255113327', 'text': '\\\\U0001f310 Learn Vocabulary Server\\\\n\\\\nTunnel is ready!\\\\nhttps://test-example.trycloudflare.com', 'parse_mode': 'HTML'}\\).encode\\(\\); req = urllib.request.Request\\('https://api.telegram.org/bot8722014885:AAGZK1kFeDUdOZ5U60zo2qhUrx-m-5CCxm8/sendMessage', data=data\\); resp = urllib.request.urlopen\\(req, timeout=10\\); print\\(resp.read\\(\\).decode\\(\\)\\)\")",
       "PowerShell(Get-Command *)",
-      "PowerShell(py *)"
+      "PowerShell(py *)",
+      "WebFetch(domain:dictionary.cambridge.org)",
+      "PowerShell(New-Item *)",
+      "PowerShell(.venv\\\\Scripts\\\\python.exe manage.py test vocabulary.tests_cambridge_scraper -v 2)",
+      "PowerShell(.venv\\\\Scripts\\\\python.exe manage.py test vocabulary.tests_llm_translator -v 2)",
+      "PowerShell(git *)"
     ]
   },
   "enabledPlugins": {

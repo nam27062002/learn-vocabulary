@@ -1665,7 +1665,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Auto-generate image (async, non-blocking)
         const termValue = card.querySelector('.term-input').value.trim();
         const firstDef = data.definition_en || data.meanings?.[0]?.definitions?.[0]?.en || '';
-        generateImageForCard(termValue, firstDef, card);
+        if (autoImageEnabled) generateImageForCard(termValue, firstDef, card);
     }
 
     function resetCardUI(card) {
