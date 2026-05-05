@@ -23,6 +23,7 @@
       --text-muted: #a0a0b8;
       --success-color: #4caf50;
       --error-color: #f44336;
+      --toggle-knob-off: #6a6a8a;
     }
 
     .add-flashcard-page {
@@ -137,7 +138,7 @@
       left: 3px;
       width: 16px;
       height: 16px;
-      background-color: #6a6a8a;
+      background-color: var(--toggle-knob-off);
       border-radius: 50%;
       transition: left 0.2s ease, background-color 0.2s ease;
     }
@@ -153,7 +154,7 @@
 
     #auto-image-toggle-state {
       font-size: 0.82em;
-      color: #6a6a8a;
+      color: var(--toggle-knob-off);
       min-width: 26px;
       font-weight: 500;
     }
@@ -920,6 +921,19 @@
 
       .quick-add-info {
         text-align: center;
+      }
+
+      .deck-selection-area {
+        flex-wrap: wrap;
+      }
+
+      .auto-image-divider {
+        display: none;
+      }
+
+      .auto-image-toggle-group {
+        width: 100%;
+        justify-content: flex-start;
       }
     }
   </style>
