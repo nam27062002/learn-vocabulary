@@ -6,7 +6,7 @@
 {% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/study.css' %}" />
+<link rel="stylesheet" href="{% static 'css/study.css' %}?v=20260509" />
 <style>
   #studyArea {
     position: relative;
@@ -769,12 +769,12 @@
     <div id="loadingIndicator" class="loading-indicator">
         <div class="spinner"></div>
     </div>
-    <div class="study-header-bar">
-      <button id="backBtn" class="back-button">
-        <i class="fas fa-arrow-left"></i>
-        {{ manual_texts.back_to_selection }}
-      </button>
-      <div class="header-controls">
+    <div class="study-top-panel">
+      <div class="study-header-bar">
+        <button id="backBtn" class="back-button">
+          <i class="fas fa-arrow-left"></i>
+          {{ manual_texts.back_to_selection }}
+        </button>
         <div id="timerDisplay" class="timer-display">
           <i class="fas fa-clock"></i>
           <span id="timerText">00:00</span>
@@ -782,36 +782,38 @@
         <div id="statsInfo" class="stats-display">
           {{ manual_texts.correct }}: 0 | {{ manual_texts.incorrect }}: 0
         </div>
-        <div class="audio-settings">
-          <label class="audio-toggle">
-            <input type="checkbox" id="audioToggle" checked />
-            <span class="toggle-slider"></span>
-            <span class="toggle-label">
-              <i class="fas fa-volume-up"></i>
-              {{ manual_texts.sound_feedback }}
-            </span>
-          </label>
-          <label class="audio-toggle">
-            <input type="checkbox" id="skipFeedbackToggle" checked />
-            <span class="toggle-slider"></span>
-            <span class="toggle-label">
-              <i class="fas fa-forward"></i>
-              {{ manual_texts.skip_feedback|default:"Skip Feedback" }}
-            </span>
-          </label>
-        </div>
       </div>
-    </div>
 
-    <!-- Progress Bar -->
-    <div id="progressContainer" class="progress-container" style="display: none;">
-      <div class="progress-info">
-        <span id="progressText" class="progress-text">{{ manual_texts.progress|default:'Progress' }}: 0/0</span>
-        <span id="progressPercentage" class="progress-percentage">0%</span>
-      </div>
-      <div class="progress-bar-wrapper">
-        <div class="progress-bar">
-          <div id="progressBarFill" class="progress-bar-fill"></div>
+      <!-- Progress Bar -->
+      <div id="progressContainer" class="progress-container" style="display: none;">
+        <div class="progress-meta-row">
+          <div class="progress-info">
+            <span id="progressText" class="progress-text">{{ manual_texts.progress|default:'Progress' }}: 0/0</span>
+            <span id="progressPercentage" class="progress-percentage">0%</span>
+          </div>
+          <div class="audio-settings">
+            <label class="audio-toggle">
+              <input type="checkbox" id="audioToggle" checked />
+              <span class="toggle-slider"></span>
+              <span class="toggle-label">
+                <i class="fas fa-volume-up"></i>
+                {{ manual_texts.sound_feedback }}
+              </span>
+            </label>
+            <label class="audio-toggle">
+              <input type="checkbox" id="skipFeedbackToggle" checked />
+              <span class="toggle-slider"></span>
+              <span class="toggle-label">
+                <i class="fas fa-forward"></i>
+                {{ manual_texts.skip_feedback|default:"Skip Feedback" }}
+              </span>
+            </label>
+          </div>
+        </div>
+        <div class="progress-bar-wrapper">
+          <div class="progress-bar">
+            <div id="progressBarFill" class="progress-bar-fill"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -863,12 +865,12 @@
         <div id="optionsArea" class="options-area"></div>
         <div id="feedbackMsg" class="feedback-message"></div>
         <div id="detailedFeedbackArea" class="detailed-feedback-area" style="display: none;"></div>
-        <div id="cardExample" class="card-example" style="display:none; margin-top:12px; padding:10px 14px; border-left:3px solid var(--primary-color); background:rgba(106,108,255,0.08); border-radius:0 6px 6px 0;">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
-            <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted);">Example</div>
-            <button onclick="speakText(document.getElementById('cardExampleText').textContent)" title="Play example" style="background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:14px; padding:2px 4px; border-radius:4px; line-height:1; transition:color 0.2s;" onmouseover="this.style.color='var(--primary-color)'" onmouseout="this.style.color='var(--text-muted)'">🔊</button>
+        <div id="cardExample" class="card-example" style="display:none;">
+          <div class="card-example-header">
+            <div class="card-example-label">Example</div>
+            <button onclick="speakText(document.getElementById('cardExampleText').textContent)" title="Play example" class="card-example-audio">🔊</button>
           </div>
-          <div id="cardExampleText" style="font-style:italic; color:var(--text-main); line-height:1.6;"></div>
+          <div id="cardExampleText" class="card-example-text"></div>
         </div>
       </div>
 
@@ -1194,6 +1196,6 @@
   </div>
 </div>
 
-<script src="{% static 'js/study.js' %}"></script>
+<script src="{% static 'js/study.js' %}?v=20260507"></script>
 <script src="{% static 'js/ai-examples.js' %}"></script>
 {% endblock %}

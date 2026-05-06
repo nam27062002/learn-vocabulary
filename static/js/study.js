@@ -714,7 +714,13 @@
 
   function updateStats() {
     if (statsInfo) {
-      statsInfo.textContent = `${STUDY_CFG.labels.correct}: ${correctCnt} | ${STUDY_CFG.labels.incorrect}: ${incorrectCnt}`;
+      const correctLabel = STUDY_CFG.labels.correct || "Correct";
+      const incorrectLabel = STUDY_CFG.labels.incorrect || "Incorrect";
+      statsInfo.innerHTML = `
+        <span class="study-stat study-stat-correct">${escapeHtml(correctLabel)}: <strong>${correctCnt}</strong></span>
+        <span class="study-stat-divider">|</span>
+        <span class="study-stat study-stat-incorrect">${escapeHtml(incorrectLabel)}: <strong>${incorrectCnt}</strong></span>
+      `;
     }
   }
 
@@ -3623,12 +3629,9 @@
       feedbackArea.innerHTML = '';
     }
 
-    if (studyArea) {
-      studyArea.classList.remove('compact-feedback-layout');
-    }
-
     if (cardBox) {
       cardBox.classList.remove('has-detailed-feedback');
+      cardBox.classList.remove('dictation-feedback-state');
     }
 
     const legacyFeedback = document.querySelector('.detailed-input-feedback');
@@ -3656,6 +3659,7 @@
     const feedbackArea = document.getElementById('detailedFeedbackArea');
     const answerSection = document.getElementById('answerSection');
     const optionsArea = document.getElementById('optionsArea');
+    const isDictationFeedback = currentQuestion?.type === 'dictation';
 
     if (!feedbackArea || !answerSection) {
       return;
@@ -3675,13 +3679,15 @@
 
     feedbackArea.innerHTML = `
       <div class="detailed-feedback-content">
-        <div class="detailed-feedback-header">
+        <div class="detailed-feedback-panel-header">
           <div class="detailed-feedback-heading">
-            <span class="detailed-feedback-kicker">Spelling check</span>
-            <div class="detailed-feedback-summary">${summaryItems}</div>
+            <span class="detailed-feedback-kicker">Spelling Feedback</span>
+            <p class="detailed-feedback-title">Spot the mismatched letters, then retype the full word.</p>
           </div>
-          <span class="detailed-feedback-caption">Compare each letter, then retype the correct word.</span>
+          <span class="detailed-feedback-caption">Compare each letter before continuing.</span>
         </div>
+
+        <div class="detailed-feedback-summary">${summaryItems}</div>
 
         <div class="detailed-answer-section">
           <div class="detailed-answer-box detailed-answer-box-user">
@@ -3708,12 +3714,9 @@
       answerSection.insertBefore(feedbackArea, optionsArea);
     }
 
-    if (studyArea) {
-      studyArea.classList.add('compact-feedback-layout');
-    }
-
     if (cardBox) {
       cardBox.classList.add('has-detailed-feedback');
+      cardBox.classList.toggle('dictation-feedback-state', isDictationFeedback);
     }
 
     feedbackArea.style.display = 'block';
