@@ -1135,6 +1135,11 @@
       console.log(`[DEBUG] Grade buttons hidden for new question`);
     }
 
+    const cardExampleEl = document.getElementById("cardExample");
+    if (cardExampleEl) {
+      cardExampleEl.style.display = "none";
+    }
+
     // Hide audio button during question phase - it will be shown after answer submission
     if (audioButton) {
       audioButton.style.display = "none";
@@ -1648,6 +1653,16 @@
 
     // Show CEFR level after answer is revealed
     showCefrLevelAfterAnswer();
+
+    // Show example sentence if available
+    const cardExampleEl = document.getElementById("cardExample");
+    const cardExampleTextEl = document.getElementById("cardExampleText");
+    if (cardExampleEl && cardExampleTextEl && currentQuestion.example_sentence) {
+      cardExampleTextEl.textContent = currentQuestion.example_sentence;
+      cardExampleEl.style.display = "block";
+    } else if (cardExampleEl) {
+      cardExampleEl.style.display = "none";
+    }
 
     // Show and setup favorite button
     let currentFavoriteButton = favoriteButton;
