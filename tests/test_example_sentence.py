@@ -150,7 +150,7 @@ from io import StringIO
 from django.core.management import call_command
 
 class PopulateExamplesCommandTest(TestCase):
-    @patch('vocabulary.word_details_service.get_word_details')
+    @patch('vocabulary.management.commands.populate_examples.get_word_details')
     def test_dry_run_prints_words_without_writing(self, mock_get):
         mock_get.return_value = {'example_sentence': 'She was brave.', 'example_source': 'llm'}
         user = User.objects.create_user(email='dryrun@test.com', password='pass')
@@ -163,7 +163,7 @@ class PopulateExamplesCommandTest(TestCase):
         self.assertIsNone(card.example_sentence)
         self.assertIn('brave', out.getvalue())
 
-    @patch('vocabulary.word_details_service.get_word_details')
+    @patch('vocabulary.management.commands.populate_examples.get_word_details')
     def test_fills_cards_without_example(self, mock_get):
         mock_get.return_value = {'example_sentence': 'She was brave.', 'example_source': 'llm'}
         user = User.objects.create_user(email='fill@test.com', password='pass')
@@ -171,20 +171,51 @@ class PopulateExamplesCommandTest(TestCase):
         card_no_ex = Flashcard.objects.create(user=user, deck=deck, word='brave', example_sentence=None)
         card_has_ex = Flashcard.objects.create(user=user, deck=deck, word='kind', example_sentence='She is a kind person.', example_source='cambridge')
 
-        call_command('populate_examples')
+        call_command('populate_examples', stdout=StringIO())
         card_no_ex.refresh_from_db()
         card_has_ex.refresh_from_db()
         self.assertEqual(card_no_ex.example_sentence, 'She was brave.')
         # card with existing example should NOT be overwritten
         self.assertEqual(card_has_ex.example_sentence, 'She is a kind person.')
 
-    @patch('vocabulary.word_details_service.get_word_details')
+    @patch('vocabulary.management.commands.populate_examples.get_word_details')
     def test_force_flag_overwrites_existing(self, mock_get):
         mock_get.return_value = {'example_sentence': 'New sentence.', 'example_source': 'llm'}
         user = User.objects.create_user(email='force@test.com', password='pass')
         deck = Deck.objects.create(user=user, name='Force Deck')
         card_has_ex = Flashcard.objects.create(user=user, deck=deck, word='gentle', example_sentence='She is a gentle person.', example_source='cambridge')
 
-        call_command('populate_examples', '--force')
+        call_command('populate_examples', '--force', stdout=StringIO())
         card_has_ex.refresh_from_db()
         self.assertEqual(card_has_ex.example_sentence, 'New sentence.')
+
+    @patch('vocabulary.management.commands.populate_examples.get_word_details')
+    def test_exception_is_caught_and_skipped(self, mock_get):
+        mock_get.side_effect = [
+            Exception('network error'),
+            {'example_sentence': 'Normal sentence.', 'example_source': 'llm'},
+        ]
+        user = User.objects.create_user(email='except@test.com', password='pass')
+        deck = Deck.objects.create(user=user, name='Except Deck')
+        card1 = Flashcard.objects.create(user=user, deck=deck, word='alpha', example_sentence=None)
+        card2 = Flashcard.objects.create(user=user, deck=deck, word='beta', example_sentence=None)
+
+        # Should not raise
+        call_command('populate_examples', stdout=StringIO())
+
+        card1.refresh_from_db()
+        card2.refresh_from_db()
+        self.assertIsNone(card1.example_sentence)
+        self.assertEqual(card2.example_sentence, 'Normal sentence.')
+
+    @patch('vocabulary.management.commands.populate_examples.get_word_details')
+    def test_limit_processes_at_most_n_cards(self, mock_get):
+        mock_get.return_value = {'example_sentence': 'Test.', 'example_source': 'llm'}
+        user = User.objects.create_user(email='limit@test.com', password='pass')
+        deck = Deck.objects.create(user=user, name='Limit Deck')
+        Flashcard.objects.create(user=user, deck=deck, word='one', example_sentence=None)
+        Flashcard.objects.create(user=user, deck=deck, word='two', example_sentence=None)
+        Flashcard.objects.create(user=user, deck=deck, word='three', example_sentence=None)
+
+        call_command('populate_examples', '--limit', '1', stdout=StringIO())
+        self.assertEqual(mock_get.call_count, 1)
