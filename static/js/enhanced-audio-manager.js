@@ -496,14 +496,6 @@ class EnhancedAudioManager {
                     console.warn('updateCardDisplayForAudio function not available');
                 }
 
-                // Update audio statistics
-                if (window.updateAudioStats) {
-                    console.log('Updating audio stats...');
-                    window.updateAudioStats();
-                } else {
-                    console.warn('updateAudioStats function not available');
-                }
-
                 // Close modal LAST (after all updates are complete)
                 this.closeModal();
 

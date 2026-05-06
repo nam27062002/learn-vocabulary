@@ -207,10 +207,6 @@ def i18n_compatible_translations(request):
             'audio_available': 'Audio Available',
             'audio_missing': 'Audio Missing',
             'add_audio_url': 'Add audio URL to enable pronunciation',
-            'filter_by_audio': 'Filter by Audio Status',
-            'show_all_cards': 'Show All Cards',
-            'show_cards_with_audio': 'Cards with Audio',
-            'show_cards_without_audio': 'Cards without Audio',
             # Deck editing
             'edit_deck_name': 'Edit Deck Name',
             'deck_name': 'Deck Name',

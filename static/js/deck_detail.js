@@ -265,8 +265,8 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initial setup
   showSlide(currentSlideIndex);
 
-  // Initialize audio status functionality
-  initializeAudioStatusFeatures();
+  // Initialize audio functionality used by the deck detail card surface
+  initializeAudioFeatures();
 
   // Initialize deck name editing functionality
   initializeDeckNameEditing();
@@ -286,10 +286,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Make enhanced audio card display function globally available
   window.updateCardDisplayForAudio = updateCardDisplayForAudio;
-
-  // Make updateAudioStats globally available for enhanced audio manager
-  window.updateAudioStats = updateAudioStats;
-
 
   // Keyboard navigation
   document.addEventListener("keydown", function (event) {
@@ -472,9 +468,9 @@ document.addEventListener("DOMContentLoaded", function () {
     // Get card data
     const viewMode = cardContainer.querySelector('.card-view-mode');
     const word = viewMode.querySelector('.dictionary-word-link').textContent;
-    const phoneticElement = viewMode.querySelector('.text-lg.text-gray-400.font-serif.italic span');
+    const phoneticElement = viewMode.querySelector('.deck-phonetic-row span');
     const phonetic = phoneticElement ? phoneticElement.textContent : '';
-    const partOfSpeechElement = viewMode.querySelector('.text-lg.text-gray-400.italic');
+    const partOfSpeechElement = viewMode.querySelector('.deck-part-of-speech');
     const partOfSpeech = partOfSpeechElement ? partOfSpeechElement.textContent.replace(/[()]/g, '').trim() : '';
     const audioIcon = viewMode.querySelector('.audio-icon-tailwind');
     const audioUrl = audioIcon ? audioIcon.dataset.audioUrl : '';
@@ -509,7 +505,7 @@ document.addEventListener("DOMContentLoaded", function () {
     container.innerHTML = '';
 
     // Get all definition pairs - better selector to find actual definition text
-    const definitionElements = viewMode.querySelectorAll('.text-base.text-gray-300.leading-relaxed.mb-2');
+    const definitionElements = viewMode.querySelectorAll('.deck-definition-line');
     const definitions = [];
 
     for (let i = 0; i < definitionElements.length; i += 2) {
@@ -518,16 +514,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (englishEl && vietnameseEl) {
         // Remove the "EN:" and "VI:" labels completely
-        let englishText = englishEl.textContent.replace(/^EN:\s*/i, '').trim();
-        let vietnameseText = vietnameseEl.textContent.replace(/^VI:\s*/i, '').trim();
+        let englishText = englishEl.textContent.replace(/^English:\s*/i, '').trim();
+        let vietnameseText = vietnameseEl.textContent.replace(/^Vietnamese:\s*/i, '').trim();
 
         // Also handle cases where the span might contain the prefix
-        const englishSpan = englishEl.querySelector('span.font-semibold');
+        const englishSpan = englishEl.querySelector('.deck-definition-label');
         if (englishSpan) {
           englishText = englishEl.textContent.replace(englishSpan.textContent, '').trim();
         }
 
-        const vietnameseSpan = vietnameseEl.querySelector('span.font-semibold');
+        const vietnameseSpan = vietnameseEl.querySelector('.deck-definition-label');
         if (vietnameseSpan) {
           vietnameseText = vietnameseEl.textContent.replace(vietnameseSpan.textContent, '').trim();
         }
@@ -734,7 +730,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const viewMode = cardContainer.querySelector(".card-view-mode");
 
     // Update word
-    const wordLink = viewMode.querySelector("a");
+    const wordLink = viewMode.querySelector(".dictionary-word-link");
     if (wordLink) {
       wordLink.textContent = cardData.word;
       wordLink.href = `https://dictionary.cambridge.org/dictionary/english/${cardData.word}`;
@@ -759,9 +755,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Update part of speech
-    const posElement = viewMode.querySelector(
-      ".text-lg.text-gray-400.mb-2.italic"
-    );
+    const posElement = viewMode.querySelector(".deck-part-of-speech");
     if (posElement) {
       if (cardData.part_of_speech) {
         posElement.textContent = `(${cardData.part_of_speech})`;
@@ -772,9 +766,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Update phonetic and audio
-    const phoneticContainer = viewMode.querySelector(
-      ".text-lg.text-gray-400.font-serif.italic.mb-4"
-    );
+    const phoneticContainer = viewMode.querySelector(".deck-phonetic-row");
     if (phoneticContainer) {
       const phoneticSpan = phoneticContainer.querySelector("span");
       const audioBtn = phoneticContainer.querySelector(".audio-icon-tailwind");
@@ -795,9 +787,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Update definitions
-    const definitionContainers = viewMode.querySelectorAll(
-      ".text-base.text-gray-300.leading-relaxed.mb-2"
-    );
+    const definitionContainers = viewMode.querySelectorAll(".deck-definition-line, .deck-definition-empty");
 
     // Remove existing definitions
     definitionContainers.forEach((container) => container.remove());
@@ -806,13 +796,12 @@ document.addEventListener("DOMContentLoaded", function () {
     if (cardData.definitions && cardData.definitions.length > 0) {
       cardData.definitions.forEach((def) => {
         const englishDiv = document.createElement("div");
-        englishDiv.className = "text-base text-gray-300 leading-relaxed mb-2";
-        englishDiv.innerHTML = `<span class="font-semibold text-primary-color">EN:</span> ${def.english_definition}`;
+        englishDiv.className = "deck-definition-line";
+        englishDiv.innerHTML = `<span class="deck-definition-label">${window.manual_texts?.english_label || "English:"}</span> ${def.english_definition}`;
 
         const vietnameseDiv = document.createElement("div");
-        vietnameseDiv.className =
-          "text-base text-gray-300 leading-relaxed mb-2";
-        vietnameseDiv.innerHTML = `<span class="font-semibold text-primary-color">VI:</span> ${def.vietnamese_definition}`;
+        vietnameseDiv.className = "deck-definition-line";
+        vietnameseDiv.innerHTML = `<span class="deck-definition-label">${window.manual_texts?.vietnamese_label || "Vietnamese:"}</span> ${def.vietnamese_definition}`;
 
         viewMode.appendChild(englishDiv);
         viewMode.appendChild(vietnameseDiv);
@@ -820,8 +809,7 @@ document.addEventListener("DOMContentLoaded", function () {
     } else {
       // Show a message if no definitions
       const noDefDiv = document.createElement("div");
-      noDefDiv.className =
-        "text-base text-gray-400 leading-relaxed mb-2 italic";
+      noDefDiv.className = "deck-definition-empty text-base text-gray-400 leading-relaxed mb-2 italic";
       noDefDiv.textContent =
         window.manual_texts?.no_definitions_available ||
         "No definitions available";
@@ -980,236 +968,15 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // Audio status functionality
-  function initializeAudioStatusFeatures() {
-    console.log(`[DEBUG] ========== INITIALIZING AUDIO STATUS FEATURES ==========`);
-
+  // Audio functionality used by the deck detail card surface
+  function initializeAudioFeatures() {
     // Test browser audio support first
     testBrowserAudioSupport();
 
-    // Debug audio icons
     debugAudioIcons();
 
-    // Initialize direct audio icon listeners
     initializeAudioIconListeners();
-    console.log(`[DEBUG] DOM ready state: ${document.readyState}`);
-    console.log(`[DEBUG] Current time: ${new Date().toISOString()}`);
-
-    // Check initial DOM state
-    const initialCards = document.querySelectorAll("[data-card-id]");
-    console.log(`[DEBUG] Initial DOM scan: Found ${initialCards.length} elements with [data-card-id]`);
-
-    updateAudioStats();
-    setupAudioFilter();
     setupAudioUrlFieldHandlers();
-
-    console.log(`[DEBUG] ========== AUDIO STATUS FEATURES INITIALIZED ==========`);
-  }
-
-  function updateAudioStats() {
-    console.log(`[DEBUG] ========== AUDIO STATS DEBUG START ==========`);
-    console.log(`[DEBUG] Called from:`, new Error().stack.split('\n')[2].trim());
-    console.log(`[DEBUG] Timestamp: ${new Date().toISOString()}`);
-
-    // Get all elements with data-card-id attribute
-    const allElements = document.querySelectorAll("[data-card-id]");
-    console.log(`[DEBUG] DOM Query Result: Found ${allElements.length} elements with [data-card-id]`);
-
-    // Filter to only get card containers (not favorite buttons or other elements)
-    const allCards = Array.from(allElements).filter(element => {
-      const hasViewMode = element.querySelector(".card-view-mode");
-      const isCardContainer = element.classList.contains("flex-shrink-0");
-      console.log(`[DEBUG] Element analysis: tagName=${element.tagName}, hasViewMode=${!!hasViewMode}, isCardContainer=${isCardContainer}, classes="${element.className}"`);
-      return hasViewMode && isCardContainer;
-    });
-
-    console.log(`[DEBUG] Filtered to ${allCards.length} actual card containers`);
-
-    // Check for duplicate card IDs
-    const cardIds = [];
-    const duplicateIds = [];
-    const cardDetails = [];
-
-    allCards.forEach((card, index) => {
-      const cardId = card.getAttribute("data-card-id");
-      const isVisible = card.style.display !== "none";
-      const hasViewMode = !!card.querySelector(".card-view-mode");
-      const hasEditMode = !!card.querySelector(".card-edit-mode");
-      const cardClasses = card.className;
-      const cardPosition = card.getBoundingClientRect();
-
-      // Track card IDs for duplicate detection
-      if (cardIds.includes(cardId)) {
-        duplicateIds.push(cardId);
-      } else {
-        cardIds.push(cardId);
-      }
-
-      // Collect detailed info about each card element
-      cardDetails.push({
-        index: index + 1,
-        cardId: cardId,
-        isVisible: isVisible,
-        hasViewMode: hasViewMode,
-        hasEditMode: hasEditMode,
-        classes: cardClasses,
-        position: `x:${Math.round(cardPosition.x)}, y:${Math.round(cardPosition.y)}, w:${Math.round(cardPosition.width)}, h:${Math.round(cardPosition.height)}`,
-        element: card
-      });
-
-      console.log(`[DEBUG] Element ${index + 1}:`);
-      console.log(`  - Card ID: ${cardId}`);
-      console.log(`  - Visible: ${isVisible} (display: ${card.style.display || 'default'})`);
-      console.log(`  - Has View Mode: ${hasViewMode}`);
-      console.log(`  - Has Edit Mode: ${hasEditMode}`);
-      console.log(`  - Classes: ${cardClasses}`);
-      console.log(`  - Position: ${cardPosition.x}, ${cardPosition.y} (${cardPosition.width}x${cardPosition.height})`);
-    });
-
-    // Report duplicate detection results
-    console.log(`[DEBUG] Unique Card IDs: [${cardIds.join(', ')}]`);
-    if (duplicateIds.length > 0) {
-      console.error(`[ERROR] DUPLICATE CARD IDs DETECTED: [${duplicateIds.join(', ')}]`);
-      console.error(`[ERROR] This explains why counts are wrong!`);
-    } else {
-      console.log(`[DEBUG] ✅ No duplicate card IDs found`);
-    }
-
-    // Count audio statistics
-    let withAudioCount = 0;
-    let withoutAudioCount = 0;
-    let processedCards = 0;
-
-    allCards.forEach((card, index) => {
-      const cardId = card.getAttribute("data-card-id");
-      const viewMode = card.querySelector(".card-view-mode");
-
-      if (!viewMode) {
-        console.warn(`[WARN] Card ${index + 1} (ID: ${cardId}) has no view mode - skipping`);
-        return;
-      }
-
-      const hasAudioAttr = viewMode.getAttribute("data-has-audio");
-      const hasAudio = hasAudioAttr === "true";
-
-      console.log(`[DEBUG] Processing Card ${index + 1} (ID: ${cardId}):`);
-      console.log(`  - data-has-audio attribute: "${hasAudioAttr}"`);
-      console.log(`  - Parsed hasAudio: ${hasAudio}`);
-
-      if (hasAudio) {
-        withAudioCount++;
-        console.log(`  - ✅ Counted as WITH audio (total with audio: ${withAudioCount})`);
-      } else {
-        withoutAudioCount++;
-        console.log(`  - ❌ Counted as WITHOUT audio (total without audio: ${withoutAudioCount})`);
-      }
-
-      processedCards++;
-    });
-
-    console.log(`[DEBUG] Processing Summary:`);
-    console.log(`  - Total elements found: ${allCards.length}`);
-    console.log(`  - Cards processed: ${processedCards}`);
-    console.log(`  - Cards with audio: ${withAudioCount}`);
-    console.log(`  - Cards without audio: ${withoutAudioCount}`);
-    console.log(`  - Sum: ${withAudioCount + withoutAudioCount}`);
-
-    // Update stats display
-    const withAudioElement = document.getElementById("cards-with-audio-count");
-    const withoutAudioElement = document.getElementById("cards-without-audio-count");
-
-    if (withAudioElement) {
-      withAudioElement.textContent = withAudioCount;
-      console.log(`[DEBUG] Updated display: cards-with-audio-count = ${withAudioCount}`);
-    }
-    if (withoutAudioElement) {
-      withoutAudioElement.textContent = withoutAudioCount;
-      console.log(`[DEBUG] Updated display: cards-without-audio-count = ${withoutAudioCount}`);
-    }
-
-    // Final validation
-    const totalCalculated = withAudioCount + withoutAudioCount;
-    const uniqueCardCount = cardIds.length;
-
-    console.log(`[DEBUG] Final Validation:`);
-    console.log(`  - DOM elements found: ${allCards.length}`);
-    console.log(`  - Unique card IDs: ${uniqueCardCount}`);
-    console.log(`  - Total calculated: ${totalCalculated}`);
-
-    if (totalCalculated !== uniqueCardCount) {
-      console.error(`[ERROR] MISMATCH: Calculated total (${totalCalculated}) != Unique cards (${uniqueCardCount})`);
-      console.error(`[ERROR] This suggests duplicate DOM elements or counting logic error`);
-    } else if (allCards.length !== uniqueCardCount) {
-      console.error(`[ERROR] DUPLICATE ELEMENTS: Found ${allCards.length} DOM elements but only ${uniqueCardCount} unique card IDs`);
-    } else {
-      console.log(`[DEBUG] ✅ All counts match correctly!`);
-    }
-
-    console.log(`[DEBUG] ========== AUDIO STATS DEBUG END ==========`);
-  }
-
-  function setupAudioFilter() {
-    const filterSelect = document.getElementById("audio-filter");
-    if (!filterSelect) return;
-
-    filterSelect.addEventListener("change", function () {
-      const filterValue = this.value;
-      const allElements = document.querySelectorAll("[data-card-id]");
-
-      // Filter to only get card containers (not favorite buttons)
-      const allCards = Array.from(allElements).filter(element => {
-        const hasViewMode = element.querySelector(".card-view-mode");
-        const isCardContainer = element.classList.contains("flex-shrink-0");
-        return hasViewMode && isCardContainer;
-      });
-
-      console.log(`[DEBUG] Audio filter changed to: ${filterValue}, found ${allCards.length} card containers`);
-
-      allCards.forEach((card, index) => {
-        // Use the data-has-audio attribute for consistent detection
-        const viewMode = card.querySelector(".card-view-mode");
-        const hasAudio = viewMode && viewMode.getAttribute("data-has-audio") === "true";
-        let shouldShow = true;
-
-        switch (filterValue) {
-          case "with-audio":
-            shouldShow = hasAudio;
-            break;
-          case "without-audio":
-            shouldShow = !hasAudio;
-            break;
-          case "all":
-          default:
-            shouldShow = true;
-            break;
-        }
-
-        console.log(`[DEBUG] Card ${index + 1}: hasAudio=${hasAudio}, shouldShow=${shouldShow} (filter: ${filterValue})`);
-
-        if (shouldShow) {
-          card.style.display = "";
-        } else {
-          card.style.display = "none";
-        }
-      });
-
-      // Update carousel after filtering
-      updateCarouselAfterFilter();
-    });
-  }
-
-  function updateCarouselAfterFilter() {
-    // Reset to first visible slide
-    const visibleCards = document.querySelectorAll(
-      '[data-card-id]:not([style*="display: none"])'
-    );
-    if (visibleCards.length > 0) {
-      // Update slides array and current index
-      slides.length = 0;
-      visibleCards.forEach((card) => slides.push(card));
-      currentSlideIndex = 0;
-      showSlide(0);
-    }
   }
 
   function setupAudioUrlFieldHandlers() {
@@ -1227,16 +994,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Update audio button visibility in phonetic section
     updateAudioButtonVisibility(viewMode, cardData);
-
-    // Update stats
-    updateAudioStats();
   }
 
   function updateAudioButtonVisibility(viewMode, cardData) {
     const hasAudio = cardData.audio_url && cardData.audio_url.trim().length > 0;
-    const phoneticContainer = viewMode.querySelector(
-      ".text-lg.text-gray-400.font-serif.italic.mb-4"
-    );
+    const phoneticContainer = viewMode.querySelector(".deck-phonetic-row");
 
     if (hasAudio) {
       // If we have audio, ensure the audio button exists
@@ -1267,7 +1029,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         const audioContainer = document.createElement("div");
         audioContainer.className =
-          "text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2";
+          "deck-phonetic-row text-lg text-gray-400 font-serif flex items-center space-x-2";
         audioContainer.innerHTML = `
                     <span class="text-gray-500 text-sm">${
                       window.manual_texts?.listen || "Listen"
@@ -1280,10 +1042,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 `;
 
         // Insert after the word title
-        const wordTitle = viewMode.querySelector(".text-3xl.font-bold.mb-2");
-        const partOfSpeech = viewMode.querySelector(
-          ".text-lg.text-gray-400.mb-2.italic"
-        );
+        const wordTitle = viewMode.querySelector(".deck-word-title");
+        const partOfSpeech = viewMode.querySelector(".deck-word-meta");
         const insertAfter = partOfSpeech || wordTitle;
         insertAfter.parentNode.insertBefore(
           audioContainer,
@@ -2123,11 +1883,11 @@ document.addEventListener("DOMContentLoaded", function () {
       viewMode.setAttribute('data-has-audio', 'true');
 
       // Find existing audio container - try multiple selectors
-      let audioContainer = viewMode.querySelector('.text-lg.text-gray-400.font-serif.italic.mb-4.flex.items-center.space-x-2');
+      let audioContainer = viewMode.querySelector('.deck-phonetic-row');
 
       // If not found, look for phonetic container that might exist
       if (!audioContainer) {
-        audioContainer = viewMode.querySelector('.text-lg.text-gray-400.font-serif.italic.mb-4');
+        audioContainer = viewMode.querySelector('.deck-phonetic-row, .text-lg.text-gray-400.font-serif.italic.mb-4');
       }
 
       // Also try to find any container that has audio buttons
@@ -2142,11 +1902,11 @@ document.addEventListener("DOMContentLoaded", function () {
         console.log('Creating new audio container');
         // Create new audio container if it doesn't exist
         audioContainer = document.createElement('div');
-        audioContainer.className = 'text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2';
+        audioContainer.className = 'deck-phonetic-row text-lg text-gray-400 font-serif flex items-center space-x-2';
 
         // Insert after the word title or part of speech
-        const wordTitle = viewMode.querySelector('.text-3xl.font-bold.mb-2');
-        const partOfSpeech = viewMode.querySelector('.text-lg.text-gray-400.mb-2.italic');
+        const wordTitle = viewMode.querySelector('.deck-word-title');
+        const partOfSpeech = viewMode.querySelector('.deck-word-meta');
 
         if (partOfSpeech) {
           partOfSpeech.insertAdjacentElement('afterend', audioContainer);
@@ -2159,7 +1919,7 @@ document.addEventListener("DOMContentLoaded", function () {
       } else {
         console.log('Found existing audio container, updating it');
         // Ensure the container has the correct classes for flex layout
-        audioContainer.className = 'text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2';
+        audioContainer.className = 'deck-phonetic-row text-lg text-gray-400 font-serif flex items-center space-x-2';
       }
 
       // Preserve existing phonetic text if it exists
@@ -2200,14 +1960,6 @@ document.addEventListener("DOMContentLoaded", function () {
         // But we can verify it has the correct data
         console.log('New audio button data-audio-url:', newAudioBtn.dataset.audioUrl);
       }
-    }
-
-    // Update audio statistics
-    if (typeof updateAudioStats === 'function') {
-      updateAudioStats();
-      console.log('Audio statistics updated');
-    } else {
-      console.warn('updateAudioStats function not available');
     }
 
     console.log(`Successfully updated card display for card ${cardId}`);

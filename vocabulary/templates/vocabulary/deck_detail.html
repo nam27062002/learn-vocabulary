@@ -9,171 +9,139 @@
   editing
 </div>
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-  <div
-    class="flex justify-between items-center mb-4 pb-3 border-b border-gray-700"
-  >
-    <!-- Left Section: Deck Name Display/Edit -->
-    <div class="flex items-center gap-4">
-      <!-- View Mode -->
-      <div id="deck-name-view" class="flex items-center gap-3">
-        <h1 class="text-2xl font-bold text-white">{{ deck.name }}</h1>
-        <button
-          id="edit-deck-name-btn"
-          class="text-gray-400 hover:text-primary-color transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
-          title="{{ manual_texts.edit_deck_name }}"
-        >
-          <i class="fas fa-edit text-lg"></i>
-        </button>
-      </div>
+<div class="deck-detail-page max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+  <div class="deck-detail-hero">
+    <div class="deck-detail-topbar">
+      <div class="deck-title-column">
+        <div id="deck-name-view" class="deck-name-panel">
+          {% if has_navigation %}
+          <div class="deck-switcher">
+            {% if previous_deck %}
+            <a
+              href="{% url 'deck_detail' previous_deck.id %}"
+              class="deck-switcher-btn"
+              title="{{ manual_texts.previous_deck|default:'Previous deck' }}: {{ previous_deck.name }}"
+              data-deck-id="{{ previous_deck.id }}"
+              aria-label="{{ manual_texts.previous_deck|default:'Previous deck' }}"
+            >
+              <i class="fas fa-chevron-left"></i>
+            </a>
+            {% else %}
+            <span class="deck-switcher-btn is-disabled" aria-hidden="true">
+              <i class="fas fa-chevron-left"></i>
+            </span>
+            {% endif %}
 
-      <!-- Edit Mode (Hidden by default) -->
-      <div id="deck-name-edit" class="hidden flex items-center gap-3">
-        <input
-          type="text"
-          id="deck-name-input"
-          class="text-3xl font-bold bg-gray-800 border border-gray-600 rounded-md text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-color focus:border-transparent"
-          value="{{ deck.name }}"
-          maxlength="100"
-        />
-        <button
-          id="save-deck-name-btn"
-          class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
-        >
-          {{ manual_texts.save_deck_name }}
-        </button>
-        <button
-          id="cancel-deck-edit-btn"
-          class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
-        >
-          {{ manual_texts.cancel_deck_edit }}
-        </button>
-      </div>
-    </div>
+            <div class="deck-position-pill">{{ deck_position }} / {{ total_decks }}</div>
 
-    <!-- Right Section: Navigation and Back Link -->
-    <div class="flex items-center gap-6">
-      <!-- Deck Navigation Controls -->
-      {% if has_navigation %}
-      <div class="deck-navigation flex items-center gap-4">
-        <!-- Previous Deck Button -->
-        {% if previous_deck %}
-        <a
-          href="{% url 'deck_detail' previous_deck.id %}"
-          class="deck-nav-btn deck-nav-prev text-gray-400 hover:text-primary-color transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
-          title="{{ manual_texts.previous_deck|default:'Previous deck' }}: {{ previous_deck.name }}"
-          data-deck-id="{{ previous_deck.id }}"
-        >
-          <i class="fas fa-chevron-left text-lg"></i>
-        </a>
-        {% else %}
-        <span class="deck-nav-btn deck-nav-disabled text-gray-600 p-2 rounded-full cursor-not-allowed">
-          <i class="fas fa-chevron-left text-lg"></i>
-        </span>
-        {% endif %}
+            {% if next_deck %}
+            <a
+              href="{% url 'deck_detail' next_deck.id %}"
+              class="deck-switcher-btn"
+              title="{{ manual_texts.next_deck|default:'Next deck' }}: {{ next_deck.name }}"
+              data-deck-id="{{ next_deck.id }}"
+              aria-label="{{ manual_texts.next_deck|default:'Next deck' }}"
+            >
+              <i class="fas fa-chevron-right"></i>
+            </a>
+            {% else %}
+            <span class="deck-switcher-btn is-disabled" aria-hidden="true">
+              <i class="fas fa-chevron-right"></i>
+            </span>
+            {% endif %}
+          </div>
+          {% endif %}
 
-        <!-- Deck Position Indicator -->
-        <div class="deck-position text-gray-300 text-sm font-medium px-3 py-1 bg-gray-800 rounded-full">
-          {{ deck_position }} / {{ total_decks }}
+          <div class="deck-name-row">
+            <h1 class="deck-title">{{ deck.name }}</h1>
+            <button
+              id="edit-deck-name-btn"
+              class="deck-title-edit-btn"
+              title="{{ manual_texts.edit_deck_name }}"
+            >
+              <i class="fas fa-edit"></i>
+            </button>
+          </div>
         </div>
 
-        <!-- Next Deck Button -->
-        {% if next_deck %}
-        <a
-          href="{% url 'deck_detail' next_deck.id %}"
-          class="deck-nav-btn deck-nav-next text-gray-400 hover:text-primary-color transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
-          title="{{ manual_texts.next_deck|default:'Next deck' }}: {{ next_deck.name }}"
-          data-deck-id="{{ next_deck.id }}"
-        >
-          <i class="fas fa-chevron-right text-lg"></i>
-        </a>
-        {% else %}
-        <span class="deck-nav-btn deck-nav-disabled text-gray-600 p-2 rounded-full cursor-not-allowed">
-          <i class="fas fa-chevron-right text-lg"></i>
-        </span>
-        {% endif %}
+        <div id="deck-name-edit" class="hidden deck-name-edit-panel">
+          <input
+            type="text"
+            id="deck-name-input"
+            class="deck-name-input"
+            value="{{ deck.name }}"
+            maxlength="100"
+          />
+          <div class="deck-name-edit-actions">
+            <button
+              id="save-deck-name-btn"
+              class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors duration-200"
+            >
+              {{ manual_texts.save_deck_name }}
+            </button>
+            <button
+              id="cancel-deck-edit-btn"
+              class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors duration-200"
+            >
+              {{ manual_texts.cancel_deck_edit }}
+            </button>
+          </div>
+        </div>
       </div>
-      {% endif %}
 
-      <!-- Back to All Decks Link -->
-      <a
-        href="{% url 'deck_list' %}"
-        class="text-primary-color hover:text-primary-color-dark font-semibold transition-colors duration-200"
-        >← {{ manual_texts.back_to_all_decks }}</a
-      >
-    </div>
-  </div>
-
-  {% if flashcards %}
-  <!-- Audio Filter Controls -->
-  <div class="audio-filter-controls">
-    <label for="audio-filter">{{ manual_texts.filter_by_audio }}:</label>
-    <select id="audio-filter">
-      <option value="all">{{ manual_texts.show_all_cards }}</option>
-      <option value="with-audio">
-        {{ manual_texts.show_cards_with_audio }}
-      </option>
-      <option value="without-audio">
-        {{ manual_texts.show_cards_without_audio }}
-      </option>
-    </select>
-
-    <div class="audio-stats">
-      <div class="stat-item has-audio">
-        <i class="fas fa-volume-up"></i>
-        <span id="cards-with-audio-count">0</span>
-      </div>
-      <div class="stat-item no-audio">
-        <i class="fas fa-volume-mute"></i>
-        <span id="cards-without-audio-count">0</span>
-      </div>
+      <a href="{% url 'deck_list' %}" class="deck-back-link">
+        <i class="fas fa-arrow-left"></i>
+        <span>{{ manual_texts.back_to_all_decks }}</span>
+      </a>
     </div>
 
-    <!-- Fetch Missing Audio Button -->
-    <button
-      id="fetch-missing-audio-btn"
-      class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center gap-2"
-    >
-      <i class="fas fa-download"></i>
-      {{ manual_texts.fetch_missing_audio }}
-    </button>
-
-    <div class="audio-stats">
-      <div class="stat-item has-audio">
-        <i class="fas fa-image"></i>
-        <span id="cards-with-image-count">0</span>
+    {% if flashcards %}
+    <div class="deck-tools-row">
+      <div class="deck-tools-summary">
+        <div class="deck-summary-pill">
+          <i class="fas fa-layer-group"></i>
+          <span>{{ flashcards|length }}</span>
+          <span>cards</span>
+        </div>
+        <div class="deck-summary-pill">
+          <i class="far fa-image"></i>
+          <span id="cards-with-image-count">0</span>
+          <span>images</span>
+        </div>
+        <div class="deck-summary-pill deck-summary-pill-muted">
+          <i class="far fa-image"></i>
+          <span id="cards-without-image-count">0</span>
+          <span>missing</span>
+        </div>
       </div>
-      <div class="stat-item no-audio">
-        <i class="far fa-image"></i>
-        <span id="cards-without-image-count">0</span>
+
+      <div class="deck-tools-actions">
+        <button id="fetch-missing-audio-btn" class="deck-tool-btn">
+          <i class="fas fa-download"></i>
+          <span>{{ manual_texts.fetch_missing_audio }}</span>
+        </button>
+        <button id="fetch-missing-images-btn" class="deck-tool-btn deck-tool-btn-secondary">
+          <i class="fas fa-image"></i>
+          <span>{{ manual_texts.fetch_missing_images }}</span>
+        </button>
       </div>
     </div>
 
-    <!-- Fetch Missing Images Button -->
-    <button
-      id="fetch-missing-images-btn"
-      class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center gap-2"
-    >
-      <i class="fas fa-image"></i>
-      {{ manual_texts.fetch_missing_images }}
-    </button>
-  </div>
-
-  <!-- Navigation Container with repositioned arrows -->
-  <div class="navigation-container relative w-full max-w-4xl mx-auto flex items-center justify-center">
+    <!-- Navigation Container with repositioned arrows -->
+    <div class="navigation-container deck-stage-shell relative w-full max-w-6xl mx-auto flex items-center justify-center">
     <!-- Left Navigation Arrow -->
     <button
       id="prevBtn"
-      class="navigation-arrow navigation-arrow-left bg-gray-700 bg-opacity-75 text-white p-3 rounded-full hover:bg-opacity-100 transition-all duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 focus:ring-offset-gray-900 mr-6"
+      class="navigation-arrow navigation-arrow-left focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 focus:ring-offset-gray-900"
     >
       <i class="fas fa-chevron-left text-xl"></i>
     </button>
 
     <!-- Card Container -->
-    <div
-      id="carousel-container"
-      class="relative w-full max-w-2xl overflow-hidden rounded-xl shadow-2xl bg-gray-800 p-6"
-    >
+    <div class="deck-stage-frame">
+      <div class="deck-stage-layer deck-stage-layer-back"></div>
+      <div class="deck-stage-layer deck-stage-layer-mid"></div>
+      <div id="carousel-container" class="deck-carousel-container relative w-full overflow-hidden">
       <!-- Edit Mode Overlay -->
       <div class="edit-mode-overlay"></div>
 
@@ -184,31 +152,39 @@
       >
         {% for card in flashcards %}
         <div
-          class="flex-shrink-0 snap-center"
+          class="deck-carousel-slide flex-shrink-0 snap-center"
           style="width: 100%"
           data-card-id="{{ card.id }}"
           data-has-image="{% if card.image or card.related_image_url %}true{% else %}false{% endif %}"
         >
         <!-- View Mode -->
         <div
-          class="card-view-mode word-item-tailwind p-4 bg-gray-900 rounded-lg shadow-lg w-full max-w-2xl mx-auto text-white relative"
+          class="card-view-mode deck-card-surface word-item-tailwind text-white relative"
           data-has-audio="{% if card.audio_url %}true{% else %}false{% endif %}"
         >
           <!-- Card Action Buttons Group -->
-          <div class="card-action-buttons absolute top-4 right-4 flex items-center gap-2 opacity-0 transition-opacity duration-300">
-            <!-- Enhanced Audio Fetch Button -->
+          <div class="card-action-buttons deck-card-actions">
+            <!-- Edit Button -->
             <button
-              class="enhanced-audio-btn card-action-btn text-gray-400 hover:text-blue-400 transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
-              data-card-id="{{ card.id }}"
-              data-word="{{ card.word }}"
-              title="{{ manual_texts.enhanced_audio_fetch|default:'Get Multiple Pronunciations' }}"
+              class="edit-card-btn card-action-btn deck-icon-btn"
+              title="{{ manual_texts.edit_card }}"
             >
-              <i class="fas fa-search-plus text-lg"></i>
+              <i class="fas fa-edit text-lg"></i>
+            </button>
+
+            <!-- Delete Button -->
+            <button
+              class="delete-card-btn card-action-btn deck-icon-btn"
+              data-card-id="{{ card.id }}"
+              title="{{ manual_texts.delete_card|default:'Delete card' }}"
+              aria-label="{{ manual_texts.delete_card|default:'Delete card' }}"
+            >
+              <i class="fas fa-trash text-lg"></i>
             </button>
 
             <!-- Favorite Button -->
             <button
-              class="favorite-btn card-action-btn text-gray-400 hover:text-red-400 transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
+              class="favorite-btn card-action-btn deck-icon-btn"
               data-card-id="{{ card.id }}"
               title="{{ manual_texts.toggle_favorite|default:'Toggle favorite' }}"
               aria-label="{{ manual_texts.toggle_favorite|default:'Toggle favorite' }}"
@@ -218,7 +194,7 @@
 
             <!-- Blacklist Button -->
             <button
-              class="blacklist-btn card-action-btn text-gray-400 hover:text-red-600 transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
+              class="blacklist-btn card-action-btn deck-icon-btn"
               data-card-id="{{ card.id }}"
               title="{{ manual_texts.toggle_blacklist|default:'Toggle blacklist' }}"
               aria-label="{{ manual_texts.toggle_blacklist|default:'Toggle blacklist' }}"
@@ -226,22 +202,14 @@
               <span class="blacklist-icon text-lg">🔘</span>
             </button>
 
-            <!-- Edit Button -->
+            <!-- Enhanced Audio Fetch Button -->
             <button
-              class="edit-card-btn card-action-btn text-gray-400 hover:text-primary-color transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
-              title="{{ manual_texts.edit_card }}"
-            >
-              <i class="fas fa-edit text-lg"></i>
-            </button>
-
-            <!-- Delete Button -->
-            <button
-              class="delete-card-btn card-action-btn text-gray-400 hover:text-red-500 transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
+              class="enhanced-audio-btn card-action-btn deck-icon-btn"
               data-card-id="{{ card.id }}"
-              title="{{ manual_texts.delete_card|default:'Delete card' }}"
-              aria-label="{{ manual_texts.delete_card|default:'Delete card' }}"
+              data-word="{{ card.word }}"
+              title="{{ manual_texts.enhanced_audio_fetch|default:'Get Multiple Pronunciations' }}"
             >
-              <i class="fas fa-trash text-lg"></i>
+              <i class="fas fa-wave-square text-lg"></i>
             </button>
           </div>
 
@@ -252,7 +220,7 @@
           {% endif %}
 
           <!-- Word Title (simplified without favorite button) -->
-          <div class="text-3xl font-bold mb-2">
+          <div class="deck-word-title">
             <a
               href="https://dictionary.cambridge.org/dictionary/english/{{ card.word }}"
               target="_blank"
@@ -261,9 +229,9 @@
               >{{ card.word }}</a
             >
           </div>
-          <div class="flex items-center gap-3 mb-2">
+          <div class="deck-word-meta">
             {% if card.part_of_speech %}
-            <div class="text-lg text-gray-400 italic">
+            <div class="deck-part-of-speech">
               ({{ card.part_of_speech }})
             </div>
             {% endif %}
@@ -285,7 +253,7 @@
           </div>
 
           {% if card.phonetic %}
-          <div class="text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2">
+          <div class="deck-phonetic-row text-lg text-gray-400 font-serif flex items-center space-x-2">
             <span>{{ card.phonetic }}</span>
             {% if card.audio_url %}
             <button
@@ -299,7 +267,7 @@
           </div>
           {% elif card.audio_url %}
           <!-- Show audio button even without phonetic if audio is available -->
-          <div class="text-lg text-gray-400 font-serif italic mb-4 flex items-center space-x-2">
+          <div class="deck-phonetic-row text-lg text-gray-400 font-serif flex items-center space-x-2">
             <span class="text-gray-500 text-sm">{{ manual_texts.listen }}:</span>
             <button
               class="audio-icon-tailwind text-gray-500 hover:text-primary-color transition-colors duration-200"
@@ -310,14 +278,14 @@
             </button>
           </div>
           {% endif %} {% for def in card.definitions.all %}
-          <div class="text-base text-gray-300 leading-relaxed mb-2">
-            <span class="font-semibold text-primary-color"
+          <div class="deck-definition-line">
+            <span class="deck-definition-label"
               >{{ manual_texts.english_label }}</span
             >
             {{ def.english_definition }}
           </div>
-          <div class="text-base text-gray-300 leading-relaxed mb-2">
-            <span class="font-semibold text-primary-color"
+          <div class="deck-definition-line">
+            <span class="deck-definition-label"
               >{{ manual_texts.vietnamese_label }}</span
             >
             {{ def.vietnamese_definition }}
@@ -325,22 +293,21 @@
           {% endfor %}
 
           {% if card.example_sentence %}
-          <div class="mt-3" style="padding:8px 12px; border-left:3px solid rgba(106,108,255,0.6); background:rgba(106,108,255,0.06); border-radius:0 6px 6px 0;">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
-              <div class="text-xs font-medium" style="color:#7c7cbb; text-transform:uppercase; letter-spacing:0.05em;">Example</div>
-              <button onclick="speakText('{{ card.example_sentence|escapejs }}')" title="Play example" style="background:none; border:none; cursor:pointer; color:#7c7cbb; font-size:14px; padding:2px 4px; border-radius:4px; line-height:1; transition:color 0.2s;" onmouseover="this.style.color='#a5b4fc'" onmouseout="this.style.color='#7c7cbb'">🔊</button>
+          <div class="deck-example-panel">
+            <div class="deck-example-header">
+              <div class="deck-example-label">Example</div>
+              <button onclick="speakText('{{ card.example_sentence|escapejs }}')" title="Play example" class="deck-example-audio-btn">🔊</button>
             </div>
-            <div class="text-sm text-gray-300" style="font-style:italic; line-height:1.6;">{{ card.example_sentence }}</div>
+            <div class="deck-example-text">{{ card.example_sentence }}</div>
           </div>
           {% endif %}
 
           <button
-            class="ai-examples-btn mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200"
-            style="background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.3); color:#a5b4fc; cursor:pointer;"
+            class="ai-examples-btn deck-ai-examples-btn inline-flex items-center gap-2 text-sm font-medium transition-all duration-200"
             data-word="{{ card.word }}"
             title="See {{ card.word }} in context"
           >
-            <i class="fas fa-lightbulb" style="color:#f59e0b;"></i>
+            <i class="fas fa-lightbulb"></i>
             Examples
           </button>
         </div>
@@ -506,19 +473,20 @@
         </div>
         {% endfor %}
       </div>
+      </div>
     </div>
 
     <!-- Right Navigation Arrow -->
     <button
       id="nextBtn"
-      class="navigation-arrow navigation-arrow-right bg-gray-700 bg-opacity-75 text-white p-3 rounded-full hover:bg-opacity-100 transition-all duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 focus:ring-offset-gray-900 ml-6"
+      class="navigation-arrow navigation-arrow-right focus:outline-none focus:ring-2 focus:ring-primary-color focus:ring-offset-2 focus:ring-offset-gray-900"
     >
       <i class="fas fa-chevron-right text-xl"></i>
     </button>
   </div>
-  <div id="pagination-dots" class="text-center mt-6 space-x-2"></div>
+  <div id="pagination-dots" class="deck-pagination"></div>
   {% else %}
-  <p class="text-gray-400 text-center text-lg mt-10">
+  <p class="deck-empty-state text-center text-lg mt-10">
     {{ manual_texts.this_deck_empty }}
     <a
       href="{% url 'add_flashcard' %}"
@@ -527,6 +495,7 @@
     >
   </p>
   {% endif %}
+</div>
 </div>
 
 <!-- Edit Card Modal -->
@@ -655,19 +624,513 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/enhanced-audio-modal.css' %}?v=2">
 <style>
-  /* Flashcard Image (floated right) */
+  main.py-4 {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .deck-detail-page {
+    position: relative;
+    padding: 1rem 1.15rem 1.25rem;
+    overflow: hidden;
+    border-radius: 2rem;
+    background:
+      radial-gradient(circle at top left, rgba(40, 78, 153, 0.34), rgba(40, 78, 153, 0) 30%),
+      radial-gradient(circle at right 20%, rgba(69, 101, 196, 0.2), rgba(69, 101, 196, 0) 25%),
+      linear-gradient(180deg, #091323 0%, #0c1728 48%, #0a1322 100%);
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    box-shadow: 0 30px 90px rgba(3, 8, 20, 0.34);
+  }
+
+  .deck-detail-page::before,
+  .deck-detail-page::after {
+    content: "";
+    position: absolute;
+    inset: auto;
+    width: 34rem;
+    height: 34rem;
+    border-radius: 999px;
+    filter: blur(70px);
+    opacity: 0.28;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .deck-detail-page::before {
+    top: -10rem;
+    left: -12rem;
+    background: radial-gradient(circle, rgba(93, 148, 255, 0.9), rgba(93, 148, 255, 0));
+  }
+
+  .deck-detail-page::after {
+    right: -14rem;
+    bottom: -12rem;
+    background: radial-gradient(circle, rgba(91, 111, 255, 0.75), rgba(91, 111, 255, 0));
+  }
+
+  .deck-detail-page > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .deck-detail-hero {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .deck-detail-topbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.9rem;
+  }
+
+  .deck-title-column {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .deck-name-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .deck-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.26rem 0.34rem;
+    border-radius: 999px;
+    background: rgba(14, 23, 42, 0.55);
+    border: 1px solid rgba(164, 186, 240, 0.18);
+    box-shadow: 0 14px 30px rgba(6, 10, 24, 0.28);
+    backdrop-filter: blur(14px);
+    width: fit-content;
+  }
+
+  .deck-switcher-btn,
+  .deck-position-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.05rem;
+    height: 2.05rem;
+    border-radius: 999px;
+    color: #d9e6ff;
+    background: rgba(148, 163, 184, 0.08);
+    border: 1px solid rgba(191, 219, 254, 0.08);
+    transition: all 0.2s ease;
+  }
+
+  .deck-switcher-btn:hover {
+    color: #ffffff;
+    background: rgba(96, 165, 250, 0.18);
+    border-color: rgba(147, 197, 253, 0.25);
+    transform: translateY(-1px);
+  }
+
+  .deck-switcher-btn.is-disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .deck-position-pill {
+    min-width: auto;
+    padding: 0 0.8rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    background: rgba(62, 83, 127, 0.34);
+    border-color: rgba(191, 219, 254, 0.12);
+  }
+
+  .deck-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+  }
+
+  .deck-title {
+    margin: 0;
+    font-size: clamp(2.2rem, 4.1vw, 3.25rem);
+    line-height: 0.9;
+    letter-spacing: -0.06em;
+    font-weight: 800;
+    color: #f8fbff;
+    text-shadow: 0 18px 42px rgba(4, 10, 28, 0.52);
+  }
+
+  .deck-title-edit-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.8rem;
+    border: 1px solid rgba(191, 219, 254, 0.14);
+    background: rgba(15, 23, 42, 0.55);
+    color: rgba(223, 232, 255, 0.72);
+    box-shadow: 0 16px 36px rgba(4, 10, 28, 0.25);
+    backdrop-filter: blur(12px);
+    transition: all 0.2s ease;
+  }
+
+  .deck-title-edit-btn:hover {
+    color: #ffffff;
+    background: rgba(56, 189, 248, 0.18);
+    border-color: rgba(125, 211, 252, 0.25);
+    transform: translateY(-1px);
+  }
+
+  .deck-name-edit-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    width: min(100%, 40rem);
+    padding: 1rem 1.1rem;
+    border-radius: 1.4rem;
+    background: rgba(12, 20, 38, 0.72);
+    border: 1px solid rgba(191, 219, 254, 0.14);
+    box-shadow: 0 18px 40px rgba(4, 10, 28, 0.24);
+    backdrop-filter: blur(16px);
+  }
+
+  .deck-name-input {
+    width: 100%;
+    border-radius: 1rem;
+    border: 1px solid rgba(191, 219, 254, 0.18);
+    background: rgba(12, 20, 38, 0.9);
+    color: #f8fbff;
+    padding: 0.95rem 1rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .deck-name-input:focus {
+    border-color: rgba(96, 165, 250, 0.55);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+  }
+
+  .deck-name-edit-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .deck-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.55rem 0.85rem;
+    border-radius: 999px;
+    color: #8cb7ff;
+    font-weight: 700;
+    background: rgba(15, 23, 42, 0.42);
+    border: 1px solid rgba(191, 219, 254, 0.12);
+    box-shadow: 0 18px 36px rgba(4, 10, 28, 0.22);
+    backdrop-filter: blur(14px);
+    transition: all 0.2s ease;
+    margin-left: auto;
+  }
+
+  .deck-back-link:hover {
+    color: #dcecff;
+    background: rgba(59, 130, 246, 0.16);
+    border-color: rgba(147, 197, 253, 0.24);
+    transform: translateY(-1px);
+  }
+
+  .deck-tools-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+    padding: 0.58rem 0.75rem;
+    border-radius: 1rem;
+    background: rgba(17, 28, 48, 0.62);
+    border: 1px solid rgba(191, 219, 254, 0.12);
+    box-shadow: 0 16px 38px rgba(4, 10, 28, 0.22);
+    backdrop-filter: blur(14px);
+  }
+
+  .deck-tools-summary,
+  .deck-tools-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+  }
+
+  .deck-summary-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.42rem 0.6rem;
+    border-radius: 999px;
+    color: #dce8ff;
+    background: rgba(30, 41, 59, 0.52);
+    border: 1px solid rgba(191, 219, 254, 0.1);
+    font-size: 0.82rem;
+  }
+
+  .deck-summary-pill span:first-of-type {
+    font-weight: 800;
+  }
+
+  .deck-summary-pill-muted {
+    color: rgba(220, 232, 255, 0.72);
+  }
+
+  .deck-tool-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.48rem 0.72rem;
+    border-radius: 999px;
+    border: 1px solid rgba(96, 165, 250, 0.25);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.34), rgba(29, 78, 216, 0.18));
+    color: #eff6ff;
+    font-size: 0.84rem;
+    font-weight: 700;
+    box-shadow: 0 18px 36px rgba(4, 10, 28, 0.2);
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  }
+
+  .deck-tool-btn:hover {
+    transform: translateY(-1px);
+    border-color: rgba(147, 197, 253, 0.4);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.44), rgba(29, 78, 216, 0.22));
+  }
+
+  .deck-tool-btn-secondary {
+    border-color: rgba(167, 139, 250, 0.24);
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.3), rgba(99, 102, 241, 0.18));
+  }
+
+  .deck-tool-btn-secondary:hover {
+    border-color: rgba(196, 181, 253, 0.42);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(99, 102, 241, 0.22));
+  }
+
+  .navigation-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85rem;
+    max-width: 100%;
+  }
+
+  .deck-stage-shell {
+    margin-top: 0;
+  }
+
+  .deck-stage-frame {
+    position: relative;
+    flex: 1;
+    max-width: 44rem;
+    min-width: 0;
+    padding: 0.45rem 0 0.15rem;
+  }
+
+  .deck-stage-layer {
+    position: absolute;
+    left: 50%;
+    width: min(100%, 38.5rem);
+    height: calc(100% - 0.45rem);
+    border-radius: 1.45rem;
+    border: 1px solid rgba(191, 219, 254, 0.08);
+    background: linear-gradient(180deg, rgba(76, 98, 140, 0.24), rgba(25, 33, 53, 0.24));
+    box-shadow: 0 26px 56px rgba(4, 10, 28, 0.32);
+    backdrop-filter: blur(14px);
+    pointer-events: none;
+  }
+
+  .deck-stage-layer-back {
+    top: 0;
+    opacity: 0.42;
+    transform: translateX(-50%) scale(0.92) translateY(0.45rem);
+  }
+
+  .deck-stage-layer-mid {
+    top: 0.35rem;
+    opacity: 0.6;
+    transform: translateX(-50%) scale(0.96) translateY(0.3rem);
+  }
+
+  .navigation-arrow {
+    flex-shrink: 0;
+    width: 3.2rem;
+    height: 3.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid rgba(191, 219, 254, 0.14);
+    background: linear-gradient(180deg, rgba(45, 58, 85, 0.78), rgba(22, 31, 51, 0.72));
+    color: #ecf4ff;
+    box-shadow: 0 22px 40px rgba(4, 10, 28, 0.28);
+    backdrop-filter: blur(12px);
+    transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  }
+
+  .navigation-arrow:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(180deg, rgba(67, 84, 119, 0.84), rgba(31, 42, 66, 0.78));
+    border-color: rgba(147, 197, 253, 0.3);
+  }
+
+  .navigation-arrow:active {
+    transform: translateY(0);
+  }
+
+  .deck-carousel-container {
+    max-width: 39.5rem;
+    margin: 0 auto;
+    padding: 0.62rem;
+    overflow: hidden;
+    border-radius: 1.35rem;
+    background: linear-gradient(145deg, rgba(34, 54, 92, 0.92), rgba(16, 24, 43, 0.97));
+    border: 1px solid rgba(191, 219, 254, 0.16);
+    box-shadow: 0 38px 80px rgba(4, 10, 28, 0.46);
+    backdrop-filter: blur(18px);
+    width: 100%;
+  }
+
+  .deck-carousel-slide {
+    width: 100%;
+    padding: 0 0.25rem;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  .card-view-mode {
+    cursor: default !important;
+  }
+
+  .deck-card-surface {
+    min-height: 0;
+    padding: 0.78rem 0.88rem 0.84rem;
+    border-radius: 1.2rem;
+    background: linear-gradient(145deg, rgba(34, 53, 89, 0.96), rgba(17, 25, 44, 0.96));
+    border: 1px solid rgba(191, 219, 254, 0.14);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+  }
+
+  @media (min-width: 901px) {
+    .deck-detail-topbar {
+      align-items: center;
+    }
+
+    .deck-name-panel {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      column-gap: 0.7rem;
+      row-gap: 0.05rem;
+      align-items: center;
+    }
+
+    .deck-switcher {
+      grid-column: 1;
+      grid-row: 1;
+      align-self: center;
+    }
+
+    .deck-name-row {
+      grid-column: 2;
+      grid-row: 1;
+      min-height: 2.4rem;
+    }
+
+    .deck-card-surface {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 8.25rem;
+      column-gap: 0.8rem;
+      align-items: start;
+    }
+
+    .deck-card-surface > *:not(.card-image-float):not(.card-action-buttons) {
+      grid-column: 1;
+    }
+
+    .card-image-float {
+      grid-column: 2;
+      grid-row: 1 / span 7;
+      justify-self: end;
+      align-self: start;
+      float: none;
+      width: 100%;
+      height: 8.25rem;
+      margin: 2.15rem 0 0;
+      shape-outside: none;
+    }
+  }
+
+  .deck-card-surface::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(140deg, rgba(148, 197, 255, 0.08), rgba(148, 197, 255, 0));
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .card-view-mode * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .deck-card-actions {
+    position: absolute;
+    top: 0.65rem;
+    right: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.32rem;
+    flex-wrap: wrap;
+    z-index: 12;
+  }
+
+  .card-action-btn {
+    min-width: 2.1rem;
+    min-height: 2.1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .deck-icon-btn {
+    border-radius: 0.75rem;
+    border: 1px solid rgba(191, 219, 254, 0.12);
+    background: rgba(18, 28, 50, 0.64);
+    color: rgba(227, 237, 255, 0.76);
+    box-shadow: 0 12px 26px rgba(4, 10, 28, 0.24);
+    backdrop-filter: blur(10px);
+    transition: all 0.2s ease;
+  }
+
+  .deck-icon-btn:hover {
+    transform: translateY(-1px);
+    border-color: rgba(147, 197, 253, 0.24);
+    background: rgba(28, 39, 66, 0.84);
+    color: #ffffff;
+  }
+
   .card-image-float {
     float: right;
-    width: 120px;
-    height: 120px;
-    margin: 52px 0 12px 16px;
-    border-radius: 12px;
+    width: clamp(7.5rem, 15vw, 8.25rem);
+    height: clamp(7.5rem, 15vw, 8.25rem);
+    margin: 2.2rem 0 0.45rem 0.85rem;
+    border-radius: 1rem;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    flex-shrink: 0;
+    border: 1px solid rgba(191, 219, 254, 0.14);
+    box-shadow: 0 24px 48px rgba(4, 10, 28, 0.34);
     background: #111827;
-    position: relative;
     z-index: 5;
     shape-outside: margin-box;
   }
@@ -677,311 +1140,356 @@
     height: 100%;
     object-fit: cover;
     display: block;
-    transition: transform 0.3s ease;
+    transition: transform 0.35s ease;
   }
 
   .card-image-float:hover img {
-    transform: scale(1.08);
+    transform: scale(1.06);
   }
 
-  @media (max-width: 480px) {
-    .card-image-float {
-      width: 90px;
-      height: 90px;
-      margin: 0 0 8px 12px;
-      border-radius: 10px;
-    }
+  .deck-word-title {
+    margin-bottom: 0.28rem;
+    font-size: clamp(2.25rem, 4.2vw, 3.3rem);
+    font-weight: 800;
+    line-height: 0.88;
+    letter-spacing: -0.07em;
+    color: #ffffff;
+    max-width: 100%;
+    white-space: nowrap;
+    text-shadow: 0 18px 36px rgba(4, 10, 28, 0.3);
   }
 
-  /* Card Action Buttons Group Styling */
-  .card-action-btn {
-    min-width: 40px;
-    min-height: 40px;
+  .dictionary-word-link {
+    color: inherit;
+    display: block;
+    white-space: inherit;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .deck-word-meta {
     display: flex;
     align-items: center;
-    justify-content: center;
-    border: 1px solid transparent;
-    position: relative;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-bottom: 0.25rem;
   }
 
-  .card-action-btn:hover {
-    border-color: rgba(107, 114, 128, 0.3);
+  .deck-part-of-speech {
+    font-size: 0.92rem;
+    color: rgba(220, 229, 244, 0.78);
+    font-style: normal;
+  }
+
+  .cefr-level-badge {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 18px rgba(4, 10, 28, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    transition: all 0.2s ease;
+  }
+
+  .cefr-level-badge:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 
-  .card-action-btn:active {
-    transform: translateY(0);
+  .deck-phonetic-row {
+    margin-bottom: 0.42rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    color: rgba(228, 238, 255, 0.86);
+    font-size: 0.9rem;
+    font-style: normal;
   }
 
-  /* Auto-hide action buttons functionality */
-  .card-view-mode:hover .card-action-buttons {
-    opacity: 1;
-  }
-
-  .card-action-buttons {
-    transition: opacity 0.3s ease;
-  }
-
-  /* Ensure buttons don't interfere with card content */
-  .card-view-mode {
-    min-height: 200px; /* Ensure adequate height */
-  }
-
-  /* Fix tooltip positioning to prevent unwanted tooltips */
-  .card-view-mode [title]:not(.card-action-btn):not(.audio-icon-tailwind):not(.ai-examples-btn) {
-    pointer-events: none;
-  }
-
-  .card-action-btn[title],
-  .audio-icon-tailwind[title] {
-    pointer-events: auto;
-  }
-
-  /* Ensure audio icons are clickable and have proper z-index */
   .audio-icon-tailwind {
     position: relative;
     z-index: 15;
+    width: 1.95rem;
+    height: 1.95rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid rgba(191, 219, 254, 0.14);
+    background: rgba(18, 28, 50, 0.6);
+    color: rgba(227, 237, 255, 0.8);
     cursor: pointer !important;
     pointer-events: auto !important;
+    transition: all 0.2s ease;
   }
 
-  /* Remove cursor pointer from card-view-mode to prevent confusion */
-  .card-view-mode {
-    cursor: default !important;
+  .audio-icon-tailwind:hover {
+    color: #ffffff;
+    background: rgba(59, 130, 246, 0.18);
+    border-color: rgba(147, 197, 253, 0.28);
+    transform: translateY(-1px);
   }
 
-  /* Ensure card content doesn't interfere with audio icons */
-  .card-view-mode * {
-    pointer-events: auto;
+  .deck-definition-line {
+    margin-bottom: 0.24rem;
+    font-size: clamp(0.84rem, 1.25vw, 0.94rem);
+    line-height: 1.32;
+    color: #ebf2ff;
   }
 
-  /* But disable pointer events on card background to prevent unwanted clicks */
-  .card-view-mode::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    pointer-events: none;
-    z-index: 1;
+  .deck-definition-label {
+    display: inline-flex;
+    align-items: center;
+    min-width: 5rem;
+    margin-right: 0.35rem;
+    font-weight: 800;
+    color: #ffffff;
   }
 
-  /* Favorite button specific styling */
-  .favorite-btn.favorited {
-    color: #ef4444 !important;
+  .deck-example-panel {
+    margin-top: 0.4rem;
+    padding: 0.52rem 0.68rem 0.58rem;
+    border-radius: 0.95rem;
+    border: 1px solid rgba(147, 197, 253, 0.16);
+    background: linear-gradient(135deg, rgba(74, 101, 155, 0.34), rgba(38, 54, 91, 0.26));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
 
-  .favorite-btn.favorited:hover {
-    color: #dc2626 !important;
+  .deck-example-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+    margin-bottom: 0.2rem;
   }
 
-  /* Blacklist button specific styling */
-  .blacklist-btn.blacklisted {
-    color: #ef4444 !important;
+  .deck-example-label {
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #f5f9ff;
   }
 
-  .blacklist-btn.blacklisted:hover {
-    color: #dc2626 !important;
+  .deck-example-audio-btn {
+    border: none;
+    background: transparent;
+    color: rgba(209, 222, 255, 0.78);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0.2rem 0.35rem;
+    border-radius: 999px;
+    transition: all 0.2s ease;
   }
 
-  /* Enhanced audio button specific styling */
-  .enhanced-audio-btn:hover {
-    color: #60a5fa !important;
+  .deck-example-audio-btn:hover {
+    color: #ffffff;
+    background: rgba(148, 163, 184, 0.12);
   }
 
-  /* Edit button specific styling */
-  .edit-card-btn:hover {
-    color: #6a6cff !important;
+  .deck-example-text {
+    font-size: 0.78rem;
+    line-height: 1.28;
+    color: #edf4ff;
+    font-style: italic;
   }
 
-  /* Delete button specific styling */
+  .deck-ai-examples-btn {
+    margin-top: 0.38rem;
+    padding: 0.38rem 0.62rem;
+    border-radius: 999px;
+    background: rgba(26, 36, 60, 0.62);
+    border: 1px solid rgba(191, 219, 254, 0.14);
+    color: #e8efff;
+    box-shadow: 0 12px 24px rgba(4, 10, 28, 0.18);
+    font-size: 0.74rem;
+  }
+
+  .deck-ai-examples-btn i {
+    color: #fbbf24;
+  }
+
+  .deck-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.45rem;
+  }
+
+  .pagination-dot {
+    width: 0.72rem;
+    height: 0.72rem;
+    border-radius: 999px;
+    background: rgba(191, 219, 254, 0.22);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    transition: all 0.25s ease;
+    cursor: pointer;
+  }
+
+  .pagination-dot.active {
+    width: 2rem;
+    background: linear-gradient(90deg, #8b9cff, #b6c7ff);
+    box-shadow: 0 10px 24px rgba(130, 150, 255, 0.32);
+  }
+
+  .edit-mode-overlay {
+    display: none;
+  }
+
+  body[data-edit-mode="true"] .edit-mode-overlay {
+    display: none;
+  }
+
+  .favorite-btn.favorited,
+  .favorite-btn.favorited:hover,
   .delete-card-btn:hover {
-    color: #ef4444 !important;
+    color: #f87171 !important;
+  }
+
+  .blacklist-btn.blacklisted,
+  .blacklist-btn.blacklisted:hover {
+    color: #fb7185 !important;
+  }
+
+  .enhanced-audio-btn:hover {
+    color: #93c5fd !important;
+  }
+
+  .edit-card-btn:hover {
+    color: #c4b5fd !important;
   }
 
   .delete-card-btn:active {
     transform: scale(0.95);
   }
 
-  /* Responsive adjustments */
-  @media (max-width: 1024px) {
-    .navigation-container {
-      max-width: 90%;
+  .deck-empty-state {
+    padding: 2rem;
+    border-radius: 1.5rem;
+    background: rgba(11, 18, 35, 0.54);
+    border: 1px solid rgba(191, 219, 254, 0.12);
+    color: rgba(220, 232, 255, 0.82);
+  }
+
+  @media (max-width: 900px) {
+    .deck-detail-topbar {
+      flex-direction: column;
+      align-items: stretch;
     }
 
-    .navigation-arrow {
-      min-width: 48px;
-      min-height: 48px;
+    .deck-back-link {
+      align-self: flex-start;
     }
 
-    .navigation-arrow-left {
-      margin-right: 1rem;
-    }
-
-    .navigation-arrow-right {
-      margin-left: 1rem;
+    .deck-stage-shell {
+      gap: 1rem;
     }
   }
 
   @media (max-width: 768px) {
-    .card-view-mode {
-      max-width: 100% !important;
-      margin: 0;
+    .deck-detail-page {
+      padding: 1rem 0.95rem 2rem;
+      border-radius: 1.5rem;
     }
 
-    .navigation-container {
-      max-width: 95%;
-      gap: 0.5rem;
-    }
-
-    .navigation-arrow {
-      min-width: 44px;
-      min-height: 44px;
-    }
-
-    .navigation-arrow-left {
-      margin-right: 0.75rem;
-    }
-
-    .navigation-arrow-right {
-      margin-left: 0.75rem;
-    }
-
-    #carousel-container {
+    .deck-carousel-container {
       padding: 1rem;
+      border-radius: 1.5rem;
+    }
+
+    .deck-card-surface {
+      min-height: 0;
+      padding: 1.2rem 1.15rem 1.35rem;
+    }
+
+    .deck-word-title {
+      max-width: 100%;
+      margin-top: 3rem;
+      white-space: normal;
+      font-size: clamp(2.65rem, 12vw, 4rem);
+    }
+
+    .card-image-float {
+      float: none;
+      width: 100%;
+      max-width: 16rem;
+      height: 12rem;
+      margin: 1rem 0 1rem;
+    }
+
+    .deck-stage-layer {
+      width: calc(100% - 2rem);
     }
   }
 
   @media (max-width: 640px) {
-    .card-action-btn {
-      min-width: 36px;
-      min-height: 36px;
+    .deck-tools-row,
+    .deck-tools-summary,
+    .deck-tools-actions,
+    .deck-name-edit-actions {
+      width: 100%;
     }
 
-    .card-action-btn i {
-      font-size: 1rem;
+    .deck-tools-actions {
+      flex-direction: column;
+      align-items: stretch;
     }
 
-    .favorite-icon {
-      font-size: 1rem !important;
+    .deck-tool-btn {
+      justify-content: center;
     }
 
-    .card-action-buttons {
-      gap: 1px; /* Reduce gap on mobile */
+    .navigation-container {
+      gap: 0.75rem;
     }
 
     .navigation-arrow {
-      min-width: 40px;
-      min-height: 40px;
+      width: 3.4rem;
+      height: 3.4rem;
     }
 
-    .navigation-arrow i {
-      font-size: 1rem;
+    .deck-card-actions {
+      top: 0.9rem;
+      right: 0.9rem;
+      gap: 0.35rem;
+    }
+
+    .card-action-btn {
+      min-width: 2.5rem;
+      min-height: 2.5rem;
+    }
+
+    .deck-definition-label {
+      display: block;
+      margin-bottom: 0.15rem;
+      min-width: 0;
     }
   }
 
-  /* Button group container */
-  .card-view-mode .card-action-buttons {
-    z-index: 10;
-  }
-
-  /* Ensure buttons don't overlap with content on small screens */
   @media (max-width: 480px) {
-    .card-view-mode {
-      padding-top: 4rem !important;
-    }
-
-    .card-action-buttons {
-      opacity: 1 !important; /* Always show on mobile for accessibility */
+    .deck-title {
+      font-size: clamp(2.1rem, 12vw, 3rem);
     }
 
     .navigation-container {
       flex-direction: column;
-      gap: 1rem;
     }
 
     .navigation-arrow-left,
     .navigation-arrow-right {
-      margin: 0;
       order: 2;
     }
 
-    #carousel-container {
+    .deck-stage-frame {
       order: 1;
       width: 100%;
-      max-width: 100%;
+      padding-top: 1.2rem;
     }
 
-    /* Stack navigation arrows below card on very small screens */
-    .navigation-arrow-left {
-      margin-right: 0.5rem;
+    .deck-stage-layer {
+      display: none;
     }
-
-    .navigation-arrow-right {
-      margin-left: 0.5rem;
-    }
-  }
-
-  /* Navigation Container and Arrow Styling */
-  .navigation-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0;
-  }
-
-  .navigation-arrow {
-    flex-shrink: 0;
-    min-width: 56px;
-    min-height: 56px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(10px);
-  }
-
-  .navigation-arrow:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-  }
-
-  .navigation-arrow:active {
-    transform: translateY(0);
-  }
-
-  /* Enhanced Edit Mode Overlay - DISABLED */
-  .edit-mode-overlay {
-    display: none; /* Completely hide the overlay */
-  }
-
-  body[data-edit-mode="true"] .edit-mode-overlay {
-    display: none; /* Keep it hidden even in edit mode */
-  }
-
-  /* Enhanced carousel container to match card width */
-  #carousel-container {
-    max-width: 672px; /* Match max-w-2xl */
-    background: linear-gradient(145deg, #1f2937, #111827);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  /* CEFR Level Badge Styles */
-  .cefr-level-badge {
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.025em;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    transition: all 0.2s ease;
-  }
-
-  .cefr-level-badge:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   }
 
   /* Edit Card Modal */
