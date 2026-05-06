@@ -144,3 +144,47 @@ class ApiNextQuestionExampleTest(TestCase):
         self.assertFalse(data['done'])
         self.assertIn('example_sentence', data['question'])
         self.assertEqual(data['question']['example_sentence'], 'She bounced back quickly.')
+
+
+from io import StringIO
+from django.core.management import call_command
+
+class PopulateExamplesCommandTest(TestCase):
+    @patch('vocabulary.word_details_service.get_word_details')
+    def test_dry_run_prints_words_without_writing(self, mock_get):
+        mock_get.return_value = {'example_sentence': 'She was brave.', 'example_source': 'llm'}
+        user = User.objects.create_user(email='dryrun@test.com', password='pass')
+        deck = Deck.objects.create(user=user, name='Dry Run Deck')
+        card = Flashcard.objects.create(user=user, deck=deck, word='brave', example_sentence=None)
+
+        out = StringIO()
+        call_command('populate_examples', '--dry-run', stdout=out)
+        card.refresh_from_db()
+        self.assertIsNone(card.example_sentence)
+        self.assertIn('brave', out.getvalue())
+
+    @patch('vocabulary.word_details_service.get_word_details')
+    def test_fills_cards_without_example(self, mock_get):
+        mock_get.return_value = {'example_sentence': 'She was brave.', 'example_source': 'llm'}
+        user = User.objects.create_user(email='fill@test.com', password='pass')
+        deck = Deck.objects.create(user=user, name='Fill Deck')
+        card_no_ex = Flashcard.objects.create(user=user, deck=deck, word='brave', example_sentence=None)
+        card_has_ex = Flashcard.objects.create(user=user, deck=deck, word='kind', example_sentence='She is a kind person.', example_source='cambridge')
+
+        call_command('populate_examples')
+        card_no_ex.refresh_from_db()
+        card_has_ex.refresh_from_db()
+        self.assertEqual(card_no_ex.example_sentence, 'She was brave.')
+        # card with existing example should NOT be overwritten
+        self.assertEqual(card_has_ex.example_sentence, 'She is a kind person.')
+
+    @patch('vocabulary.word_details_service.get_word_details')
+    def test_force_flag_overwrites_existing(self, mock_get):
+        mock_get.return_value = {'example_sentence': 'New sentence.', 'example_source': 'llm'}
+        user = User.objects.create_user(email='force@test.com', password='pass')
+        deck = Deck.objects.create(user=user, name='Force Deck')
+        card_has_ex = Flashcard.objects.create(user=user, deck=deck, word='gentle', example_sentence='She is a gentle person.', example_source='cambridge')
+
+        call_command('populate_examples', '--force')
+        card_has_ex.refresh_from_db()
+        self.assertEqual(card_has_ex.example_sentence, 'New sentence.')
