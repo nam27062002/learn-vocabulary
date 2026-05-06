@@ -11,6 +11,45 @@ _cambridge_fetcher = EnhancedCambridgeAudioFetcher()
 _translator = LiteLLMTranslator()
 
 
+def _generate_example_llm(word: str, definition_en: str) -> str:
+    """Generate an example sentence for the word via LLM. Returns empty string on failure."""
+    try:
+        import requests as _requests
+        from django.conf import settings as _settings
+        response = _requests.post(
+            _settings.LLM_URL,
+            json={
+                "model": _settings.LLM_MODEL,
+                "messages": [
+                    {"role": "system", "content": "You are an English teacher. Respond with exactly one natural example sentence and nothing else. No quotation marks."},
+                    {"role": "user", "content": f"Write one natural English example sentence for the word '{word}' meaning: {definition_en}"},
+                ],
+                "temperature": 0.7,
+                "max_tokens": 80,
+            },
+            headers={"Authorization": f"Bearer {_settings.LLM_API_KEY}"},
+            timeout=_settings.LLM_TIMEOUT,
+            verify=False,
+        )
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        logger.warning(f"LLM example generation failed for '{word}': {e}")
+        return ""
+
+
+def _enrich_example(word: str, result: dict) -> None:
+    """Add example_sentence and example_source to result dict in-place."""
+    cambridge_example = result.get("example_en", "")
+    if cambridge_example:
+        result["example_sentence"] = cambridge_example
+        result["example_source"] = "cambridge"
+    else:
+        generated = _generate_example_llm(word, result.get("definition_en", ""))
+        result["example_sentence"] = generated
+        result["example_source"] = "llm" if generated else ""
+
+
 def get_word_details(word: str) -> dict:
     """Fetch word details using Cambridge Dictionary first, with dictionaryapi.dev fallback."""
     if not word or not word.strip():
@@ -21,12 +60,16 @@ def get_word_details(word: str) -> dict:
     cambridge_data = _fetch_from_cambridge(word)
     if cambridge_data:
         translation = _translate(cambridge_data)
-        return _build_cambridge_response(cambridge_data, translation)
+        result = _build_cambridge_response(cambridge_data, translation)
+        _enrich_example(word, result)
+        return result
 
     fallback_data = _fetch_from_dictionary_api(word)
     if fallback_data:
         translation = _translate_fallback(word, fallback_data)
-        return _build_fallback_response(fallback_data, translation)
+        result = _build_fallback_response(fallback_data, translation)
+        _enrich_example(word, result)
+        return result
 
     return {"error": f"Không tìm thấy từ '{word}'."}
 
