@@ -211,6 +211,16 @@
             >
               <i class="fas fa-wave-square text-lg"></i>
             </button>
+
+            <!-- AI Examples Button -->
+            <button
+              class="ai-examples-btn card-action-btn deck-icon-btn deck-ai-examples-btn"
+              data-word="{{ card.word }}"
+              title="See {{ card.word }} in context"
+              aria-label="See {{ card.word }} in context"
+            >
+              <i class="fas fa-lightbulb text-lg"></i>
+            </button>
           </div>
 
           {% if card.image %}
@@ -302,14 +312,6 @@
           </div>
           {% endif %}
 
-          <button
-            class="ai-examples-btn deck-ai-examples-btn inline-flex items-center gap-2 text-sm font-medium transition-all duration-200"
-            data-word="{{ card.word }}"
-            title="See {{ card.word }} in context"
-          >
-            <i class="fas fa-lightbulb"></i>
-            Examples
-          </button>
         </div>
 
         <!-- Edit Mode (Hidden by default) -->
@@ -1013,7 +1015,7 @@
 
   .deck-card-surface {
     min-height: 0;
-    padding: 0.78rem 0.88rem 0.84rem;
+    padding: 0.88rem 0.98rem 0.94rem;
     border-radius: 1.2rem;
     background: linear-gradient(145deg, rgba(34, 53, 89, 0.96), rgba(17, 25, 44, 0.96));
     border: 1px solid rgba(191, 219, 254, 0.14);
@@ -1049,7 +1051,7 @@
     .deck-card-surface {
       display: grid;
       grid-template-columns: minmax(0, 1fr) 8.25rem;
-      column-gap: 0.8rem;
+      column-gap: 0.95rem;
       align-items: start;
     }
 
@@ -1091,7 +1093,7 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 0.32rem;
+    gap: 0.38rem;
     flex-wrap: wrap;
     z-index: 12;
   }
@@ -1171,8 +1173,8 @@
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 0.55rem;
-    margin-bottom: 0.25rem;
+    gap: 0.6rem;
+    margin-bottom: 0.35rem;
   }
 
   .deck-part-of-speech {
@@ -1196,11 +1198,11 @@
   }
 
   .deck-phonetic-row {
-    margin-bottom: 0.42rem;
+    margin-bottom: 0.52rem;
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 0.55rem;
     color: rgba(228, 238, 255, 0.86);
     font-size: 0.9rem;
     font-style: normal;
@@ -1231,9 +1233,9 @@
   }
 
   .deck-definition-line {
-    margin-bottom: 0.24rem;
+    margin-bottom: 0.28rem;
     font-size: clamp(0.84rem, 1.25vw, 0.94rem);
-    line-height: 1.32;
+    line-height: 1.38;
     color: #ebf2ff;
   }
 
@@ -1247,8 +1249,8 @@
   }
 
   .deck-example-panel {
-    margin-top: 0.4rem;
-    padding: 0.52rem 0.68rem 0.58rem;
+    margin-top: 0.5rem;
+    padding: 0.62rem 0.78rem 0.68rem;
     border-radius: 0.95rem;
     border: 1px solid rgba(147, 197, 253, 0.16);
     background: linear-gradient(135deg, rgba(74, 101, 155, 0.34), rgba(38, 54, 91, 0.26));
@@ -1288,25 +1290,26 @@
   }
 
   .deck-example-text {
-    font-size: 0.78rem;
-    line-height: 1.28;
+    font-size: 0.8rem;
+    line-height: 1.34;
     color: #edf4ff;
     font-style: italic;
   }
 
   .deck-ai-examples-btn {
-    margin-top: 0.38rem;
-    padding: 0.38rem 0.62rem;
-    border-radius: 999px;
-    background: rgba(26, 36, 60, 0.62);
-    border: 1px solid rgba(191, 219, 254, 0.14);
-    color: #e8efff;
-    box-shadow: 0 12px 24px rgba(4, 10, 28, 0.18);
-    font-size: 0.74rem;
+    color: #f8e7a3;
+    background: rgba(54, 44, 17, 0.38);
+    border-color: rgba(251, 191, 36, 0.22);
   }
 
   .deck-ai-examples-btn i {
     color: #fbbf24;
+  }
+
+  .deck-ai-examples-btn:hover {
+    color: #fff4c1;
+    background: rgba(84, 63, 18, 0.46);
+    border-color: rgba(251, 191, 36, 0.34);
   }
 
   .deck-pagination {

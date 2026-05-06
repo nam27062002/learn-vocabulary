@@ -13,28 +13,9 @@ document.addEventListener("DOMContentLoaded", function () {
   const paginationDotsContainer = document.querySelector("#pagination-dots");
 
   let currentSlideIndex = 0;
+  let scrollSyncTimeoutId;
 
-  function showSlide(index) {
-    // Ensure the index loops around
-    if (index < 0) {
-      currentSlideIndex = slides.length - 1;
-    } else if (index >= slides.length) {
-      currentSlideIndex = 0;
-    } else {
-      currentSlideIndex = index;
-    }
-
-    const currentSlide = slides[currentSlideIndex];
-
-    // The scrollLeft will be the offset of the current slide
-    const targetScrollLeft = currentSlide.offsetLeft;
-
-    carouselSlides.scrollTo({
-      left: targetScrollLeft,
-      behavior: "smooth",
-    });
-
-    // Apply shadow/peek effect dynamically via inline styles
+  function updateSlideVisualState() {
     slides.forEach((slide, i) => {
       if (i === currentSlideIndex) {
         slide.style.opacity = "1";
@@ -46,18 +27,98 @@ document.addEventListener("DOMContentLoaded", function () {
         slide.style.zIndex = "1";
       }
     });
+  }
+
+  function blurCarouselInteractiveFocus() {
+    const activeElement = document.activeElement;
+    if (!activeElement || activeElement === document.body) {
+      return;
+    }
+
+    const tagName = activeElement.tagName;
+    const isEditable =
+      tagName === "INPUT" ||
+      tagName === "TEXTAREA" ||
+      tagName === "SELECT" ||
+      activeElement.isContentEditable;
+
+    if (isEditable) {
+      return;
+    }
+
+    if (carouselContainer.contains(activeElement)) {
+      activeElement.blur();
+    }
+  }
+
+  function getClosestSlideIndex() {
+    const currentScrollLeft = carouselSlides.scrollLeft;
+    let closestIndex = currentSlideIndex;
+    let smallestDistance = Number.POSITIVE_INFINITY;
+
+    slides.forEach((slide, index) => {
+      const distance = Math.abs(slide.offsetLeft - currentScrollLeft);
+      if (distance < smallestDistance) {
+        smallestDistance = distance;
+        closestIndex = index;
+      }
+    });
+
+    return closestIndex;
+  }
+
+  function showSlide(index, options = {}) {
+    const { behavior = "smooth", releaseFocus = false } = options;
+
+    // Ensure the index loops around
+    if (index < 0) {
+      currentSlideIndex = slides.length - 1;
+    } else if (index >= slides.length) {
+      currentSlideIndex = 0;
+    } else {
+      currentSlideIndex = index;
+    }
+
+    const currentSlide = slides[currentSlideIndex];
+
+    if (releaseFocus) {
+      blurCarouselInteractiveFocus();
+    }
+
+    // The scrollLeft will be the offset of the current slide
+    const targetScrollLeft = currentSlide.offsetLeft;
+
+    carouselSlides.scrollTo({
+      left: targetScrollLeft,
+      behavior,
+    });
+
+    updateSlideVisualState();
+
+    window.clearTimeout(scrollSyncTimeoutId);
+    scrollSyncTimeoutId = window.setTimeout(() => {
+      carouselSlides.scrollLeft = currentSlide.offsetLeft;
+      updateSlideVisualState();
+    }, behavior === "smooth" ? 220 : 0);
 
     updatePagination();
   }
 
   function nextSlide() {
-    currentSlideIndex++;
-    showSlide(currentSlideIndex);
+    showSlide(currentSlideIndex + 1, { releaseFocus: true });
   }
 
   function prevSlide() {
-    currentSlideIndex--;
-    showSlide(currentSlideIndex);
+    showSlide(currentSlideIndex - 1, { releaseFocus: true });
+  }
+
+  function syncCurrentSlideFromScroll() {
+    const closestIndex = getClosestSlideIndex();
+    if (closestIndex !== currentSlideIndex) {
+      currentSlideIndex = closestIndex;
+      updateSlideVisualState();
+      updatePagination();
+    }
   }
 
   function updatePagination() {
@@ -81,7 +142,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
           }
 
-          showSlide(index);
+          showSlide(index, { releaseFocus: true });
         });
         paginationDotsContainer.appendChild(dot);
       });
@@ -90,7 +151,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Event listeners for navigation buttons
   if (prevBtn) {
-    prevBtn.addEventListener("click", () => {
+    prevBtn.addEventListener("click", (event) => {
       // Disable navigation during edit mode
       if (document.body.getAttribute("data-edit-mode") === "true") {
         return;
@@ -102,11 +163,12 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
 
+      event.preventDefault();
       prevSlide();
     });
   }
   if (nextBtn) {
-    nextBtn.addEventListener("click", () => {
+    nextBtn.addEventListener("click", (event) => {
       // Disable navigation during edit mode
       if (document.body.getAttribute("data-edit-mode") === "true") {
         return;
@@ -118,6 +180,7 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
 
+      event.preventDefault();
       nextSlide();
     });
   }
@@ -315,8 +378,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     if (event.key === "ArrowLeft") {
+      event.preventDefault();
       prevSlide();
     } else if (event.key === "ArrowRight") {
+      event.preventDefault();
       nextSlide();
     } else if (event.key === " ") {
       event.preventDefault();
@@ -358,6 +423,13 @@ document.addEventListener("DOMContentLoaded", function () {
       isDragging = false;
       carouselSlides.style.cursor = "grab";
     }
+  });
+
+  carouselSlides.addEventListener("scroll", () => {
+    window.clearTimeout(scrollSyncTimeoutId);
+    scrollSyncTimeoutId = window.setTimeout(() => {
+      syncCurrentSlideFromScroll();
+    }, 90);
   });
 
   carouselSlides.addEventListener("mouseup", () => {
