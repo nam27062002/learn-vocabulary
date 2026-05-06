@@ -1169,6 +1169,7 @@
                 <label style="display:flex; align-items:center; gap:8px;">
                     Example Sentence
                     <span class="example-auto-badge" style="display:none; font-size:0.75em; color:#4caf50; font-weight:normal;">✦ auto-generated</span>
+                    <button type="button" class="example-speak-btn" title="Play example" style="display:none; background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:14px; padding:2px 4px; border-radius:4px; line-height:1;">🔊</button>
                 </label>
                 <textarea
                     class="example-textarea"
@@ -1638,6 +1639,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (exampleSourceInput) exampleSourceInput.value = data.example_source || '';
             if (exampleBadge) exampleBadge.style.display = 'inline';
         }
+        const speakBtn = card.querySelector('.example-speak-btn');
+        if (speakBtn && data.example_sentence) {
+            speakBtn.style.display = 'inline';
+            speakBtn.onclick = () => speakText(card.querySelector('.example-textarea').value.trim());
+        }
         if (exampleTextarea) {
             exampleTextarea.addEventListener('input', () => {
                 if (exampleSourceInput) exampleSourceInput.value = 'manual';
@@ -1746,6 +1752,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (exampleTextarea) exampleTextarea.value = '';
         if (exampleSourceInput) exampleSourceInput.value = '';
         if (exampleBadge) exampleBadge.style.display = 'none';
+        const speakBtn = card.querySelector('.example-speak-btn');
+        if (speakBtn) speakBtn.style.display = 'none';
     }
 
     function translateToVietnamese(text, targetTextarea) {
