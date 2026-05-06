@@ -1,6 +1,8 @@
 # tests/test_example_sentence.py
-from django.test import TestCase
+import json
+from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
+from django.urls import reverse
 from vocabulary.models import Flashcard, Deck
 
 User = get_user_model()
@@ -87,3 +89,58 @@ class ExampleSentenceServiceTest(TestCase):
         result = get_word_details('obscure')
         self.assertEqual(result['example_sentence'], '')
         self.assertEqual(result['example_source'], '')
+
+
+class SaveFlashcardsExampleTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(email='save@test.com', password='pass')
+        self.deck = Deck.objects.create(user=self.user, name='Test Deck')
+        self.client.login(email='save@test.com', password='pass')
+
+    def test_save_flashcard_persists_example(self):
+        response = self.client.post(reverse('save_flashcards'), {
+            'deck_id': self.deck.id,
+            'flashcards-0-word': 'resilient',
+            'flashcards-0-english_definition': 'able to recover quickly',
+            'flashcards-0-vietnamese_definition': 'có khả năng phục hồi',
+            'flashcards-0-example_sentence': 'She bounced back quickly.',
+            'flashcards-0-example_source': 'cambridge',
+        })
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertTrue(data['success'])
+        card = Flashcard.objects.get(user=self.user, word='resilient')
+        self.assertEqual(card.example_sentence, 'She bounced back quickly.')
+        self.assertEqual(card.example_source, 'cambridge')
+
+
+class ApiNextQuestionExampleTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(email='study@test.com', password='pass')
+        self.deck = Deck.objects.create(user=self.user, name='Study Deck')
+        from vocabulary.models import Definition
+        self.card = Flashcard.objects.create(
+            user=self.user, deck=self.deck, word='resilient',
+            example_sentence='She bounced back quickly.',
+            example_source='cambridge',
+        )
+        Definition.objects.create(
+            flashcard=self.card,
+            english_definition='able to recover quickly',
+            vietnamese_definition='có khả năng phục hồi',
+        )
+        self.client.login(email='study@test.com', password='pass')
+
+    def test_next_question_includes_example_sentence(self):
+        response = self.client.post(
+            reverse('api_next_question'),
+            data=json.dumps({'deck_ids': [self.deck.id], 'study_mode': 'decks', 'seen_card_ids': []}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertFalse(data['done'])
+        self.assertIn('example_sentence', data['question'])
+        self.assertEqual(data['question']['example_sentence'], 'She bounced back quickly.')

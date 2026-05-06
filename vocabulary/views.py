@@ -498,6 +498,7 @@ def api_next_question(request):
             'id': card.id, 'word': card.word, 'phonetic': card.phonetic,
             'part_of_speech': card.part_of_speech, 'image_url': card.image.url if card.image else card.related_image_url,
             'audio_url': card.audio_url, 'definitions': defs, 'cefr_level': card.cefr_level,
+            'example_sentence': card.example_sentence or '',
         }
     }
 
@@ -966,6 +967,8 @@ def save_flashcards(request):
                 'part_of_speech': card_data.get('part_of_speech'),
                 'audio_url': card_data.get('audio_url'),
                 'deck': deck,
+                'example_sentence': card_data.get('example_sentence') or None,
+                'example_source': card_data.get('example_source') or None,
             }
 
             cefr_from_frontend = card_data.get('cefr_level', '').strip()
