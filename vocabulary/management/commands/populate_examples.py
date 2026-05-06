@@ -55,18 +55,18 @@ class Command(BaseCommand):
                     card.save(update_fields=['example_sentence', 'example_source'])
                     success += 1
                     self.stdout.write(
-                        self.style.SUCCESS(f'  [{i}/{total}] {card.word} → {source}')
+                        self.style.SUCCESS(f'  [{i}/{total}] {card.word} -> {source}')
                     )
                 else:
                     fail += 1
                     self.stdout.write(
-                        self.style.WARNING(f'  [{i}/{total}] {card.word} → no example returned')
+                        self.style.WARNING(f'  [{i}/{total}] {card.word} -> no example returned')
                     )
             except Exception as e:
                 fail += 1
                 logger.warning('populate_examples: skipping %s due to error: %s', card.word, e)
                 self.stdout.write(
-                    self.style.ERROR(f'  [{i}/{total}] {card.word} → ERROR: {e}')
+                    self.style.ERROR(f'  [{i}/{total}] {card.word} -> ERROR: {e}')
                 )
 
         self.stdout.write(self.style.SUCCESS(
