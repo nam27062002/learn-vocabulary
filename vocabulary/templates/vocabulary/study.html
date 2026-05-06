@@ -864,7 +864,10 @@
         <div id="feedbackMsg" class="feedback-message"></div>
         <div id="detailedFeedbackArea" class="detailed-feedback-area" style="display: none;"></div>
         <div id="cardExample" class="card-example" style="display:none; margin-top:12px; padding:10px 14px; border-left:3px solid var(--primary-color); background:rgba(106,108,255,0.08); border-radius:0 6px 6px 0;">
-          <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:4px;">Example</div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+            <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted);">Example</div>
+            <button onclick="speakText(document.getElementById('cardExampleText').textContent)" title="Play example" style="background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:14px; padding:2px 4px; border-radius:4px; line-height:1; transition:color 0.2s;" onmouseover="this.style.color='var(--primary-color)'" onmouseout="this.style.color='var(--text-muted)'">🔊</button>
+          </div>
           <div id="cardExampleText" style="font-style:italic; color:var(--text-main); line-height:1.6;"></div>
         </div>
       </div>
