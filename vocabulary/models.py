@@ -48,6 +48,9 @@ class Flashcard(models.Model):
     cefr_level = models.CharField(max_length=2, blank=True, null=True, help_text="CEFR level (A1, A2, B1, B2, C1, C2)")
     cefr_level_auto = models.BooleanField(default=False, help_text="Whether CEFR level was automatically determined")
 
+    example_sentence = models.TextField(blank=True, null=True, help_text="Example sentence showing word in context")
+    example_source = models.CharField(max_length=10, blank=True, null=True, help_text="Source: 'cambridge', 'llm', or 'manual'")
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
