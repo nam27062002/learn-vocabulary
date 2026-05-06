@@ -3659,7 +3659,8 @@
     const feedbackArea = document.getElementById('detailedFeedbackArea');
     const answerSection = document.getElementById('answerSection');
     const optionsArea = document.getElementById('optionsArea');
-    const isDictationFeedback = currentQuestion?.type === 'dictation';
+    const useExpandedTypingFeedback =
+      currentQuestion?.type === 'dictation' || currentQuestion?.type === 'type';
 
     if (!feedbackArea || !answerSection) {
       return;
@@ -3716,7 +3717,7 @@
 
     if (cardBox) {
       cardBox.classList.add('has-detailed-feedback');
-      cardBox.classList.toggle('dictation-feedback-state', isDictationFeedback);
+      cardBox.classList.toggle('dictation-feedback-state', useExpandedTypingFeedback);
     }
 
     feedbackArea.style.display = 'block';
