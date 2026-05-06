@@ -67,3 +67,23 @@ class ExampleSentenceServiceTest(TestCase):
         self.assertEqual(result['example_sentence'], 'The teacher gave a test on Friday.')
         self.assertEqual(result['example_source'], 'llm')
         mock_llm.assert_called_once_with('test', 'a procedure to assess')
+
+    @patch('vocabulary.word_details_service._generate_example_llm')
+    @patch('vocabulary.word_details_service._cambridge_fetcher')
+    @patch('vocabulary.word_details_service._translator')
+    def test_empty_example_when_both_sources_fail(self, mock_translator, mock_fetcher, mock_llm):
+        from vocabulary.audio_service import CambridgeWordData
+        from vocabulary.llm_translator import TranslationResult
+        mock_fetcher.fetch_word_data.return_value = CambridgeWordData(
+            word='obscure',
+            definition_en='not well known',
+            example_en='',  # no Cambridge example
+            part_of_speech='adjective',
+        )
+        mock_translator.translate_definition.return_value = TranslationResult(
+            definition_vi='ít được biết đến', short_meaning_vi='ít biết', source='llm'
+        )
+        mock_llm.return_value = ''  # LLM also fails
+        result = get_word_details('obscure')
+        self.assertEqual(result['example_sentence'], '')
+        self.assertEqual(result['example_source'], '')
