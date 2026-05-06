@@ -1163,6 +1163,21 @@
                     ></textarea>
                 </div>
             </div>
+
+            <!-- Example Sentence -->
+            <div class="input-field" style="margin-top: 10px;">
+                <label style="display:flex; align-items:center; gap:8px;">
+                    Example Sentence
+                    <span class="example-auto-badge" style="display:none; font-size:0.75em; color:#4caf50; font-weight:normal;">✦ auto-generated</span>
+                </label>
+                <textarea
+                    class="example-textarea"
+                    rows="2"
+                    placeholder="e.g. She is a resilient person who bounced back after every setback."
+                    style="background:rgba(74,144,226,0.06); border-color:rgba(74,144,226,0.3);"
+                ></textarea>
+                <input type="hidden" class="example-source-input" value="">
+            </div>
         </div>
 
         <div class="image-upload-wrapper">
@@ -1614,6 +1629,22 @@ document.addEventListener('DOMContentLoaded', function() {
             vietnameseTextarea.value = data.definition_vi;
         }
 
+        // Example sentence
+        const exampleTextarea = card.querySelector('.example-textarea');
+        const exampleSourceInput = card.querySelector('.example-source-input');
+        const exampleBadge = card.querySelector('.example-auto-badge');
+        if (exampleTextarea && data.example_sentence) {
+            exampleTextarea.value = data.example_sentence;
+            if (exampleSourceInput) exampleSourceInput.value = data.example_source || '';
+            if (exampleBadge) exampleBadge.style.display = 'inline';
+        }
+        if (exampleTextarea) {
+            exampleTextarea.addEventListener('input', () => {
+                if (exampleSourceInput) exampleSourceInput.value = 'manual';
+                if (exampleBadge) exampleBadge.style.display = 'none';
+            }, { once: true });
+        }
+
         // Handle Definitions — still populate suggestion dropdown from meanings array
         definitionSuggestions.innerHTML = '';
         const allDefinitions = data.meanings?.flatMap(m => m.definitions.map(d => ({ ...d, part_of_speech: m.part_of_speech }))) || [];
@@ -1708,6 +1739,13 @@ document.addEventListener('DOMContentLoaded', function() {
             cefrBadge.querySelector('.cefr-text').textContent = '';
             cefrBadge.querySelector('.cefr-tooltip').textContent = '';
         }
+
+        const exampleTextarea = card.querySelector('.example-textarea');
+        const exampleSourceInput = card.querySelector('.example-source-input');
+        const exampleBadge = card.querySelector('.example-auto-badge');
+        if (exampleTextarea) exampleTextarea.value = '';
+        if (exampleSourceInput) exampleSourceInput.value = '';
+        if (exampleBadge) exampleBadge.style.display = 'none';
     }
 
     function translateToVietnamese(text, targetTextarea) {
@@ -2369,6 +2407,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 formData.append(`flashcards-${idx}-part_of_speech`, card.querySelector('.auto-pos').textContent.trim());
                 formData.append(`flashcards-${idx}-english_definition`, card.querySelector('.definition-textarea').value.trim());
                 formData.append(`flashcards-${idx}-vietnamese_definition`, card.querySelector('.vietnamese-textarea').value.trim());
+                formData.append(`flashcards-${idx}-example_sentence`, card.querySelector('.example-textarea')?.value.trim() || '');
+                formData.append(`flashcards-${idx}-example_source`, card.querySelector('.example-source-input')?.value || '');
                 formData.append(`flashcards-${idx}-audio_url`, card.querySelector('.auto-audio').dataset.audioUrl || '');
                 formData.append(`flashcards-${idx}-cefr_level`, card.querySelector('.cefr-badge')?.dataset?.level || '');
 
