@@ -324,6 +324,13 @@
           </div>
           {% endfor %}
 
+          {% if card.example_sentence %}
+          <div class="mt-3" style="padding:8px 12px; border-left:3px solid rgba(106,108,255,0.6); background:rgba(106,108,255,0.06); border-radius:0 6px 6px 0;">
+            <div class="text-xs font-medium mb-1" style="color:#7c7cbb; text-transform:uppercase; letter-spacing:0.05em;">Example</div>
+            <div class="text-sm text-gray-300" style="font-style:italic; line-height:1.6;">{{ card.example_sentence }}</div>
+          </div>
+          {% endif %}
+
           <button
             class="ai-examples-btn mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200"
             style="background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.3); color:#a5b4fc; cursor:pointer;"
