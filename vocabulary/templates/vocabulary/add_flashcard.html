@@ -1469,8 +1469,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const panel = document.getElementById('quick-add-panel');
     if (toggleBtn && panel) {
         toggleBtn.addEventListener('click', function() {
-            const isOpen = panel.classList.toggle('is-open');
-            toggleBtn.classList.toggle('primary', isOpen);
+            panel.classList.toggle('is-open');
+            toggleBtn.classList.toggle('primary', !panel.classList.contains('is-open'));
         });
     }
 
