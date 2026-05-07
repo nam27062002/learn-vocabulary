@@ -3646,9 +3646,17 @@
     }
 
     requestAnimationFrame(() => {
+      const cardRect = cardBox.getBoundingClientRect();
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+      const isCardTopVisible = cardRect.top >= 0 && cardRect.top < viewportHeight;
+
+      if (isCardTopVisible) {
+        return;
+      }
+
       cardBox.scrollIntoView({
         behavior: 'smooth',
-        block: 'start',
+        block: 'nearest',
       });
     });
   }
