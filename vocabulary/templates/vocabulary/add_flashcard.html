@@ -99,7 +99,7 @@
     <div class="flashcard-section" data-card-index="1">
       <div class="flashcard-header">
         <div class="flashcard-header-left">
-          <button class="action-icon drag-handle" title="{{ manual_texts.drag_to_move }}">
+          <button type="button" class="action-icon drag-handle" title="{{ manual_texts.drag_to_move }}">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="3" y1="6" x2="21" y2="6"/>
               <line x1="3" y1="12" x2="21" y2="12"/>
@@ -114,7 +114,7 @@
           <span class="afc-card-status"></span>
         </div>
         <div class="actions">
-          <button class="action-icon delete-card-btn" title="{{ manual_texts.delete_card }}">
+          <button type="button" class="action-icon delete-card-btn" title="{{ manual_texts.delete_card }}">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"/>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>
@@ -1462,6 +1462,50 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+  // ===== NEW UI: Quick Add toggle =====
+  (function() {
+    const toggleBtn = document.getElementById('quick-add-toggle-btn');
+    const panel = document.getElementById('quick-add-panel');
+    if (toggleBtn && panel) {
+      toggleBtn.addEventListener('click', function() {
+        const isOpen = panel.classList.toggle('is-open');
+        toggleBtn.classList.toggle('primary', isOpen);
+      });
+    }
+  })();
+
+  // ===== NEW UI: Card count badge + save status =====
+  (function() {
+    const countEl = document.getElementById('afc-card-count');
+    const statusEl = document.getElementById('afc-save-status');
+    const container = document.getElementById('flashcard-container');
+
+    function updateCounts() {
+      if (!container) return;
+      const total = container.querySelectorAll('.flashcard-section').length;
+      const valid = container.querySelectorAll('.flashcard-section.valid').length;
+      if (countEl) countEl.textContent = total + ' thẻ';
+      if (statusEl) {
+        if (total === 0) {
+          statusEl.innerHTML = '';
+        } else if (valid === total) {
+          statusEl.innerHTML = '<strong>' + valid + '/' + total + '</strong> thẻ sẵn sàng';
+        } else {
+          statusEl.innerHTML = '<strong>' + valid + '/' + total + '</strong> thẻ hợp lệ';
+        }
+      }
+    }
+
+    setInterval(updateCounts, 600);
+    updateCounts();
+  })();
+
+  // ===== NEW UI: AI image button =====
+  // .afc-img-gen-btn does NOT need a delegated click handler.
+  // Auto-image generation is purely toggle-driven: when autoImageEnabled is true,
+  // generateImageForCard() is called automatically after a card is populated (line ~683).
+  // The button is decorative/informational in the current design.
 </script>
 {% endblock %}
  
