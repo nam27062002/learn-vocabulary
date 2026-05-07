@@ -126,7 +126,7 @@ def i18n_compatible_translations(request):
             # Add flashcard page - toolbar & section
             'vstep_suggest_short': '📚 Suggest',
             'cards_section_title': 'Card List',
-            'generate_ai_image_btn': '⚡ Generate AI Image',
+            'generate_ai_image_btn': '⚡ AI Image',
             'card_count_unit': 'cards',
             'status_cards_ready': 'cards ready',
             'status_cards_valid': 'cards valid',
