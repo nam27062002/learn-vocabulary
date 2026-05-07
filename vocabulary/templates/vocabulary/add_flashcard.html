@@ -1463,49 +1463,41 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-  // ===== NEW UI: Quick Add toggle =====
-  (function() {
+document.addEventListener('DOMContentLoaded', function() {
+    // ===== NEW UI: Quick Add toggle =====
     const toggleBtn = document.getElementById('quick-add-toggle-btn');
     const panel = document.getElementById('quick-add-panel');
     if (toggleBtn && panel) {
-      toggleBtn.addEventListener('click', function() {
-        const isOpen = panel.classList.toggle('is-open');
-        toggleBtn.classList.toggle('primary', isOpen);
-      });
+        toggleBtn.addEventListener('click', function() {
+            const isOpen = panel.classList.toggle('is-open');
+            toggleBtn.classList.toggle('primary', isOpen);
+        });
     }
-  })();
 
-  // ===== NEW UI: Card count badge + save status =====
-  (function() {
+    // ===== NEW UI: Card count badge + save status =====
     const countEl = document.getElementById('afc-card-count');
     const statusEl = document.getElementById('afc-save-status');
     const container = document.getElementById('flashcard-container');
 
     function updateCounts() {
-      if (!container) return;
-      const total = container.querySelectorAll('.flashcard-section').length;
-      const valid = container.querySelectorAll('.flashcard-section.valid').length;
-      if (countEl) countEl.textContent = total + ' thẻ';
-      if (statusEl) {
-        if (total === 0) {
-          statusEl.innerHTML = '';
-        } else if (valid === total) {
-          statusEl.innerHTML = '<strong>' + valid + '/' + total + '</strong> thẻ sẵn sàng';
-        } else {
-          statusEl.innerHTML = '<strong>' + valid + '/' + total + '</strong> thẻ hợp lệ';
+        if (!container) return;
+        const total = container.querySelectorAll('.flashcard-section').length;
+        const valid = container.querySelectorAll('.flashcard-section.valid').length;
+        if (countEl) countEl.textContent = total + ' thẻ';
+        if (statusEl) {
+            if (total === 0) {
+                statusEl.innerHTML = '';
+            } else if (valid === total) {
+                statusEl.innerHTML = '<strong>' + valid + '/' + total + '</strong> thẻ sẵn sàng';
+            } else {
+                statusEl.innerHTML = '<strong>' + valid + '/' + total + '</strong> thẻ hợp lệ';
+            }
         }
-      }
     }
 
     setInterval(updateCounts, 600);
     updateCounts();
-  })();
-
-  // ===== NEW UI: AI image button =====
-  // .afc-img-gen-btn does NOT need a delegated click handler.
-  // Auto-image generation is purely toggle-driven: when autoImageEnabled is true,
-  // generateImageForCard() is called automatically after a card is populated (line ~683).
-  // The button is decorative/informational in the current design.
+});
 </script>
 {% endblock %}
  
