@@ -123,6 +123,14 @@ def i18n_compatible_translations(request):
             'part_of_speech': 'part of speech',
             'listen': 'Listen',
 
+            # Add flashcard page - toolbar & section
+            'vstep_suggest_short': '📚 Suggest',
+            'cards_section_title': 'Card List',
+            'generate_ai_image_btn': '⚡ Generate AI Image',
+            'card_count_unit': 'cards',
+            'status_cards_ready': 'cards ready',
+            'status_cards_valid': 'cards valid',
+
             # Quick Add Words section
             'quick_add_multiple_words': 'Quick Add Multiple Words',
             'quick_add_placeholder': 'Enter multiple words separated by | (pipe character). Example: assistant|cry|usual|file|ban|ice|column|currently|prepare|acceptable',

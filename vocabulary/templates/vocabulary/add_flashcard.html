@@ -47,7 +47,7 @@
       ⚡ {{ manual_texts.quick_add_multiple_words }}
     </button>
     <button type="button" id="vstep-suggest-btn" class="afc-import-btn">
-      📚 Gợi ý
+      {{ manual_texts.vstep_suggest_short }}
     </button>
   </div>
 
@@ -86,8 +86,8 @@
   </div>
 
   <div class="afc-section-header">
-    <h2>Danh sách thẻ</h2>
-    <span class="afc-card-count" id="afc-card-count">1 thẻ</span>
+    <h2>{{ manual_texts.cards_section_title }}</h2>
+    <span class="afc-card-count" id="afc-card-count">1 {{ manual_texts.card_count_unit }}</span>
   </div>
 
   <div class="flashcard-container" id="flashcard-container"
@@ -195,7 +195,7 @@
               <span>{{ manual_texts.upload_image }}</span>
             </div>
           </div>
-          <button type="button" class="afc-img-gen-btn" id="img-gen-btn1">⚡ Tạo ảnh AI</button>
+          <button type="button" class="afc-img-gen-btn" id="img-gen-btn1">{{ manual_texts.generate_ai_image_btn }}</button>
         </div>
       </div>
     </div>
@@ -1483,14 +1483,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!container) return;
         const total = container.querySelectorAll('.flashcard-section').length;
         const valid = container.querySelectorAll('.flashcard-section.valid').length;
-        if (countEl) countEl.textContent = total + ' thẻ';
+        if (countEl) countEl.textContent = total + ' {{ manual_texts.card_count_unit }}';
         if (statusEl) {
             if (total === 0) {
                 statusEl.innerHTML = '';
             } else if (valid === total) {
-                statusEl.innerHTML = '<strong>' + valid + '/' + total + '</strong> thẻ sẵn sàng';
+                statusEl.innerHTML = '<strong>' + valid + '/' + total + '</strong> {{ manual_texts.status_cards_ready }}';
             } else {
-                statusEl.innerHTML = '<strong>' + valid + '/' + total + '</strong> thẻ hợp lệ';
+                statusEl.innerHTML = '<strong>' + valid + '/' + total + '</strong> {{ manual_texts.status_cards_valid }}';
             }
         }
     }
