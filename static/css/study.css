@@ -19,7 +19,18 @@
   max-width: 960px;
   margin: 0 auto;
   padding: 20px;
-  min-height: 100vh;
+  min-height: auto;
+}
+
+@media (min-width: 900px) {
+  .study-page {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+
+  .study-header {
+    margin-bottom: 12px;
+  }
 }
 
 .study-header {
@@ -1077,16 +1088,11 @@
 }
 
 @media (min-width: 900px) {
-  .study-area.active {
-    min-height: calc(100vh - 150px);
-  }
-
   .study-top-panel {
     flex: 0 0 auto;
   }
 
   .study-area.active .flashcard-container {
-    flex: 1 1 auto;
     width: 100%;
   }
 
@@ -2193,6 +2199,86 @@
   /* Specific styles for dictation mode */
   flex-direction: row;
   gap: 12px;
+}
+
+@media (min-width: 960px) {
+  .study-area.active .flashcard-container.dictation-layout {
+    padding: 16px 20px 14px;
+    gap: 8px;
+  }
+
+  .study-area.active .flashcard-container.dictation-layout .card-header {
+    display: none;
+  }
+
+  .study-area.active .flashcard-container.dictation-layout .card-metadata-strip {
+    margin-bottom: 0;
+    padding: 8px 12px;
+  }
+
+  .study-area.active .flashcard-container.dictation-layout .options-area.dictation-mode {
+    max-width: 640px;
+    min-height: auto;
+    margin: 4px auto 0;
+  }
+
+  .study-area.active .flashcard-container.dictation-layout .dictation-hero-container {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    grid-template-areas:
+      "hero hint"
+      "hero input";
+    align-items: center;
+    column-gap: 16px;
+    row-gap: 8px;
+    max-width: 100%;
+    padding: 0;
+  }
+
+  .study-area.active .flashcard-container.dictation-layout .dictation-hero-btn {
+    grid-area: hero;
+    width: 72px;
+    height: 72px;
+    justify-self: center;
+  }
+
+  .study-area.active .flashcard-container.dictation-layout .hero-icon {
+    font-size: 1.35rem;
+  }
+
+  .study-area.active .flashcard-container.dictation-layout .hero-ring {
+    inset: -4px;
+  }
+
+  .study-area.active .flashcard-container.dictation-layout .hero-ring-outer {
+    inset: -9px;
+  }
+
+  .study-area.active .flashcard-container.dictation-layout .dictation-hero-hint {
+    grid-area: hint;
+    margin: 0;
+    font-size: 0.78rem;
+    text-align: left;
+  }
+
+  .study-area.active .flashcard-container.dictation-layout .dictation-input-row {
+    grid-area: input;
+    justify-content: flex-start;
+    max-width: none;
+    margin: 0;
+    gap: 8px;
+  }
+
+  .study-area.active .flashcard-container.dictation-layout .dictation-mode .type-input {
+    width: min(100%, 360px);
+    min-width: 0;
+    max-width: 360px;
+    text-align: left;
+  }
+
+  .study-area.active .flashcard-container.dictation-layout .dictation-mode .check-btn {
+    min-width: 96px;
+  }
 }
 
 .dictation-mode .type-input {
@@ -4007,15 +4093,14 @@ div.input-row.hidden {
 }
 
 @media (max-height: 720px) and (min-width: 900px) {
-  .study-area.active {
-    min-height: calc(100vh - 132px);
-  }
-
-  .study-area.active .flashcard-container:has(.dictation-mode),
-  .study-area.active .flashcard-container.dictation-layout,
   .study-area.active .flashcard-container.has-detailed-feedback,
   .study-area.active .flashcard-container.dictation-feedback-state {
     min-height: calc(100vh - 214px);
+  }
+
+  .study-area.active .flashcard-container:has(.dictation-mode),
+  .study-area.active .flashcard-container.dictation-layout {
+    min-height: auto;
   }
 
   .flashcard-container.dictation-feedback-state {
