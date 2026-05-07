@@ -29,7 +29,9 @@
       "PowerShell(New-Item *)",
       "PowerShell(.venv\\\\Scripts\\\\python.exe manage.py test vocabulary.tests_cambridge_scraper -v 2)",
       "PowerShell(.venv\\\\Scripts\\\\python.exe manage.py test vocabulary.tests_llm_translator -v 2)",
-      "PowerShell(git *)"
+      "PowerShell(git *)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot"
     ]
   },
   "enabledPlugins": {
