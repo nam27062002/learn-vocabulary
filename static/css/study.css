@@ -3746,14 +3746,38 @@ div.input-row.hidden {
   gap: 2px;
   padding: 6px 8px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.74);
-  color: var(--card-text-muted);
+  background: rgba(255, 255, 255, 0.9);
+  color: #334155;
   font-size: 0.68rem;
 }
 
 .flashcard-container.dictation-feedback-state .detailed-summary-item strong {
   font-size: 1rem;
   line-height: 1;
+}
+
+.flashcard-container.dictation-feedback-state .detailed-summary-item.correct {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.34);
+}
+
+.flashcard-container.dictation-feedback-state .detailed-summary-item.incorrect {
+  color: #c2410c;
+  background: rgba(249, 115, 22, 0.16);
+  border-color: rgba(249, 115, 22, 0.34);
+}
+
+.flashcard-container.dictation-feedback-state .detailed-summary-item.missing {
+  color: #6d28d9;
+  background: rgba(139, 92, 246, 0.16);
+  border-color: rgba(139, 92, 246, 0.34);
+}
+
+.flashcard-container.dictation-feedback-state .detailed-summary-item.extra {
+  color: #475569;
+  background: rgba(148, 163, 184, 0.16);
+  border-color: rgba(148, 163, 184, 0.3);
 }
 
 .flashcard-container.dictation-feedback-state .detailed-answer-section {
@@ -3767,8 +3791,19 @@ div.input-row.hidden {
   gap: 8px;
   padding: 6px 8px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  color: #1f2937;
+}
+
+.flashcard-container.dictation-feedback-state .detailed-answer-box-user {
+  background: rgba(249, 115, 22, 0.12);
+  border-color: rgba(249, 115, 22, 0.24);
+}
+
+.flashcard-container.dictation-feedback-state .detailed-answer-box-expected {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.24);
 }
 
 .flashcard-container.dictation-feedback-state .detailed-answer-label {
@@ -3776,12 +3811,21 @@ div.input-row.hidden {
   min-width: 88px;
   font-size: 0.64rem;
   line-height: 1.2;
+  color: #64748b;
 }
 
 .flashcard-container.dictation-feedback-state .detailed-user-answer,
 .flashcard-container.dictation-feedback-state .detailed-expected-answer {
   font-size: 0.84rem;
   line-height: 1.2;
+}
+
+.flashcard-container.dictation-feedback-state .detailed-user-answer {
+  color: #9a3412;
+}
+
+.flashcard-container.dictation-feedback-state .detailed-expected-answer {
+  color: #047857;
 }
 
 .flashcard-container.dictation-feedback-state .detailed-letter-comparison {
