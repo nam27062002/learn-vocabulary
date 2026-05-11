@@ -1398,17 +1398,7 @@
     } else {
       // Type answer mode - show definitions, hide word initially
       if (cardDefsEl && q.definitions && q.definitions.length > 0) {
-        let defsHTML = "";
-
-        q.definitions.forEach((def) => {
-          if (def.english_definition) {
-            defsHTML += `<div class="definition-item">${def.english_definition}</div>`;
-          }
-          if (def.vietnamese_definition) {
-            defsHTML += `<div class="definition-item vietnamese">${def.vietnamese_definition}</div>`;
-          }
-        });
-        cardDefsEl.innerHTML = defsHTML;
+        cardDefsEl.innerHTML = renderStudyDefinitions(q.definitions);
         cardDefsEl.className = "card-definitions show";
       }
 
@@ -1736,18 +1726,7 @@
 
     // Show definitions in the definitions area
     if (cardDefsEl && currentQuestion.definitions) {
-      let defsText = "";
-      
-      currentQuestion.definitions.forEach((def) => {
-        if (def.english_definition) {
-          defsText += `${def.english_definition}\n`;
-        }
-        if (def.vietnamese_definition) {
-          defsText += `${def.vietnamese_definition}\n`;
-        }
-        defsText += "\n";
-      });
-      cardDefsEl.textContent = defsText.trim();
+      cardDefsEl.innerHTML = renderStudyDefinitions(currentQuestion.definitions);
       cardDefsEl.className = "card-definitions show";
     }
 
@@ -1791,7 +1770,7 @@
             optionsArea.style.minHeight = "";
 
             const retypeMessage = document.createElement('p');
-            retypeMessage.textContent = 'Type the correct answer to continue:';
+            retypeMessage.textContent = 'Retype the full word to continue:';
             retypeMessage.className = 'retype-prompt';
             optionsArea.appendChild(retypeMessage);
 
@@ -3661,6 +3640,62 @@
     });
   }
 
+  function renderStudyDefinitions(definitions) {
+    if (!Array.isArray(definitions) || definitions.length === 0) {
+      return '';
+    }
+
+    return definitions
+      .map((definition) => {
+        const items = [];
+
+        if (definition.english_definition) {
+          items.push(
+            renderStudyDefinitionItem(
+              'english',
+              STUDY_CFG.labels.english_label || 'English',
+              definition.english_definition
+            )
+          );
+        }
+
+        if (definition.vietnamese_definition) {
+          items.push(
+            renderStudyDefinitionItem(
+              'vietnamese',
+              STUDY_CFG.labels.vietnamese_label || 'Vietnamese',
+              definition.vietnamese_definition
+            )
+          );
+        }
+
+        if (!items.length) {
+          return '';
+        }
+
+        return `<div class="study-definition-card">${items.join('')}</div>`;
+      })
+      .filter(Boolean)
+      .join('');
+  }
+
+  function renderStudyDefinitionItem(type, label, value) {
+    return `
+      <div class="definition-item ${type}">
+        <span class="definition-item-label">${escapeHtml(label)}</span>
+        <span class="definition-item-value">${escapeHtml(value)}</span>
+      </div>
+    `;
+  }
+
+  function getTypingFeedbackModeLabel(questionType) {
+    if (questionType === 'dictation') {
+      return STUDY_CFG.labels.listen_and_type || 'Listen and type';
+    }
+
+    return 'Type from definition';
+  }
+
   function showDetailedInputFeedback(correct, userAnswer, expectedAnswer) {
     if (correct) return;
 
@@ -3679,6 +3714,8 @@
     const submittedAnswer = (userAnswer || '').trim();
     const correctAnswer = (expectedAnswer || '').trim();
     const comparison = generateLetterComparison(submittedAnswer, correctAnswer);
+    const issueCount = comparison.stats.wrong + comparison.stats.missing + comparison.stats.extra;
+    const issueLabel = issueCount === 1 ? '1 issue to fix' : `${issueCount} issues to fix`;
     const summaryItems = [
       createFeedbackSummaryItem('correct', comparison.stats.correct, STUDY_CFG.labels.correct || 'Correct'),
       createFeedbackSummaryItem('incorrect', comparison.stats.wrong, STUDY_CFG.labels.incorrect || 'Incorrect'),
@@ -3691,30 +3728,42 @@
         <div class="detailed-feedback-panel-header">
           <div class="detailed-feedback-heading">
             <span class="detailed-feedback-kicker">Spelling Feedback</span>
-            <p class="detailed-feedback-title">Spot the mismatched letters, then retype the full word.</p>
+            <p class="detailed-feedback-title">See exactly where the answer broke, then retype the full word.</p>
           </div>
-          <span class="detailed-feedback-caption">Compare each letter before continuing.</span>
+          <div class="detailed-feedback-meta">
+            <span class="detailed-feedback-mode">${escapeHtml(getTypingFeedbackModeLabel(currentQuestion?.type))}</span>
+            <span class="detailed-feedback-caption">${issueCount > 0 ? issueLabel : 'Check the full spelling before continuing.'}</span>
+          </div>
         </div>
 
         <div class="detailed-feedback-summary">${summaryItems}</div>
 
-        <div class="detailed-answer-section">
-          <div class="detailed-answer-box detailed-answer-box-user">
-            <span class="detailed-answer-label">You typed</span>
-            <span class="detailed-user-answer">${escapeHtml(submittedAnswer || '—')}</span>
+        <div class="detailed-feedback-main">
+          <div class="detailed-answer-section">
+            <div class="detailed-answer-box detailed-answer-box-user">
+              <span class="detailed-answer-label">You typed</span>
+              <span class="detailed-user-answer">${escapeHtml(submittedAnswer || 'No answer')}</span>
+            </div>
+            <div class="detailed-answer-box detailed-answer-box-expected">
+              <span class="detailed-answer-label">Correct word</span>
+              <span class="detailed-expected-answer">${escapeHtml(correctAnswer || '—')}</span>
+            </div>
           </div>
-          <div class="detailed-answer-box detailed-answer-box-expected">
-            <span class="detailed-answer-label">Correct word</span>
-            <span class="detailed-expected-answer">${escapeHtml(correctAnswer || '—')}</span>
+
+          <div class="detailed-letter-comparison">
+            <div class="detailed-comparison-header">
+              <span class="detailed-comparison-label">Letter by letter</span>
+              <span class="detailed-comparison-caption">Green = correct, orange = wrong, purple = missing, gray = extra.</span>
+            </div>
+            <div class="detailed-comparison-display">${comparison.html}</div>
           </div>
         </div>
 
-        <div class="detailed-letter-comparison">
-          <div class="detailed-comparison-header">
-            <span class="detailed-comparison-label">Letter by letter</span>
-            <span class="detailed-comparison-caption">Green matches, warm colors mark issues.</span>
-          </div>
-          <div class="detailed-comparison-display">${comparison.html}</div>
+        <div class="detailed-feedback-legend">
+          <span class="detailed-legend-item correct"><span class="detailed-legend-swatch"></span>Match</span>
+          <span class="detailed-legend-item incorrect"><span class="detailed-legend-swatch"></span>Wrong letter</span>
+          <span class="detailed-legend-item missing"><span class="detailed-legend-swatch"></span>Missing letter</span>
+          <span class="detailed-legend-item extra"><span class="detailed-legend-swatch"></span>Extra letter</span>
         </div>
       </div>
     `;
@@ -3734,10 +3783,18 @@
   }
   
   function createFeedbackSummaryItem(type, count, label) {
+    const notes = {
+      correct: 'Matched',
+      incorrect: 'Wrong spot',
+      missing: 'Need add',
+      extra: 'Remove',
+    };
+
     return `
       <span class="detailed-summary-item ${type}">
+        <span class="detailed-summary-label">${escapeHtml(label)}</span>
         <strong>${count}</strong>
-        <span>${escapeHtml(label)}</span>
+        <span class="detailed-summary-note">${escapeHtml(notes[type] || '')}</span>
       </span>
     `;
   }
@@ -4617,12 +4674,7 @@
     // Update definitions display for typing mode
     const cardDefsEl = document.getElementById('cardDefs');
     if (cardDefsEl && currentQuestion.type === 'type') {
-      cardDefsEl.innerHTML = updatedCard.definitions.map(def =>
-        `<div class="definition-item">
-          <strong>${def.english_definition}</strong><br>
-          <span class="vietnamese-def">${def.vietnamese_definition}</span>
-        </div>`
-      ).join('');
+      cardDefsEl.innerHTML = renderStudyDefinitions(updatedCard.definitions);
     }
 
     // Update audio button if audio URL changed
