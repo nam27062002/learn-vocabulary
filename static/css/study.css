@@ -2253,6 +2253,10 @@
     display: none;
   }
 
+  .study-area.active .flashcard-container.dictation-layout.dictation-feedback-state .card-header {
+    display: block;
+  }
+
   .study-area.active .flashcard-container.dictation-layout .card-metadata-strip {
     margin-bottom: 0;
     padding: 8px 12px;
