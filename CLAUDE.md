@@ -50,6 +50,17 @@ GOOGLE_OAUTH_CLIENT_ID=
 GOOGLE_OAUTH_CLIENT_SECRET=
 ```
 
+Optional image generation overrides:
+
+```
+GEMINI_API_KEY=
+GEMINI_IMAGE_MODEL=gemini-2.5-flash-image
+GEMINI_IMAGE_URL=https://generativelanguage.googleapis.com/v1beta/openai/images/generations
+GEMINI_IMAGE_TIMEOUT=60
+IMAGE_MODEL=gpt-image-1
+LLM_IMAGE_TIMEOUT=60
+```
+
 ## Architecture Overview
 
 ### Apps

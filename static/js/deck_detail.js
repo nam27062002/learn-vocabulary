@@ -1434,6 +1434,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   async function fetchMissingImagesForDeck() {
     const fetchBtn = document.getElementById("fetch-missing-images-btn");
+    const maxConcurrentRequests = 3;
 
     const cardIds = [
       ...document.querySelectorAll("[data-card-id][data-has-image='false']"),
@@ -1474,51 +1475,126 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let generated = 0;
     let failed = 0;
+    let completed = 0;
+    let nextCardIndex = 0;
+    const enginesUsed = new Set();
+    let fallbackCount = 0;
 
-    try {
-      for (let i = 0; i < cardIds.length; i++) {
-        progressFill.style.width = `${(i / cardIds.length) * 100}%`;
-        header.textContent = `Generating images... ${i}/${cardIds.length}`;
+    const getEngineLabel = (data) => {
+      if (!data) {
+        return "unknown model";
+      }
 
-        try {
-          const res = await fetch("/api/ai/save-generated-image/", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": csrfToken,
-            },
-            body: JSON.stringify({ flashcard_id: cardIds[i] }),
-          });
-          if (!res.ok) {
-            console.error(`Image generation failed for card ${cardIds[i]}: HTTP ${res.status}`);
-            failed++;
-            currentWordEl.textContent = `✗ failed (${res.status})`;
-          } else {
-            const data = await res.json();
+      return data.engine_label || data.model_label || data.model || "unknown model";
+    };
 
-            if (data.success) {
-              generated++;
-              currentWordEl.textContent = `✓ ${data.word}`;
-            } else {
-              failed++;
-              currentWordEl.textContent = `✗ failed`;
-            }
-          }
-        } catch {
-          failed++;
-          currentWordEl.textContent = `✗ error`;
+    const buildStatusLabel = (data, word) => {
+      const engineLabel = getEngineLabel(data);
+      const wordLabel = word || "image";
+
+      if (data?.fallback_used && data?.fallback_from) {
+        return `${wordLabel} (fallback from ${data.fallback_from} to ${engineLabel})`;
+      }
+
+      if (data?.source === "cache") {
+        return `${wordLabel} (${engineLabel}, cache)`;
+      }
+
+      return `${wordLabel} (${engineLabel})`;
+    };
+
+    const updateProgress = (statusText) => {
+      progressFill.style.width = `${(completed / cardIds.length) * 100}%`;
+      header.textContent = `Generating images... ${completed}/${cardIds.length}`;
+
+      if (statusText) {
+        currentWordEl.textContent = statusText;
+      }
+    };
+
+    const generateImageForCard = async (cardId) => {
+      try {
+        const res = await fetch("/api/ai/save-generated-image/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrfToken,
+          },
+          body: JSON.stringify({ flashcard_id: cardId }),
+        });
+
+        if (!res.ok) {
+          console.error(
+            `Image generation failed for card ${cardId}: HTTP ${res.status}`
+          );
+          return { success: false, statusText: `✗ failed (${res.status})` };
         }
 
-        progressFill.style.width = `${((i + 1) / cardIds.length) * 100}%`;
-        header.textContent = `Generating images... ${i + 1}/${cardIds.length}`;
+        const data = await res.json();
+        if (!data.success) {
+          return {
+            success: false,
+            statusText: `✗ ${buildStatusLabel(data, data.word || "failed")}`,
+          };
+        }
+
+        enginesUsed.add(getEngineLabel(data));
+
+        if (data.fallback_used) {
+          fallbackCount += 1;
+        }
+
+        return {
+          success: true,
+          statusText: `✓ ${buildStatusLabel(data, data.word)}`,
+        };
+      } catch {
+        return { success: false, statusText: "✗ error" };
       }
+    };
+
+    const runWorker = async () => {
+      while (nextCardIndex < cardIds.length) {
+        const currentIndex = nextCardIndex;
+        nextCardIndex += 1;
+        const cardId = cardIds[currentIndex];
+
+        currentWordEl.textContent = `Generating ${currentIndex + 1}/${cardIds.length}...`;
+
+        const result = await generateImageForCard(cardId);
+
+        if (result.success) {
+          generated += 1;
+        } else {
+          failed += 1;
+        }
+
+        completed += 1;
+        updateProgress(result.statusText);
+      }
+    };
+
+    try {
+      updateProgress(`Starting ${Math.min(maxConcurrentRequests, cardIds.length)} parallel requests...`);
+
+      await Promise.all(
+        Array.from(
+          { length: Math.min(maxConcurrentRequests, cardIds.length) },
+          () => runWorker()
+        )
+      );
 
       header.textContent = "Image generation complete";
       currentWordEl.textContent = `Generated: ${generated} / Failed: ${failed}`;
       progressFill.style.width = "100%";
 
       if (generated > 0) {
-        Notify.success(`${generated} images generated!`);
+        const engineSummary = Array.from(enginesUsed).join(", ");
+        Notify.success(
+          engineSummary
+            ? `${generated} images generated using ${engineSummary}${fallbackCount ? `; fallback used ${fallbackCount} times` : ""}!`
+            : `${generated} images generated!`
+        );
         setTimeout(() => window.location.reload(), 2000);
       } else {
         Notify.info("No images could be generated");

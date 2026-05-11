@@ -2583,11 +2583,11 @@ def api_generate_word_image(request):
     if not word:
         return JsonResponse({'success': False, 'error': 'No word provided'}, status=400)
 
-    from .image_service import generate_word_image
-    b64_data = generate_word_image(word, definition)
+    from .image_service import generate_word_image_result
+    image_result = generate_word_image_result(word, definition)
 
-    if b64_data:
-        return JsonResponse({'success': True, 'image_b64': b64_data})
+    if image_result:
+        return JsonResponse({'success': True, **image_result})
     else:
         return JsonResponse({'success': False, 'error': 'Image generation failed'}, status=500)
 
@@ -2597,7 +2597,7 @@ def api_generate_word_image(request):
 def api_save_generated_image(request):
     """Generate an AI image for a flashcard and save it as a local file."""
     import base64
-    from .image_service import generate_word_image
+    from .image_service import generate_word_image_result
     try:
         data = json.loads(request.body)
         card_id = data.get('flashcard_id')
@@ -2612,15 +2612,15 @@ def api_save_generated_image(request):
         first_def = card.definitions.first()
         definition = first_def.english_definition if first_def else ''
 
-        b64 = generate_word_image(card.word, definition)
-        if not b64:
+        image_result = generate_word_image_result(card.word, definition)
+        if not image_result:
             return JsonResponse({'success': False, 'error': 'Image generation failed'})
 
-        image_bytes = base64.b64decode(b64)
+        image_bytes = base64.b64decode(image_result['image_b64'])
         filename = f'{card.word}.png'
         card.image.save(filename, ContentFile(image_bytes), save=True)
 
-        return JsonResponse({'success': True, 'word': card.word})
+        return JsonResponse({'success': True, 'word': card.word, **image_result})
 
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
