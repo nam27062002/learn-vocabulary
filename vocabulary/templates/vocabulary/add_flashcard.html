@@ -188,6 +188,10 @@
             <input type="file" accept="image/*" id="fileInput1" />
             <img class="preview" id="imgPreview1" style="display:none;" />
             <button type="button" id="deleteImg1" class="delete-img-btn">&times;</button>
+                        <div class="image-generation-overlay" aria-hidden="true">
+                            <span class="image-generation-spinner"></span>
+                            <span class="image-generation-text">Generating image...</span>
+                        </div>
             <div class="image-upload-content">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                 <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
@@ -195,7 +199,7 @@
               <span>{{ manual_texts.upload_image }}</span>
             </div>
           </div>
-          <button type="button" class="afc-img-gen-btn" id="img-gen-btn1">{{ manual_texts.generate_ai_image_btn }}</button>
+                    <button type="button" class="afc-img-gen-btn" id="img-gen-btn1" data-default-label="{{ manual_texts.generate_ai_image_btn }}">{{ manual_texts.generate_ai_image_btn }}</button>
         </div>
       </div>
     </div>
@@ -235,6 +239,11 @@ document.addEventListener('DOMContentLoaded', function() {
     let cardCount = 1;
     let wordApiCache = {};
     let autoImageEnabled = false;
+    const IMAGE_GEN_BUTTON_LABEL = '{{ manual_texts.generate_ai_image_btn|escapejs }}';
+    const IMAGE_GEN_LOADING_LABEL = 'Generating...';
+    const IMAGE_GEN_QUEUED_LABEL = 'Queued...';
+    const IMAGE_GEN_OVERLAY_LABEL = 'Generating image...';
+    const IMAGE_GEN_OVERLAY_QUEUED_LABEL = 'Queued for generation...';
 
     const CEFR_DESCRIPTIONS = {
         'A1': 'A1 - Beginner',
@@ -465,14 +474,54 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function setImageGenerationState(card, state = 'idle') {
+        const imageUpload = card.querySelector('.image-upload');
+        const generateBtn = card.querySelector('.afc-img-gen-btn');
+        const overlay = card.querySelector('.image-generation-overlay');
+        const overlayText = card.querySelector('.image-generation-text');
+
+        if (!imageUpload || !generateBtn) return;
+
+        imageUpload.classList.remove('is-pending', 'generating', 'queued');
+        imageUpload.removeAttribute('aria-busy');
+
+        if (overlay) {
+            overlay.setAttribute('aria-hidden', state === 'idle' ? 'true' : 'false');
+        }
+
+        if (state === 'generating' || state === 'queued') {
+            imageUpload.classList.add('is-pending', state);
+            imageUpload.setAttribute('aria-busy', 'true');
+        }
+
+        if (overlayText) {
+            overlayText.textContent = state === 'queued'
+                ? IMAGE_GEN_OVERLAY_QUEUED_LABEL
+                : IMAGE_GEN_OVERLAY_LABEL;
+        }
+
+        generateBtn.disabled = state === 'generating' || state === 'queued';
+        generateBtn.textContent = state === 'queued'
+            ? IMAGE_GEN_QUEUED_LABEL
+            : state === 'generating'
+                ? IMAGE_GEN_LOADING_LABEL
+                : (generateBtn.dataset.defaultLabel || IMAGE_GEN_BUTTON_LABEL);
+    }
+
     function generateImageForCard(word, definition, card) {
-        if (!word || !generateImageUrl) return Promise.resolve();
+        if (!word || !generateImageUrl) {
+            setImageGenerationState(card, 'idle');
+            return Promise.resolve();
+        }
         const lowerWord = word.toLowerCase();
 
         if (imageGenCache[lowerWord]) {
             setCardImageFromBase64(card, imageGenCache[lowerWord]);
+            setImageGenerationState(card, 'idle');
             return Promise.resolve();
         }
+
+        setImageGenerationState(card, imageGenRunning < IMAGE_GEN_MAX_CONCURRENT ? 'generating' : 'queued');
 
         return new Promise(resolve => {
             imageGenQueue.push({ word, definition, card, resolve });
@@ -481,8 +530,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function _doGenerateImage(word, definition, card) {
-        const imageUpload = card.querySelector('.image-upload');
-        imageUpload.classList.add('generating');
+        setImageGenerationState(card, 'generating');
 
         try {
             const params = new URLSearchParams({ word, definition: definition || '' });
@@ -497,7 +545,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (err) {
             console.error('Image generation error for', word, ':', err);
         } finally {
-            imageUpload.classList.remove('generating');
+            setImageGenerationState(card, 'idle');
         }
     }
 
@@ -685,6 +733,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function resetCardUI(card) {
         card._generatedImageFile = null;
+        setImageGenerationState(card, 'idle');
         const phoneticInput = card.querySelector(".phonetic-input");
         if (phoneticInput) phoneticInput.value = "";
 
@@ -1125,6 +1174,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const suggestionsList = card.querySelector('.suggestions-list');
         const autoAudio = card.querySelector('.auto-audio');
         const deleteBtn = card.querySelector('.delete-card-btn');
+        const generateImgBtn = card.querySelector('.afc-img-gen-btn');
         
         // Real-time duplicate checking when user types
         termInput.addEventListener('input', () => {
@@ -1164,6 +1214,24 @@ document.addEventListener('DOMContentLoaded', function() {
             deleteBtn.addEventListener('click', () => deleteCard(card));
         }
 
+        if (generateImgBtn) {
+            if (!generateImgBtn.dataset.defaultLabel) {
+                generateImgBtn.dataset.defaultLabel = generateImgBtn.textContent.trim() || IMAGE_GEN_BUTTON_LABEL;
+            }
+
+            generateImgBtn.addEventListener('click', () => {
+                const termValue = termInput.value.trim();
+                const definitionValue = card.querySelector('.definition-textarea')?.value.trim() || '';
+
+                if (!termValue) {
+                    termInput.focus();
+                    return;
+                }
+
+                generateImageForCard(termValue, definitionValue, card);
+            });
+        }
+
         // Image upload logic
         const imageUpload = card.querySelector('.image-upload');
         const fileInput = card.querySelector('input[type="file"]');
@@ -1181,6 +1249,7 @@ document.addEventListener('DOMContentLoaded', function() {
             fileInput.addEventListener('change', () => {
                 const file = fileInput.files[0];
                 if (file) {
+                    setImageGenerationState(card, 'idle');
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         imgPreview.src = e.target.result;
@@ -1198,6 +1267,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 imgPreview.style.display = 'none';
                 deleteImgBtn.style.display = 'none';
                 card._generatedImageFile = null;
+                setImageGenerationState(card, 'idle');
             });
         }
         
@@ -1220,6 +1290,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Initial validation when card is initialized
+        setImageGenerationState(card, 'idle');
         validateCard(card);
     }
     
