@@ -1478,7 +1478,6 @@ document.addEventListener("DOMContentLoaded", function () {
     let completed = 0;
     let nextCardIndex = 0;
     const enginesUsed = new Set();
-    let fallbackCount = 0;
 
     const getEngineLabel = (data) => {
       if (!data) {
@@ -1491,10 +1490,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const buildStatusLabel = (data, word) => {
       const engineLabel = getEngineLabel(data);
       const wordLabel = word || "image";
-
-      if (data?.fallback_used && data?.fallback_from) {
-        return `${wordLabel} (fallback from ${data.fallback_from} to ${engineLabel})`;
-      }
 
       if (data?.source === "cache") {
         return `${wordLabel} (${engineLabel}, cache)`;
@@ -1539,10 +1534,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         enginesUsed.add(getEngineLabel(data));
-
-        if (data.fallback_used) {
-          fallbackCount += 1;
-        }
 
         return {
           success: true,
@@ -1592,7 +1583,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const engineSummary = Array.from(enginesUsed).join(", ");
         Notify.success(
           engineSummary
-            ? `${generated} images generated using ${engineSummary}${fallbackCount ? `; fallback used ${fallbackCount} times` : ""}!`
+            ? `${generated} images generated using ${engineSummary}!`
             : `${generated} images generated!`
         );
         setTimeout(() => window.location.reload(), 2000);

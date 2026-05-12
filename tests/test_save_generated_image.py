@@ -26,12 +26,12 @@ class SaveGeneratedImageTest(TestCase):
         fake_b64 = base64.b64encode(b'fake-png-data').decode()
         fake_result = {
             'image_b64': fake_b64,
-            'provider': 'gemini',
-            'model': 'gemini-2.5-flash-image',
+            'provider': 'litellm',
+            'model': 'gpt-image-1',
             'source': 'generated',
-            'provider_label': 'Gemini',
-            'model_label': 'gemini-2.5-flash-image',
-            'engine_label': 'Gemini / gemini-2.5-flash-image',
+            'provider_label': 'LiteLLM',
+            'model_label': 'gpt-image-1',
+            'engine_label': 'LiteLLM / gpt-image-1',
         }
         with patch('vocabulary.image_service.generate_word_image_result', return_value=fake_result):
             response = self.client.post(
@@ -43,7 +43,7 @@ class SaveGeneratedImageTest(TestCase):
         data = response.json()
         self.assertTrue(data['success'])
         self.assertEqual(data['word'], 'resilient')
-        self.assertEqual(data['model'], 'gemini-2.5-flash-image')
+        self.assertEqual(data['model'], 'gpt-image-1')
         self.card.refresh_from_db()
         self.assertTrue(bool(self.card.image))
 
@@ -70,33 +70,6 @@ class SaveGeneratedImageTest(TestCase):
         data = response.json()
         self.assertFalse(data['success'])
         self.assertIn('error', data)
-
-    def test_returns_fallback_metadata_when_provider_switches(self):
-        """Endpoint exposes fallback metadata so the frontend can explain provider switches."""
-        fake_b64 = base64.b64encode(b'fake-png-data').decode()
-        fake_result = {
-            'image_b64': fake_b64,
-            'provider': 'fallback_provider',
-            'model': 'gpt-image-1',
-            'source': 'generated',
-            'provider_label': 'Fallback Provider',
-            'model_label': 'gpt-image-1',
-            'engine_label': 'Fallback Provider / gpt-image-1',
-            'fallback_from': 'gemini',
-            'fallback_used': True,
-        }
-        with patch('vocabulary.image_service.generate_word_image_result', return_value=fake_result):
-            response = self.client.post(
-                '/api/ai/save-generated-image/',
-                data=json.dumps({'flashcard_id': self.card.id}),
-                content_type='application/json',
-            )
-
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertTrue(data['success'])
-        self.assertTrue(data['fallback_used'])
-        self.assertEqual(data['fallback_from'], 'gemini')
 
     def test_requires_post_method(self):
         """Endpoint rejects GET requests."""

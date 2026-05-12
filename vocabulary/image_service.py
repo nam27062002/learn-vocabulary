@@ -7,14 +7,8 @@ from django.core.cache import cache
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
-def _build_result(
-    image_b64: str,
-    provider: str,
-    model: str,
-    source: str,
-    fallback_from: str | None = None,
-) -> dict:
-    provider_label = provider.replace('_', ' ').title()
+def _build_result(image_b64: str, provider: str, model: str, source: str) -> dict:
+    provider_label = 'LiteLLM' if provider == 'litellm' else provider.replace('_', ' ').title()
     model_label = model or 'unknown-model'
     return {
         'image_b64': image_b64,
@@ -24,8 +18,6 @@ def _build_result(
         'provider_label': provider_label,
         'model_label': model_label,
         'engine_label': f'{provider_label} / {model_label}',
-        'fallback_from': fallback_from,
-        'fallback_used': bool(fallback_from),
     }
 
 
@@ -92,21 +84,9 @@ def _generate_with_openai_compatible_api(
     return _build_result(b64, provider, model, 'generated')
 
 
-def _generate_with_gemini(prompt: str) -> dict | None:
+def _generate_with_llm_provider(prompt: str) -> dict | None:
     return _generate_with_openai_compatible_api(
-        provider='gemini',
-        url=getattr(settings, 'GEMINI_IMAGE_URL', ''),
-        model=getattr(settings, 'GEMINI_IMAGE_MODEL', ''),
-        api_key=getattr(settings, 'GEMINI_API_KEY', ''),
-        prompt=prompt,
-        timeout=getattr(settings, 'GEMINI_IMAGE_TIMEOUT', getattr(settings, 'LLM_IMAGE_TIMEOUT', 60)),
-        verify=True,
-    )
-
-
-def _generate_with_fallback_provider(prompt: str, fallback_from: str | None = None) -> dict | None:
-    result = _generate_with_openai_compatible_api(
-        provider='fallback_provider',
+        provider='litellm',
         url=settings.LLM_IMAGE_URL,
         model=settings.LLM_IMAGE_MODEL,
         api_key=settings.LLM_API_KEY,
@@ -115,23 +95,11 @@ def _generate_with_fallback_provider(prompt: str, fallback_from: str | None = No
         verify=False,
     )
 
-    if not result:
-        return None
-
-    if not fallback_from:
-        return result
-
-    return {
-        **result,
-        'fallback_from': fallback_from,
-        'fallback_used': True,
-    }
-
 
 def generate_word_image_result(word: str, definition: str = '') -> dict | None:
     """
-    Generate an illustrative image for a vocabulary word using Gemini first,
-    then fall back to the existing image generation provider.
+    Generate an illustrative image for a vocabulary word using the existing
+    LiteLLM-compatible image generation provider.
     Returns image data plus provider metadata, or None on failure.
     Results are cached for 7 days.
     """
@@ -142,7 +110,6 @@ def generate_word_image_result(word: str, definition: str = '') -> dict | None:
             return {
                 **cached,
                 'source': 'cache',
-                'fallback_used': bool(cached.get('fallback_from')),
             }
 
         if isinstance(cached, str):
@@ -151,21 +118,7 @@ def generate_word_image_result(word: str, definition: str = '') -> dict | None:
     prompt = _build_prompt(word, definition)
 
     try:
-        result = None
-
-        gemini_failed = False
-
-        try:
-            result = _generate_with_gemini(prompt)
-        except Exception as exc:
-            gemini_failed = True
-            print(f"[WARNING] Gemini image generation failed for '{word}': {exc}")
-
-        if not result:
-            result = _generate_with_fallback_provider(
-                prompt,
-                fallback_from='gemini' if gemini_failed or getattr(settings, 'GEMINI_API_KEY', '') else None,
-            )
+        result = _generate_with_llm_provider(prompt)
 
         if not result:
             return None

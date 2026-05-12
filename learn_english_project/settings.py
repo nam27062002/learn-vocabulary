@@ -230,14 +230,6 @@ LLM_API_KEY = config('ANTHROPIC_AUTH_TOKEN', default='')
 LLM_TIMEOUT = config('LLM_TIMEOUT', default=120, cast=int)
 
 # Image generation configuration
-GEMINI_IMAGE_URL = config(
-    'GEMINI_IMAGE_URL',
-    default='https://generativelanguage.googleapis.com/v1beta/openai/images/generations',
-)
-GEMINI_IMAGE_MODEL = config('GEMINI_IMAGE_MODEL', default='gemini-2.5-flash-image')
-GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
-GEMINI_IMAGE_TIMEOUT = config('GEMINI_IMAGE_TIMEOUT', default=60, cast=int)
-
 LLM_IMAGE_URL = _LLM_BASE_URL.rstrip('/') + '/v1/images/generations'
 LLM_IMAGE_MODEL = config('IMAGE_MODEL', default='gpt-image-1')
 LLM_IMAGE_TIMEOUT = config('LLM_IMAGE_TIMEOUT', default=60, cast=int)
