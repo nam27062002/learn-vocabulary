@@ -1,14 +1,11 @@
-import base64
+import json
 import requests
-import urllib3
 from django.conf import settings
 from django.core.cache import cache
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
 
 def _build_result(image_b64: str, provider: str, model: str, source: str) -> dict:
-    provider_label = 'LiteLLM' if provider == 'litellm' else provider.replace('_', ' ').title()
+    provider_label = 'Stable Diffusion' if provider == 'sd_webui' else provider.replace('_', ' ').title()
     model_label = model or 'unknown-model'
     return {
         'image_b64': image_b64,
@@ -33,73 +30,43 @@ def _build_prompt(word: str, definition: str = '') -> str:
     )
 
 
-def _extract_b64_image(data: dict, verify: bool) -> str | None:
-    image_items = data.get('data') or []
-    if not image_items:
-        return None
-
-    image_data = image_items[0]
-    if 'b64_json' in image_data:
-        return image_data['b64_json']
-
-    if 'url' in image_data:
-        img_response = requests.get(image_data['url'], timeout=30, verify=verify)
-        img_response.raise_for_status()
-        return base64.b64encode(img_response.content).decode('utf-8')
-
-    return None
-
-
-def _generate_with_openai_compatible_api(
-    *,
-    provider: str,
-    url: str,
-    model: str,
-    api_key: str,
-    prompt: str,
-    timeout: int,
-    verify: bool,
-) -> dict | None:
-    if not url or not model or not api_key:
+def _generate_with_sd_webui(prompt: str) -> dict | None:
+    url = settings.SD_WEBUI_URL
+    if not url:
         return None
 
     response = requests.post(
-        url,
+        f'{url.rstrip("/")}/sdapi/v1/txt2img',
         json={
-            'model': model,
             'prompt': prompt,
-            'n': 1,
-            'size': '1024x1024',
-            'response_format': 'b64_json',
+            'negative_prompt': 'text, letters, watermark, signature',
+            'steps': 25,
+            'width': 1024,
+            'height': 1024,
         },
-        headers={'Authorization': f'Bearer {api_key}'},
-        timeout=timeout,
-        verify=verify,
+        timeout=settings.LLM_IMAGE_TIMEOUT,
     )
     response.raise_for_status()
-    b64 = _extract_b64_image(response.json(), verify=verify)
-    if not b64:
+    data = response.json()
+
+    images = data.get('images') or []
+    if not images:
         return None
 
-    return _build_result(b64, provider, model, 'generated')
+    model = 'stable-diffusion'
+    try:
+        info = json.loads(data.get('info', '{}'))
+        model = info.get('sd_model_name') or model
+    except (ValueError, TypeError):
+        pass
 
-
-def _generate_with_llm_provider(prompt: str) -> dict | None:
-    return _generate_with_openai_compatible_api(
-        provider='litellm',
-        url=settings.LLM_IMAGE_URL,
-        model=settings.LLM_IMAGE_MODEL,
-        api_key=settings.LLM_API_KEY,
-        prompt=prompt,
-        timeout=settings.LLM_IMAGE_TIMEOUT,
-        verify=False,
-    )
+    return _build_result(images[0], 'sd_webui', model, 'generated')
 
 
 def generate_word_image_result(word: str, definition: str = '') -> dict | None:
     """
-    Generate an illustrative image for a vocabulary word using the existing
-    LiteLLM-compatible image generation provider.
+    Generate an illustrative image for a vocabulary word using a local
+    Stable Diffusion WebUI (AUTOMATIC1111) instance.
     Returns image data plus provider metadata, or None on failure.
     Results are cached for 7 days.
     """
@@ -118,7 +85,7 @@ def generate_word_image_result(word: str, definition: str = '') -> dict | None:
     prompt = _build_prompt(word, definition)
 
     try:
-        result = _generate_with_llm_provider(prompt)
+        result = _generate_with_sd_webui(prompt)
 
         if not result:
             return None

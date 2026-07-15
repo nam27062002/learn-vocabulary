@@ -50,12 +50,28 @@ GOOGLE_OAUTH_CLIENT_ID=
 GOOGLE_OAUTH_CLIENT_SECRET=
 ```
 
-Optional image generation overrides:
+Databricks LLM configuration (replaces the old LiteLLM proxy):
 
 ```
-IMAGE_MODEL=gpt-image-1
-LLM_IMAGE_TIMEOUT=60
+DATABRICKS_HOST=
+DATABRICKS_TOKEN=
+DATABRICKS_MODEL_ENDPOINT=databricks-claude-haiku-4-5
 ```
+
+`DATABRICKS_MODEL_ENDPOINT` must be the name of a serving endpoint in the
+Databricks workspace (used directly in the URL path, not the request body).
+
+Image generation uses a local Stable Diffusion WebUI (AUTOMATIC1111)
+instance instead of Databricks, which has no image-generation endpoint:
+
+```
+SD_WEBUI_URL=http://127.0.0.1:7860
+```
+
+Requires AUTOMATIC1111's `stable-diffusion-webui` running locally with the
+`--api` flag (e.g. `webui.bat --api` / `webui.sh --api`). If the WebUI isn't
+running, `generate_word_image_result()` returns `None` gracefully and the UI
+shows "Image generation failed".
 
 ## Architecture Overview
 

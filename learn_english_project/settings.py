@@ -222,16 +222,19 @@ CACHES = {
     }
 }
 
-# LLM configuration (LiteLLM proxy)
-_LLM_BASE_URL = config('ANTHROPIC_BASE_URL', default='https://litellm.ubisoft.org')
-LLM_URL = _LLM_BASE_URL.rstrip('/') + '/v1/chat/completions'
-LLM_MODEL = config('MODEL', default='claude-haiku-4-5-20251001')
-LLM_API_KEY = config('ANTHROPIC_AUTH_TOKEN', default='')
+# LLM configuration (Databricks Model Serving)
+_DATABRICKS_HOST = config('DATABRICKS_HOST', default='')
+_DATABRICKS_ENDPOINT = config('DATABRICKS_MODEL_ENDPOINT', default='databricks-claude-haiku-4-5')
+LLM_URL = f'https://{_DATABRICKS_HOST}/serving-endpoints/{_DATABRICKS_ENDPOINT}/invocations'
+LLM_MODEL = _DATABRICKS_ENDPOINT
+LLM_API_KEY = config('DATABRICKS_TOKEN', default='')
 LLM_TIMEOUT = config('LLM_TIMEOUT', default=120, cast=int)
 
-# Image generation configuration
-LLM_IMAGE_URL = _LLM_BASE_URL.rstrip('/') + '/v1/images/generations'
-LLM_IMAGE_MODEL = config('IMAGE_MODEL', default='gpt-image-1')
+# Image generation configuration - Databricks has no image-generation
+# endpoint, so this points at a local Stable Diffusion WebUI (AUTOMATIC1111)
+# instance instead. image_service.py degrades gracefully (returns None) if
+# SD_WEBUI_URL is unreachable or unset.
+SD_WEBUI_URL = config('SD_WEBUI_URL', default='http://127.0.0.1:7860')
 LLM_IMAGE_TIMEOUT = config('LLM_IMAGE_TIMEOUT', default=60, cast=int)
 
 # Cache timeouts for different data types (in seconds)

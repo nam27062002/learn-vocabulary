@@ -26,12 +26,12 @@ class SaveGeneratedImageTest(TestCase):
         fake_b64 = base64.b64encode(b'fake-png-data').decode()
         fake_result = {
             'image_b64': fake_b64,
-            'provider': 'litellm',
-            'model': 'gpt-image-1',
+            'provider': 'sd_webui',
+            'model': 'stable-diffusion',
             'source': 'generated',
-            'provider_label': 'LiteLLM',
-            'model_label': 'gpt-image-1',
-            'engine_label': 'LiteLLM / gpt-image-1',
+            'provider_label': 'Stable Diffusion',
+            'model_label': 'stable-diffusion',
+            'engine_label': 'Stable Diffusion / stable-diffusion',
         }
         with patch('vocabulary.image_service.generate_word_image_result', return_value=fake_result):
             response = self.client.post(
@@ -43,7 +43,7 @@ class SaveGeneratedImageTest(TestCase):
         data = response.json()
         self.assertTrue(data['success'])
         self.assertEqual(data['word'], 'resilient')
-        self.assertEqual(data['model'], 'gpt-image-1')
+        self.assertEqual(data['model'], 'stable-diffusion')
         self.card.refresh_from_db()
         self.assertTrue(bool(self.card.image))
 
