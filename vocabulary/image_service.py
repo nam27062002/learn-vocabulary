@@ -1,7 +1,14 @@
 import json
+import logging
+import time
 import requests
 from django.conf import settings
 from django.core.cache import cache
+
+logger = logging.getLogger(__name__)
+
+MAX_RETRIES = 3
+RETRY_BACKOFF_SECONDS = 5
 
 
 def _build_result(image_b64: str, provider: str, model: str, source: str) -> dict:
@@ -84,18 +91,24 @@ def generate_word_image_result(word: str, definition: str = '') -> dict | None:
 
     prompt = _build_prompt(word, definition)
 
-    try:
-        result = _generate_with_sd_webui(prompt)
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            result = _generate_with_sd_webui(prompt)
 
-        if not result:
-            return None
+            if not result:
+                logger.warning(f"No image returned for '{word}' (attempt {attempt}/{MAX_RETRIES})")
+            else:
+                cache.set(cache_key, result, timeout=settings.CACHE_TIMEOUTS.get('generated_image', 60 * 60 * 24 * 7))
+                return result
 
-        cache.set(cache_key, result, timeout=settings.CACHE_TIMEOUTS.get('generated_image', 60 * 60 * 24 * 7))
-        return result
+        except Exception as e:
+            logger.warning(f"Image generation failed for '{word}' (attempt {attempt}/{MAX_RETRIES}): {e}")
 
-    except Exception as e:
-        print(f"[WARNING] Image generation failed for '{word}': {e}")
-        return None
+        if attempt < MAX_RETRIES:
+            time.sleep(RETRY_BACKOFF_SECONDS)
+
+    logger.error(f"Image generation failed for '{word}' after {MAX_RETRIES} attempts")
+    return None
 
 
 def generate_word_image(word: str, definition: str = '') -> str | None:

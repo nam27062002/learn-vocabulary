@@ -1434,7 +1434,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   async function fetchMissingImagesForDeck() {
     const fetchBtn = document.getElementById("fetch-missing-images-btn");
-    const maxConcurrentRequests = 3;
+    // The local Stable Diffusion WebUI backend processes one generation at a
+    // time on the GPU, so concurrent requests just queue up and compete for
+    // the same timeout budget instead of running faster. Keep this at 1.
+    const maxConcurrentRequests = 1;
 
     const cardIds = [
       ...document.querySelectorAll("[data-card-id][data-has-image='false']"),
@@ -1539,7 +1542,8 @@ document.addEventListener("DOMContentLoaded", function () {
           success: true,
           statusText: `✓ ${buildStatusLabel(data, data.word)}`,
         };
-      } catch {
+      } catch (err) {
+        console.error(`Image generation request failed for card ${cardId}:`, err);
         return { success: false, statusText: "✗ error" };
       }
     };

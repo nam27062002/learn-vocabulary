@@ -235,7 +235,7 @@ LLM_TIMEOUT = config('LLM_TIMEOUT', default=120, cast=int)
 # instance instead. image_service.py degrades gracefully (returns None) if
 # SD_WEBUI_URL is unreachable or unset.
 SD_WEBUI_URL = config('SD_WEBUI_URL', default='http://127.0.0.1:7860')
-LLM_IMAGE_TIMEOUT = config('LLM_IMAGE_TIMEOUT', default=60, cast=int)
+LLM_IMAGE_TIMEOUT = config('LLM_IMAGE_TIMEOUT', default=180, cast=int)
 
 # Cache timeouts for different data types (in seconds)
 CACHE_TIMEOUTS = {

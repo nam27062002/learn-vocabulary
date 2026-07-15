@@ -1,6 +1,8 @@
 """
 Management command to generate AI images for all flashcards that don't have one.
-Uses gpt-image-1 via the LLM proxy with concurrent requests (max 3).
+Uses a local Stable Diffusion WebUI instance, which processes generations
+serially on the GPU, so concurrency > 1 just causes requests to queue up and
+compete for the same timeout budget instead of running faster.
 """
 
 import time
@@ -26,8 +28,8 @@ class Command(BaseCommand):
         parser.add_argument(
             '--concurrency',
             type=int,
-            default=3,
-            help='Max concurrent image generation requests (default: 3)',
+            default=1,
+            help='Max concurrent image generation requests (default: 1; the SD WebUI backend processes generations serially, so higher values only cause queuing/timeouts, not speedups)',
         )
         parser.add_argument(
             '--deck-id',
