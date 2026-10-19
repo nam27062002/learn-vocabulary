@@ -396,7 +396,7 @@ class EnhancedAudioManager {
 
         try {
             // Create new audio instance
-            this.currentAudio = new Audio(audioUrl);
+            this.currentAudio = new Audio(window.resolveAudioUrl(audioUrl));
 
             // Set up audio event handlers before playing
             this.currentAudio.addEventListener('ended', () => {

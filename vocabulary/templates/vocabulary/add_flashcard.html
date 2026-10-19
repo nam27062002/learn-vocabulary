@@ -1204,7 +1204,7 @@ document.addEventListener('DOMContentLoaded', function() {
             autoAudio.addEventListener('click', () => {
                 const audioUrl = autoAudio.dataset.audioUrl;
                 if (audioUrl) {
-                    new Audio(audioUrl).play();
+                    new Audio(window.resolveAudioUrl(audioUrl)).play();
                 }
             });
         }

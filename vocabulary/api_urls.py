@@ -21,6 +21,7 @@ urlpatterns = [
     path('api/get-related-image/', views.get_related_image, name='get_related_image'),
     
     # Audio APIs
+    path('api/audio-proxy/', views.api_audio_proxy, name='api_audio_proxy'),
     path('api/fetch-missing-audio/', views.api_fetch_missing_audio, name='api_fetch_missing_audio'),
     path('api/fetch-audio-for-card/', views.api_fetch_audio_for_card, name='api_fetch_audio_for_card'),
     path('api/fetch-enhanced-audio/', views.api_fetch_enhanced_audio, name='api_fetch_enhanced_audio'),

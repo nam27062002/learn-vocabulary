@@ -2031,6 +2031,112 @@ def api_update_flashcard_audio(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+@login_required
+@require_GET
+def api_audio_proxy(request):
+    """Stream external pronunciation audio through this server.
+
+    Cambridge Dictionary media rejects cross-origin browser requests
+    (403 + Cross-Origin-Resource-Policy), so audio URLs stored on
+    flashcards must be fetched server-side and re-served from our domain.
+    If Cambridge is unreachable (e.g. Cloudflare blocks the server), the
+    word is derived from the media filename and Google Translate TTS is
+    used as fallback.
+    """
+    from urllib.parse import urlparse, unquote
+    import re
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    allowed_hosts = {'dictionary.cambridge.org', 'www.dictionary.cambridge.org'}
+
+    audio_url = (request.GET.get('url') or '').strip()
+    if not audio_url:
+        return JsonResponse({'success': False, 'error': 'Missing audio URL'}, status=400)
+
+    try:
+        parsed = urlparse(audio_url)
+    except ValueError:
+        return JsonResponse({'success': False, 'error': 'Invalid audio URL'}, status=400)
+
+    if parsed.scheme not in ('http', 'https') or parsed.netloc.lower() not in allowed_hosts:
+        return JsonResponse({'success': False, 'error': 'Audio host not allowed'}, status=400)
+
+    cache_key = f"audio_proxy:{audio_url}"
+    cached = cache.get(cache_key)
+    if cached:
+        content, content_type = cached
+        response = HttpResponse(content, content_type=content_type)
+        response['Content-Disposition'] = 'inline'
+        response['Cache-Control'] = 'private, max-age=86400'
+        return response
+
+    def _fetch_cambridge():
+        upstream = requests.get(
+            audio_url,
+            headers={
+                'User-Agent': (
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                    '(KHTML, like Gecko) Chrome/120.0 Safari/537.36'
+                ),
+                'Referer': 'https://dictionary.cambridge.org/dictionary/english/',
+                'Accept': 'audio/mpeg,audio/*;q=0.9,*/*;q=0.8',
+            },
+            timeout=10,
+        )
+        upstream.raise_for_status()
+        content_type = upstream.headers.get('Content-Type', '')
+        if not content_type or not content_type.startswith('audio/'):
+            content_type = 'audio/mpeg'
+        return upstream.content, content_type
+
+    def _fetch_google_tts(word):
+        upstream = requests.get(
+            'https://translate.google.com/translate_tts',
+            params={'ie': 'UTF-8', 'q': word, 'tl': 'en', 'client': 'tw-ob'},
+            headers={
+                'User-Agent': (
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                    '(KHTML, like Gecko) Chrome/120.0 Safari/537.36'
+                ),
+                'Referer': 'https://translate.google.com/',
+            },
+            timeout=10,
+        )
+        upstream.raise_for_status()
+        return upstream.content, 'audio/mpeg'
+
+    content = None
+    content_type = 'audio/mpeg'
+
+    try:
+        content, content_type = _fetch_cambridge()
+    except requests.RequestException as e:
+        logger.warning(f"Audio proxy: Cambridge fetch failed for '{audio_url}': {e}")
+        # Derive the word from the media filename, e.g. "summarize.mp3" or
+        # "nd/word__us_1.mp3" -> "word"
+        filename = unquote(audio_url.rstrip('/').split('/')[-1])
+        word = filename.rsplit('.', 1)[0].split('__')[0]  # summarize / nd-word
+        word = re.sub(r'[^a-zA-Z0-9 -]', '', word).strip()
+        if not word:
+            return JsonResponse({'success': False, 'error': 'Failed to fetch audio'}, status=502)
+        try:
+            content, content_type = _fetch_google_tts(word)
+        except requests.RequestException as e2:
+            logger.warning(f"Audio proxy: TTS fallback failed for '{word}': {e2}")
+            return JsonResponse({'success': False, 'error': 'Failed to fetch audio'}, status=502)
+
+    if len(content) > 5_000_000:
+        return JsonResponse({'success': False, 'error': 'Audio file too large'}, status=413)
+
+    response = HttpResponse(content, content_type=content_type)
+    response['Content-Disposition'] = 'inline'
+    response['Cache-Control'] = 'private, max-age=86400'
+    cache.set(cache_key, (content, content_type), timeout=86400)
+    return response
+
+
 # Incorrect Words Review API Endpoints
 
 @login_required

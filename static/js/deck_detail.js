@@ -195,7 +195,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     try {
-      const audio = new Audio(audioUrl);
+      const audio = new Audio(window.resolveAudioUrl(audioUrl));
 
       // Add comprehensive event listeners for debugging
       audio.addEventListener('loadstart', () => {

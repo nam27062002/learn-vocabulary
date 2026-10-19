@@ -429,7 +429,7 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('click', function() {
             const audioUrl = this.getAttribute('data-audio-url');
             if (audioUrl) {
-                const audio = new Audio(audioUrl);
+                const audio = new Audio(window.resolveAudioUrl(audioUrl));
                 audio.play().catch(error => {
                     console.error('Error playing audio:', error);
                 });

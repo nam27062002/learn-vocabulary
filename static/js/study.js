@@ -1338,7 +1338,7 @@
           dictationAudio.pause();
           dictationAudio.currentTime = 0;
         }
-        dictationAudio = new Audio(q.audio_url);
+        dictationAudio = new Audio(window.resolveAudioUrl(q.audio_url));
         heroBtn.classList.add("playing");
         heroBtn.querySelector(".hero-icon").className = "fas fa-volume-up hero-icon";
         dictationAudio.play().catch((err) => console.log("Audio play failed:", err));
@@ -1734,7 +1734,7 @@
     if (audioButton && currentQuestion.audio_url) {
       audioButton.style.display = "flex";
       audioButton.onclick = () => {
-        const audio = new Audio(currentQuestion.audio_url);
+        const audio = new Audio(window.resolveAudioUrl(currentQuestion.audio_url));
         audio.play().catch((err) => console.log("Audio play failed:", err));
       };
     }
@@ -1749,7 +1749,7 @@
     // Auto-play audio after revealing answer
     if (currentQuestion.audio_url) {
       setTimeout(() => {
-        const audio = new Audio(currentQuestion.audio_url);
+        const audio = new Audio(window.resolveAudioUrl(currentQuestion.audio_url));
         audio.play().catch((err) => console.log("Auto-play failed:", err));
       }, 500); // Delay 500ms to let user see the answer first
     }
@@ -4683,7 +4683,7 @@
       if (updatedCard.audio_url) {
         audioButton.style.display = 'flex';
         audioButton.onclick = () => {
-          const audio = new Audio(updatedCard.audio_url);
+          const audio = new Audio(window.resolveAudioUrl(updatedCard.audio_url));
           audio.play().catch(e => console.log('Audio play failed:', e));
         };
       } else {

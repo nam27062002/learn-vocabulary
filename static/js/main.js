@@ -11,6 +11,21 @@ function speakText(text) {
   window.speechSynthesis.speak(utterance);
 }
 
+// Route audio from hosts that block cross-origin browser requests (e.g. Cambridge
+// Dictionary returns 403 + Cross-Origin-Resource-Policy) through the server proxy.
+window.resolveAudioUrl = function (url) {
+  if (!url) return '';
+  try {
+    const parsed = new URL(url, window.location.origin);
+    if (parsed.hostname === 'dictionary.cambridge.org' || parsed.hostname.endsWith('.dictionary.cambridge.org')) {
+      return '/api/audio-proxy/?url=' + encodeURIComponent(parsed.href);
+    }
+  } catch (e) {
+    // fall through and return original url
+  }
+  return url;
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     
     // Track all dropdown menus for mutual exclusion
